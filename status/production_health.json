@@ -9,55 +9,6 @@
       "detail": "Latest snapshot: 2026-10-24T01:16:50Z\nBlocking sources: [{\"source\": \"senate_efd\", \"reason\": \"source_blocked\"}, {\"source\": \"house_clerk\", \"reason\": \"candidate_stale\", \"candidate_cutoff_at\": \"2026-10-28T22:42:19+00:00\"}, {\"source\": \"oge\", \"reason\": \"candidate_cutoff_lag\", \"candidate_cutoff_at\": \"2026-10-24T07:42:53Z\"}, {\"source\": \"senate_efd\", \"reason\": \"candidate_cutoff_lag\", \"candidate_cutoff_at\": \"2026-10-23T07:42:53.699480+00:00\"}]",
       "key": "publication",
       "title": "[Health] Production publication missed its expected window"
-    },
-    {
-      "condition": [
-        {
-          "baseline_comparable": false,
-          "cohort": "c59674c3e02a872505ef5027aedf5a33b487af8b612dc2337cca5c608520ba2e",
-          "increased_metrics": [],
-          "new_unknown_layout_count": 0,
-          "new_unknown_layouts": [],
-          "report_count": 961,
-          "report_quarantine": {
-            "denominator": 884,
-            "numerator": 57
-          },
-          "row_quarantine": {
-            "denominator": 13508,
-            "numerator": 2181
-          },
-          "scope_id": "house_ptr",
-          "source": "house_clerk",
-          "unknown_layout_count": 0,
-          "unknown_row_report_count": 77,
-          "week": "2026-W44"
-        },
-        {
-          "baseline_comparable": false,
-          "cohort": "57912edca6b718a678134ed523b30e3fa165711a960564fef6250e172e1e74a0",
-          "increased_metrics": [],
-          "new_unknown_layout_count": 0,
-          "new_unknown_layouts": [],
-          "report_count": 425,
-          "report_quarantine": {
-            "denominator": 388,
-            "numerator": 260
-          },
-          "row_quarantine": {
-            "denominator": 0,
-            "numerator": 0
-          },
-          "scope_id": "house_annual",
-          "source": "house_clerk",
-          "unknown_layout_count": 0,
-          "unknown_row_report_count": 425,
-          "week": "2026-W44"
-        }
-      ],
-      "detail": "[{\"baseline_comparable\": false, \"cohort\": \"c59674c3e02a872505ef5027aedf5a33b487af8b612dc2337cca5c608520ba2e\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 961, \"report_quarantine\": {\"denominator\": 884, \"numerator\": 57}, \"row_quarantine\": {\"denominator\": 13508, \"numerator\": 2181}, \"scope_id\": \"house_ptr\", \"source\": \"house_clerk\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 77, \"week\": \"2026-W44\"}, {\"baseline_comparable\": false, \"cohort\": \"57912edca6b718a678134ed523b30e3fa165711a960564fef6250e172e1e74a0\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 425, \"report_quarantine\": {\"denominator\": 388, \"numerator\": 260}, \"row_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"scope_id\": \"house_annual\", \"source\": \"house_clerk\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 425, \"week\": \"2026-W44\"}]",
-      "key": "quality-summary:2026-W44",
-      "title": "[Quality] Weekly isolation summary 2026-W44"
     }
   ],
   "assembly": {
@@ -97,7 +48,7 @@
       "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-11-01T23:02:35.130616+00:00",
+  "checked_at": "2026-11-02T00:45:45.383440+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -109,11 +60,6 @@
       "action": "already_open",
       "key": "publication",
       "number": 291
-    },
-    {
-      "action": "already_open",
-      "key": "quality-summary:2026-W44",
-      "number": 301
     }
   ],
   "last_successful_publication_check_at": "2026-10-24T01:20:00Z",
