@@ -121,11 +121,11 @@
       "source": "house_clerk"
     }
   ],
-  "checked_at": "2026-11-02T09:46:01.152606+00:00",
+  "checked_at": "2026-11-02T10:16:22.326045+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "source:senate_efd",
       "number": 290
     },
@@ -150,7 +150,7 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "9d2d339f742b949821450f8e1f2d5a7f5e814509",
+  "quality_review_commit": "7119dc050bcb4b2f3f9e284010f17c4e051a357c",
   "schema_version": "production-health/v1",
   "smoke": {
     "checked_at": "2026-11-02T08:31:47.489225+00:00",
@@ -208,8 +208,8 @@
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-02T09:15:14+00:00",
-      "last_successful_collection_at": "2026-11-02T09:15:14+00:00",
+      "last_attempt_at": "2026-11-02T09:46:21+00:00",
+      "last_successful_collection_at": "2026-11-02T09:46:21+00:00",
       "qualified_cutoff_at": "2026-10-28T22:42:19+00:00",
       "stale": false,
       "status": "ok",
