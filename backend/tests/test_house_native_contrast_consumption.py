@@ -124,6 +124,36 @@ class HouseNativeContrastConsumptionTests(unittest.TestCase):
         self.assertIn('correction',done.stderr+done.stdout)
         self.assertEqual(out.read_bytes(),b'existing candidate')
 
+    def test_source_cache_upgrade_retains_original_label_through_normal_consumers(self):
+        data=self.prepare('visible_account_contrast',prior=True)
+        raw={row['extraction_id']:row for row in data['raw']['transactions']}
+        previous=deepcopy(data['base']['transactions'])
+        changed=[]
+        for row in previous:
+            if raw[row['id']].get('subholding_of'):
+                self.assertNotEqual(row['asset_name'],raw[row['id']]['asset_name'])
+                row['asset_name']=raw[row['id']]['asset_name'];changed.append(row['id'])
+        self.assertTrue(changed)
+        data['base']['transactions']=previous;self.write(data['root']/'base.json',data['base'])
+        candidate=self.candidate(data)
+        self.assertEqual(candidate['transactions'],sorted(previous,key=lambda row:row['id']))
+        scopes=build_house_status(data['evidence'],data['review'],candidate['transactions'],[])
+        self.reader(candidate,scopes)
+        encoded=(data['root']/'candidate.json').read_bytes()
+        self.candidate(data,prior_path=data['root']/'candidate.json')
+        self.assertEqual((data['root']/'candidate.json').read_bytes(),encoded)
+        for field,value in [('amount_low',1002),('owner','Self'),('ticker','FORGE'),
+                ('instrument_type','Bond'),('asset_name','Unrelated label'),('amount_low_exclusive',False)]:
+            with self.subTest(field=field):
+                altered=deepcopy(previous)
+                target=next(row for row in altered if row['id']==changed[0]);target[field]=value
+                forged=deepcopy(data['base']);forged['transactions']=altered
+                self.write(data['root']/'forged-base.json',forged)
+                self.candidate(data,prior_path=data['root']/'forged-base.json',expected=1)
+                self.assertEqual((data['root']/'candidate.json').read_bytes(),encoded)
+                with self.assertRaises((ValueError,core.HouseIndexError)):
+                    build_house_status(data['evidence'],data['review'],altered,[])
+
     def test_missing_roots_resigned_source_and_changed_pdf_do_not_overwrite_output(self):
         data=self.prepare('white');self.candidate(data)
         out=data['root']/'candidate.json';original=out.read_bytes()
