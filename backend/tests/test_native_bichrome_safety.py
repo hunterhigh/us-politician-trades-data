@@ -27,6 +27,35 @@ class BichromeSafetyTests(unittest.TestCase):
     def snapshot(self,data):
         return tuple((data['root']/name).read_bytes() for name in ('candidate.json','audit.json'))
 
+    def test_large_native_cache_keeps_original_replay_and_ordinary_cache_limit(self):
+        from unison_snapshot.oge_native_owner_scope import source_interpretation_binding
+        data=self.prepare(False,False)
+        expected=self.status_helper.status(data)
+        original=data['cache'].read_bytes()
+        def padded(raw,size):
+            data['cache'].write_bytes(raw+b' '*(size-len(raw)))
+        # Equivalent JSON serialization does not alter its canonical binding
+        # or the source-proven facts, even with a large visibility inventory.
+        padded(original,17*1024*1024)
+        self.assertEqual(self.status_helper.status(data),expected)
+        self.status_helper.reader(data,expected)
+        forged=json.loads(original);forged['native_text_partition']['row_reasons']={}
+        audit=deepcopy(data['audit'])
+        audit['reports'][0]['source_interpretation_binding']=source_interpretation_binding(forged)
+        audit['reports'][0]['native_source_partition_binding']=partition_binding(
+            forged['native_text_partition'],forged['parser_version'])
+        data['audit_path'].write_bytes(encoded(audit));padded(encoded(forged),17*1024*1024)
+        with self.assertRaises((ValueError,OgeCatalogError)):self.status_helper.status(data)
+        data['audit_path'].write_bytes(encoded(data['audit']));padded(original,65*1024*1024)
+        with self.assertRaisesRegex(ValueError,'selected source cache.*budget'):
+            self.status_helper.status(data)
+        ordinary=self.prepare(False,False,'control')
+        raw=ordinary['cache'].read_bytes()
+        self.assertEqual(json.loads(raw)['parser_version'],'oge-278t-pdf/v2')
+        ordinary['cache'].write_bytes(raw+b' '*(17*1024*1024-len(raw)))
+        with self.assertRaisesRegex(ValueError,'selected source cache.*budget'):
+            self.status_helper.status(ordinary)
+
     def candidate(self,data,generic,*,roots=True,success=True):
         if data['whitehouse']:
             return self.normal.wh_candidate(data['root'],roots=roots,success=success,

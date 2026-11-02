@@ -71,7 +71,8 @@ jobs:
     if: github.ref == 'refs/heads/code'
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Candidate and source-status checks both replay native original evidence.
+    timeout-minutes: 90
     env:
       OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
       OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}

@@ -1,6 +1,6 @@
 # v1 状态
 
-2026-10-30：v1替代原35项；历史在archive/pre-v1-docs。PR293已启用v1。发布改为各来源独立真实水位，Senate受阻不再单独阻断全部发布，边界如下。
+2026-11-02：v1替代原35项；历史在archive/pre-v1-docs。PR293已启用v1。发布改为各来源独立真实水位，Senate受阻不再单独阻断全部发布，边界如下。
 
 ## 有效决定
 
@@ -27,7 +27,7 @@ House/OGE采集及合格水位48小时；Senate宽限30天（`SENATE_MAX_STALE_D
 
 PR303–306受控原件重跑及候选投影完成：226份361行底纹误判消除，原始交易对象不变；身份恢复15/16，3电子长表修复。合格440、部分6、隔离69（52纸表失败），合格7643行、隔离444行。重试锁定三份电子长表ID+哈希，纸表同错不重跑。受控[收据](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/house_backfill_2025.json)；集成/守恒证据维护于[PR303](https://github.com/hunterhigh/us-politician-trades-data/pull/303)。
 
-人物缺口、清理、改名及冻结链路演练已验收（PR296/299/300）。PR303–306负例及2026候选字节守恒通过。新发布规则与正式快照差异见[PR307](https://github.com/hunterhigh/us-politician-trades-data/pull/307)。
+人物缺口、清理、改名及冻结链路演练已验收（PR296/299/300）。PR303–306负例及2026候选字节守恒通过。新发布规则、缓存接入与正式快照差异见[PR307](https://github.com/hunterhigh/us-politician-trades-data/pull/307)。
 
 ## 待决事项
 
