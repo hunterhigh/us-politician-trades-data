@@ -39,6 +39,7 @@ class HouseContrastWorkflowTests(unittest.TestCase):
         self.assertIn('python -m unison_snapshot house-review select', segment)
         environment={**os.environ,'PYTHONPATH':str(repo/'backend/src'),'EVIDENCE_ROOT':str(root),
             'REVIEW_ROOT':str(review),'PARSER_COMMIT':'a'*40,'BATCH_SIZE':'25',
+            'GITHUB_OUTPUT':str(root/'selector-output'),
             'LEGACY_PARSER_VERSION':LEGACY_PARSER_VERSION,'PARSER_RETRY_VERSION':PARSER_RETRY_VERSION}
 
         def selected():
@@ -46,6 +47,10 @@ class HouseContrastWorkflowTests(unittest.TestCase):
             done=subprocess.run([sys.executable,'-m','unison_snapshot','house-review','select'],cwd=root,env=environment,
                 capture_output=True,text=True,timeout=30)
             self.assertEqual(done.returncode,0,done.stderr)
+            status=json.loads(done.stdout)
+            self.assertEqual(status['selected_count'],len((root/'.local/parse-batch.txt').read_text().splitlines()))
+            outputs=dict(line.split('=',1) for line in (root/'selector-output').read_text().splitlines())
+            self.assertEqual(outputs['cache_ready'],str(status['remaining_after_batch']==0).lower())
             self.assertEqual(before,{path:path.read_bytes() for path in before})
             return (root/'.local/parse-batch.txt').read_text(encoding='utf-8').splitlines()
 
@@ -75,3 +80,9 @@ class HouseContrastWorkflowTests(unittest.TestCase):
         self.assertEqual(selected(),[str(old_metadata)])
         environment['SELECT_YEAR']='2026'
         self.assertEqual(selected(),[str(metadata)])
+        # A bounded batch cannot claim the whole parser queue is ready.
+        environment.update(SELECT_YEAR='',UNISON_HOUSE_FILING_YEAR='',BATCH_SIZE='1')
+        self.assertEqual(len(selected()),1)
+        output=dict(line.split('=',1) for line in (root/'selector-output').read_text().splitlines())
+        self.assertEqual(output['cache_ready'],'false')
+        self.assertEqual(output['remaining_after_batch'],'1')
