@@ -13,6 +13,10 @@ from ..oge import OgeCatalogError
 
 def verified_classification_corrections(*, old, current, repo, evidence_commit, review_commit,
                                         main_commit=None, previous_people=None, read_object=git_object):
+    from .whitehouse_legacy_classification import verified_legacy_classification_corrections
+    legacy = verified_legacy_classification_corrections(old=old,current=current,repo=repo,
+        evidence_commit=evidence_commit,review_commit=review_commit,main_commit=main_commit,
+        previous_people=previous_people,read_object=read_object)
     possible = [key for key in old.keys() & current.keys()
         if old[key].get('source_id') == current[key].get('source_id') == 'oge' and
         old[key].get('instrument_type') == 'Bond' and current[key].get('instrument_type') == 'Stock' and
@@ -20,7 +24,7 @@ def verified_classification_corrections(*, old, current, repo, evidence_commit, 
         ((old[key].get('owner') == 'Undisclosed' and _differences(old[key], current[key]) == ['instrument_type']) or
          (old[key].get('owner') == 'Self' and _differences(old[key], current[key]) == ['instrument_type', 'owner']))]
     if not possible:
-        return []
+        return legacy
     if repo is None or not all(re.fullmatch(r'[0-9a-f]{40}', str(ref))
                               for ref in (main_commit, evidence_commit, review_commit)):
         raise InventoryError('White House classification needs fixed main, review and evidence commits')
@@ -54,4 +58,4 @@ def verified_classification_corrections(*, old, current, repo, evidence_commit, 
                 'source_sha256': report['source_sha256'], 'changed_fields': _differences(prior, replacement)})
     except (NativeCorrectionError, OgeCatalogError, OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         raise InventoryError(f'White House classification source verification failed: {exc}') from exc
-    return result
+    return legacy + result
