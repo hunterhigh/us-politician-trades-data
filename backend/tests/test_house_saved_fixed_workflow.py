@@ -41,6 +41,8 @@ def step(name):
 def scheduled_fixed_body(name):
     condition,body=step(name)
     if condition is None:return body
+    if condition=="inputs.filing_year != '2025'":
+        return 'if [ "${UNISON_HOUSE_FILING_YEAR:-}" != "2025" ]; then\n'+body+'\nfi\n'
     ready="steps.selection.outputs.cache_ready == 'true'"
     combined="inputs.filing_year != '2025' && (inputs.materialize_saved_paper == true || "+ready+")"
     if condition==combined:
@@ -109,6 +111,7 @@ class HouseSavedFixedWorkflowTests(unittest.TestCase):
             STATE_ROOT=str(self.state),MATERIALIZE_SAVED_PAPER='true' if saved else 'false',
             HOUSE_CACHE_READY='true' if cache_ready else 'false',
             PAPER_DOCUMENT_ID=self.data['metadata']['document_id'],PARSER_COMMIT='a'*40,
+            UNISON_HOUSE_FILING_YEAR=str(self.data['metadata']['filing_year']),
             GITHUB_STEP_SUMMARY=str(self.root/'step-summary.md'),MSYS_NO_PATHCONV='1',PYTHONUTF8='1')
         env['CORRECTION_DIR']=str(getattr(self,'correction_dir',ROOT/'backend/data/corrections/house_clerk'))
         return subprocess.run([self.shell,'-c',script],cwd=self.workspace,env=env,
@@ -156,17 +159,39 @@ class HouseSavedFixedWorkflowTests(unittest.TestCase):
                 self.assertTrue(all(p.read_bytes()==raw for p,raw in before.items()))
                 self.assertTrue(all(p.read_bytes()==raw for p,raw in self.original.items()))
 
+    def test_pending_native_cache_waits_but_ready_cache_reaches_original_qualifier(self):
+        extraction=self.review/'house_clerk/extractions'/self.relative
+        value=json.loads(extraction.read_bytes());value['extraction_method']='native_electronic_table'
+        write(extraction,value)
+        before={p:p.read_bytes() for p in (extraction,self.candidate,
+            self.review/'house_clerk/qualifications'/self.relative)}
+        body=scheduled_fixed_body('Build automatic qualification artifacts')
+        pending=self.execute(body,saved=False,cache_ready=False)
+        self.assertEqual(pending.returncode,0,pending.stdout+pending.stderr)
+        calls=[json.loads(line) for line in self.calls.read_text(encoding='utf-8').splitlines()]
+        self.assertFalse(any('qualify-house-ptr' in call for call in calls))
+        ready=self.execute(body,saved=False,cache_ready=True)
+        self.assertEqual(ready.returncode,0,ready.stdout+ready.stderr)
+        calls=[json.loads(line) for line in self.calls.read_text(encoding='utf-8').splitlines()]
+        self.assertTrue(any('qualify-house-ptr' in call for call in calls))
+        self.assertEqual(extraction.read_bytes(),before[extraction])
+        self.assertEqual(self.candidate.read_bytes(),before[self.candidate])
+
     def test_pending_cache_batch_preserves_candidate_qualifications_and_waterline(self):
         qualification=self.review/'house_clerk/qualifications'/self.relative
         before={p:p.read_bytes() for p in (qualification,self.candidate,self.state/'status/house_clerk.json')}
-        names=['Refresh deterministic House identities','Build automatic qualification artifacts',
-               'Bridge bounded House paper observations into qualification',
-               'Qualify registered House paper corrections','Build qualification queue status',
+        names=['Qualify registered House paper corrections','Build qualification queue status',
                'Build and validate frontend candidate']
         body='\n'.join(scheduled_fixed_body(name) for name in names)
         done=self.execute(body,saved=False,cache_ready=False)
         self.assertEqual(done.returncode,0,done.stdout+done.stderr)
         self.assertFalse(self.calls.exists())
+        (self.workspace/'.local').mkdir()
+        (self.workspace/'.local/parse-batch.txt').write_text(str(self.evidence/'house_clerk/documents'/self.relative)+'\n',encoding='utf-8')
+        bridge=self.execute(scheduled_fixed_body('Bridge bounded House paper observations into qualification'),saved=False,cache_ready=False)
+        self.assertEqual(bridge.returncode,0,bridge.stdout+bridge.stderr)
+        calls=[json.loads(line) for line in self.calls.read_text(encoding='utf-8').splitlines()]
+        self.assertTrue(any('bridge-house-paper-batch' in call for call in calls))
         self.assertTrue(all(p.read_bytes()==raw for p,raw in before.items()))
         self.assertTrue(all(p.read_bytes()==raw for p,raw in self.original.items()))
 
