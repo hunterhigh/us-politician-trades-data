@@ -152,6 +152,16 @@ jobs:
             --failure .local/oge-collection-failure.json --successful "$SUCCESSFUL" --run-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           python -m unison_snapshot data-trees publish --workspace "$RUNNER_TEMP/oge-source" \
             --role state --message 'OGE collection outcome'
+      - name: Stage parsed OGE observations
+        if: steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success'
+        run: python -m unison_snapshot oge-review stage --review-root "$REVIEW_ROOT"
+      - name: Persist parsed OGE review before candidate verification
+        if: steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success'
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/oge-source
+          roles: review
+          message: OGE Persist parsed observations ${{ github.run_id }}
       - name: Publish normalized review data and build source candidate
         if: steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success'
         env:
@@ -176,7 +186,6 @@ jobs:
           ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
           MARKET_DISTRIBUTION_AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
         run: |
-          python -m unison_snapshot oge-review stage --review-root "$REVIEW_ROOT"
           git fetch --no-tags --depth=1 --filter=blob:none origin +main:refs/remotes/origin/main
           cutoff="$(python -c 'import json; c=json.load(open(".local/oge-catalog.json")); print(c.get("observed_at", c["metadata"]["retrieved_at"]))')"
           # BEGIN bounded saved PTR selection
