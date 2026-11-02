@@ -300,7 +300,7 @@ jobs:
           roles: review
           message: House Persist bounded parse progress ${{ github.run_id }}
       - name: Refresh deterministic House identities
-        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025' && steps.selection.outputs.cache_ready == 'true'
+        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025'
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -316,9 +316,10 @@ jobs:
               --extraction "$extraction" --members "$roster" --output "$identity"
           done
       - name: Build automatic qualification artifacts
-        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025' && steps.selection.outputs.cache_ready == 'true'
+        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025'
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          HOUSE_CACHE_READY: ${{ steps.selection.outputs.cache_ready }}
         run: |
           find "$REVIEW_ROOT/house_clerk/extractions/$UNISON_HOUSE_FILING_YEAR" -name '*.json' -type f -print0 | sort -z | \
           while IFS= read -r -d '' extraction; do
@@ -326,6 +327,10 @@ jobs:
             # The generic qualifier cannot reproduce a verified blank Owner.
             method="$(python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("extraction_method", ""))' "$extraction")"
             [ "$method" != "source_bound_paper_cells" ] || continue
+            # Paper bridging remains per batch; native replay waits for complete caches.
+            if [ "$HOUSE_CACHE_READY" != "true" ] && [ "$method" != "tesseract_legacy_checkbox" ]; then
+              continue
+            fi
             relative="${extraction#"$REVIEW_ROOT/house_clerk/extractions/"}"
             identity="$REVIEW_ROOT/house_clerk/identities/$relative"
             qualification="$REVIEW_ROOT/house_clerk/qualifications/$relative"
@@ -335,7 +340,7 @@ jobs:
               --extraction "$extraction" --identity "$identity" --evidence-root "$EVIDENCE_ROOT" --output "$qualification"
           done
       - name: Bridge bounded House paper observations into qualification
-        if: inputs.filing_year != '2025' && (inputs.materialize_saved_paper == true || steps.selection.outputs.cache_ready == 'true')
+        if: inputs.filing_year != '2025'
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -355,6 +360,13 @@ jobs:
             "${paper_args[@]}" \
             | tee .local/house-paper-bridge.json
           echo "House paper bridge: $(cat .local/house-paper-bridge.json)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Persist bounded House paper review during cache catchup
+        if: inputs.filing_year != '2025' && inputs.materialize_saved_paper != true && steps.selection.outputs.cache_ready == 'false'
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/house-source
+          roles: review
+          message: House Persist bounded paper review ${{ github.run_id }}
       - name: Qualify registered House paper corrections
         if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025' && steps.selection.outputs.cache_ready == 'true'
         env:
