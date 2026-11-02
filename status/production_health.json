@@ -6,7 +6,7 @@
       "title": "[Health] senate_efd collection blocked or stale"
     },
     {
-      "detail": "Latest snapshot: 2026-10-24T01:16:50Z\nBlocking sources: [{\"source\": \"house_clerk\", \"reason\": \"candidate_stale\", \"candidate_cutoff_at\": \"2026-10-28T22:42:19+00:00\"}]",
+      "detail": "Latest snapshot: 2026-10-24T01:16:50Z\nBlocking sources: [{\"source\": \"house_clerk\", \"reason\": \"content_integrity\", \"category\": \"snapshot_contract\", \"issue\": 316}, {\"source\": \"house_clerk\", \"reason\": \"candidate_stale\", \"candidate_cutoff_at\": \"2026-10-28T22:42:19+00:00\"}]",
       "key": "publication",
       "title": "[Health] Production publication missed its expected window"
     },
@@ -116,13 +116,35 @@
   },
   "blocking_sources": [
     {
+      "category": "snapshot_contract",
+      "issue": 316,
+      "reason": "content_integrity",
+      "source": "house_clerk"
+    },
+    {
       "candidate_cutoff_at": "2026-10-28T22:42:19+00:00",
       "reason": "candidate_stale",
       "source": "house_clerk"
     }
   ],
-  "checked_at": "2026-11-02T13:33:47.346287+00:00",
-  "integrity_failures": [],
+  "checked_at": "2026-11-02T15:58:39.904656+00:00",
+  "integrity_failures": [
+    {
+      "category": "snapshot_contract",
+      "closed": false,
+      "issue": 316,
+      "metadata": {
+        "code_commit": "dabb0f436721c9e35b439dfd98bb9772a9455885",
+        "conditions": [
+          "b294bb0ac9d0555fe67e7563d6f550738056433f3b67b8ada3df438c61b9e1bd"
+        ],
+        "overflow": false,
+        "run_id": "41455935009",
+        "schema_version": "integrity-conditions/v1"
+      },
+      "scope": "house_clerk"
+    }
+  ],
   "issue_actions": [
     {
       "action": "already_open",
@@ -130,7 +152,7 @@
       "number": 290
     },
     {
-      "action": "already_open",
+      "action": "updated_condition",
       "key": "publication",
       "number": 291
     },
@@ -150,10 +172,10 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "f9c322e56dd6be6040ac43b08837492bb0b79480",
+  "quality_review_commit": "f94550420c95d215e9bc513782c2a614f0bbeb92",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-02T11:13:41.067734+00:00",
+    "checked_at": "2026-11-02T15:58:39.361809+00:00",
     "checks": [
       {
         "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
@@ -188,7 +210,7 @@
         "status": "passed"
       }
     ],
-    "client_sha256": "b6497b67dbd8b514b3d1461f1bb4f9faa7ae0f4c425d6aaaf86c4660ffe8df96",
+    "client_sha256": "08b1bd70d75edff8bb3eed0d086fa04ea52542f00023ffc82e2ff78a4e68a7d8",
     "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
     "failed_snapshots": {},
     "last_good_commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
@@ -208,8 +230,8 @@
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-02T11:24:39+00:00",
-      "last_successful_collection_at": "2026-11-02T11:24:39+00:00",
+      "last_attempt_at": "2026-11-02T13:48:39+00:00",
+      "last_successful_collection_at": "2026-11-02T13:48:39+00:00",
       "qualified_cutoff_at": "2026-10-28T22:42:19+00:00",
       "stale": false,
       "status": "ok",
