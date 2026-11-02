@@ -207,6 +207,22 @@ class PublicSnapshotRepository:
         health = value.get("source_health", [])
         if not isinstance(health, list) or any(not isinstance(row, dict) for row in health):
             raise PublicSnapshotError("Manifest source_health must be an array")
+        if value.get('source_cutoff_policy') == 'per_source/v1':
+            seen = set()
+            for row in health:
+                source = row.get('source_id')
+                if not isinstance(source,str) or not source or source in seen:
+                    raise PublicSnapshotError('Manifest duplicates source health')
+                seen.add(source)
+                if source not in {'house_clerk','senate_efd','oge'} or row.get('status') == 'disabled':
+                    continue
+                try:
+                    if timestamp(row.get('data_cutoff_at')) > timestamp(value['data_cutoff_at']):
+                        raise ValueError('source exceeds reference cutoff')
+                    if type(row.get('stale')) is not bool or type(row.get('unavailable',False)) is not bool:
+                        raise ValueError('missing freshness flags')
+                except (TypeError,ValueError) as error:
+                    raise PublicSnapshotError('Manifest source cutoff or freshness flag is invalid') from error
         if 'known_gaps' in value:
             from .known_gaps import MAX_BYTES, REFERENCE_SCHEMA, validate, validate_reference as gaps_reference
             try:
@@ -430,4 +446,13 @@ class PublicSnapshotRepository:
         meta.update(snapshot_commit=commit, selection_scope={"mode": mode, "key": key,
                     "universe_complete": manifest.get("coverage", {}).get("universe_complete", False)})
         snapshot = {"meta": meta, **board, "source_health": manifest.get("source_health", [])}
+        if meta.get('source_cutoff_policy') == 'per_source/v1':
+            cutoffs = {row['source_id']:row.get('data_cutoff_at') for row in snapshot['source_health']}
+            try:
+                for kind in ('transactions','reported_holdings'):
+                    for row in board[kind]:
+                        if timestamp(row.get('filed_at')) > timestamp(cutoffs.get(row.get('source_id'))):
+                            raise ValueError('filing exceeds source cutoff')
+            except (TypeError,ValueError) as error:
+                raise PublicSnapshotError('Published fact exceeds its source cutoff') from error
         return SnapshotSelection(commit, snapshot)

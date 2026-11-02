@@ -54,6 +54,9 @@ on:
         description: Replay existing cover form/type/report-period OCR from source; requires saved annual scans and does not verify signature dates
         type: boolean
         default: false
+env:
+  SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
+
 permissions:
   packages: read
   contents: write

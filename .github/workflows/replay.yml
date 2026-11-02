@@ -50,6 +50,9 @@ on:
       archive_budget_seconds:
         type: string
         default: '900'
+env:
+  SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
+
 permissions:
   packages: read
   contents: write

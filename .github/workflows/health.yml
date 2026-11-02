@@ -7,6 +7,9 @@ on:
     workflows: ['Publish complete production snapshot']
     types: [completed]
     branches: [code]
+env:
+  SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
+
 permissions:
   packages: read
   contents: write

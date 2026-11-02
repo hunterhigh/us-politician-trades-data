@@ -81,6 +81,12 @@ if (approvedAmounts) {
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
   assert.equal(selectedTemplate.split(PLACEHOLDER).length, 2);
 }
+if (data.source_health.some(row => row.source_id === 'senate_efd' && row.stale)) {
+  selectedTemplate = execFileSync(process.env.PYTHON || 'python', ['-X', 'utf8', '-c',
+    'import json,sys;sys.path.insert(0,sys.argv[1]);from unison_snapshot.source_freshness import render;print(render(sys.stdin.read(),{"source_health":json.loads(sys.argv[2])}),end="")',
+    path.resolve(root, '../../backend/src'), JSON.stringify(data.source_health)],
+    { input: selectedTemplate, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+}
 writeFileSync(html, selectedTemplate.replace(PLACEHOLDER, match[1]), 'utf8');
 const browser = await chromium.launch({
   executablePath: browserExecutable(), headless: true,
@@ -97,6 +103,21 @@ try {
   assert.ok(await page.locator('#priorityGrid .priority-card').count() > 0);
   assert.ok(await page.locator('#sourceLinks').textContent());
   assert.match(await page.locator('#cutoff').textContent(), /Data cutoff/);
+  const senateHealth = data.source_health.find(row => row.source_id === 'senate_efd');
+  if (senateHealth?.stale) {
+    const footer = page.locator('footer [data-source-freshness="report"]');
+    assert.equal(await footer.count(), 1);
+    assert.ok((await footer.innerText()).includes(senateHealth.data_cutoff_at.slice(0, 10)));
+    if (senateHealth.unavailable) assert.match(await footer.innerText(), /官方站点暂时无法访问/);
+    for (const days of [30, 90]) {
+      assert.match(await page.locator(`#window-${days} [data-source-freshness]`).innerText(), /Senate 部分不完整/);
+    }
+    const person = data.people.find(p => p.disclosure_authority === 'senate_efd');
+    assert.ok(person);
+    await page.evaluate(id => openPerson(id), person.id);
+    assert.equal(await page.locator('[data-source-freshness="person"]').isVisible(), true);
+    await page.locator('#personBack').click();
+  }
 
   const cutoffDay = data.meta.data_cutoff_at.slice(0, 10);
   const windowIds = days => {

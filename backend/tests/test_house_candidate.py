@@ -30,6 +30,22 @@ TRANSACTION = {"id": "house-ptr:one", "filing_id": "20000001", "person_id": "hou
 
 
 class HouseCandidateTests(unittest.TestCase):
+    def test_current_collection_count_does_not_replace_complete_historical_inventory(self):
+        from unison_snapshot.house_candidate import _archive_count_matches
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            for year,document in ((2025,'old-one'),(2025,'old-two'),(2026,'current')):
+                sha='a'*64
+                path=root/f'house_clerk/documents/{year}/{document}/{sha}.json'
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps({'filing_year':year,'document_id':document,'sha256':sha}))
+            summary={'evidence_count':3}
+            state={'filing_year':2026,'counts':{'archived':1}}
+            self.assertTrue(_archive_count_matches(summary,state,root))
+            self.assertFalse(_archive_count_matches({'evidence_count':4},state,root))
+            self.assertFalse(_archive_count_matches(summary,{'filing_year':2026,'counts':{'archived':2}},root))
+            self.assertFalse(_archive_count_matches(summary,state,None))
+
     def fixture(self, root: Path):
         qualification = {"schema_version": "house-ptr-qualification/v1", "identity": IDENTITY,
                          "transactions": [TRANSACTION], "quarantined": []}

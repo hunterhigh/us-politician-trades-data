@@ -1,10 +1,10 @@
 # v1 状态
 
-2026-10-30：v1替代原35项；历史在archive/pre-v1-docs。PR293获确认并合入code，Senate受阻，全站停发；main保持13918a8c。
+2026-10-30：v1替代原35项；历史在archive/pre-v1-docs。PR293已启用v1。发布改为各来源独立真实水位，Senate受阻不再单独阻断全部发布，边界如下。
 
 ## 有效决定
 
-Senate不做访问诊断，仅每日一次正常采集发现恢复。允许告警Issue、内容失败回退；网络仅重试。回填限2025 House PTR。契约见[data-contract.md](data-contract.md)。
+House/OGE采集及合格水位48小时；Senate宽限30天（`SENATE_MAX_STALE_DAYS`），20天提醒一次，超过停发告警。独立真实截止时间，保留Senate旧事实，前端标明缺口；来源告警保持，正式恢复后关闭发布窗口告警。Senate仅每日正常采集，自动补齐成功以来区间，不做访问诊断。允许告警Issue、内容失败回退；网络仅重试。回填限2025 House PTR。语义见[契约](data-contract.md)。
 
 取消v1.1日期、稳定一周条件及其定时检查；连续推进，不按日期/每日节奏。两种方法未推进同一验收项即记待决、继续独立步骤；仅产品范围、付费或删除生产数据须询问。用户接受src 69,492、tests 59,137行，瘦身结束。
 
@@ -23,13 +23,11 @@ Senate不做访问诊断，仅每日一次正常采集发现恢复。允许告�
 
 ## 当前结果
 
-正式基线403人、19357交易、5595持仓；[健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)。3115行YAML接受。PR296清理完成，CHANGELOG在根目录，冻结候选/状态不变。
+本轮发布比较基线为main 13918a8c：403人、19357交易、5595持仓；正式发布结果与差异见对应发布PR及[健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)。3115行YAML接受，不再压缩。
 
-2025修复前：515报告、队列0；合格201、部分6、隔离308（55解析失败），合格5524行、隔离1072行，失败行数未知。旧3818交易、1840持仓、213人及水位不变。
+PR303–306受控原件重跑及候选投影完成：226份361行底纹误判消除，原始交易对象不变；身份恢复15/16，3电子长表修复。合格440、部分6、隔离69（52纸表失败），合格7643行、隔离444行。重试锁定三份电子长表ID+哈希，纸表同错不重跑。受控[收据](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/house_backfill_2025.json)；集成/守恒证据维护于[PR303](https://github.com/hunterhigh/us-politician-trades-data/pull/303)。
 
-PR303本机原件验收：226份361行底纹误判消除，原始交易对象不变；身份恢复15/16，3电子长表修复。合格440、部分6、隔离69（52纸表失败），合格7643行、隔离444行。重试锁定三份电子长表ID+哈希，纸表同错不重跑。受控[收据](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/house_backfill_2025.json)；集成/守恒证据维护于[PR303](https://github.com/hunterhigh/us-politician-trades-data/pull/303)。
-
-PR299人物缺口仅可靠官方绑定，205人核对一致，公开读取/渲染抽查3人通过。PR300完成10个生产模块改名及OGE共用投影；完整CI、冻结全链路、公开回读/渲染、冒烟及回退演练通过。PR303隐藏、白字、遮盖反例均拦截，冻结2026候选/状态逐字节不变。
+人物缺口、清理、改名及冻结链路演练已验收（PR296/299/300）。PR303–306负例及2026候选字节守恒通过。新发布规则与正式快照差异见[PR307](https://github.com/hunterhigh/us-politician-trades-data/pull/307)。
 
 ## 待决事项
 

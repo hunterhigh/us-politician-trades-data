@@ -1389,6 +1389,12 @@ def generic_whitehouse_filing_date(report: dict) -> str | None:
     if report.get('parser_version') in NATIVE_VISIBLE_DEFAULT_VERSIONS:
         pages = report.get('native_text_partition', {}).get('pages', [])
         if not pages:
+            if (report.get('native_text_partition', {}).get('status') == 'unknown' and
+                    report.get('evidence_complete') is False and report.get('filed_at') is None and
+                    'native_visible_cover_unproved' in report.get('document_reasons', [])):
+                # Complete source replay already established an unreadable cover.
+                # It is an isolated report, never a filing date or a source-wide failure.
+                return None
             raise OgeCatalogError('White House native visible cover evidence is unavailable')
         filed, method, raw, name, _ = _filer_signature(pages[0]['visible_text'])
         if any(report.get(key) != value for key, value in

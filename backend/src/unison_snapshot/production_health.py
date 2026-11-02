@@ -14,6 +14,8 @@ from pathlib import Path
 import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from .source_freshness import (maximum_age, senate_grace_allowed, senate_max_stale_days,
+                               SENATE_WARNING_AGE)
 
 UTC = timezone.utc
 SOURCES = {'house_clerk': 48, 'senate_efd': 48, 'oge': 48}
@@ -36,7 +38,7 @@ def latest_publication_deadline(now):
     raise ValueError('No publication window')
 
 
-def evaluate(manifest, source_status, previous=None, *, now=None, publication_success_at=None, assembly=None, smoke=None, integrity_failures=None):
+def evaluate(manifest, source_status, previous=None, *, now=None, publication_success_at=None, assembly=None, smoke=None, integrity_failures=None, senate_days=None):
     now = now or datetime.now(UTC)
     previous = previous or {}
     prior_sources = previous.get('sources', {})
@@ -68,9 +70,15 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
             'failed_step': last_attempt.get('failed_step'),
             'http_status': last_attempt.get('http_status'),
             'workflow_run_url': last_attempt.get('workflow_run_url') or run.get('workflow_run_url')}
+        entry['stale'] = bool(stale or blocked)
+        grace = (source == 'senate_efd' and senate_grace_allowed(run) and last_success is not None
+                 and now - timestamp(last_success) <= maximum_age(source, senate_days))
+        if source == 'senate_efd':
+            entry.update(grace_active=bool(grace and reason), max_stale_days=senate_max_stale_days(senate_days))
         sources[source] = entry
         if reason:
-            blockers.append({'source': source, 'reason': reason})
+            if not grace:
+                blockers.append({'source': source, 'reason': reason})
             if now - timestamp(since) >= timedelta(hours=48):
                 alerts.append({'key': 'source:' + source, 'title': '[Health] ' + source + ' collection blocked or stale',
                     'detail': json.dumps(entry, ensure_ascii=False, sort_keys=True)})
@@ -81,12 +89,32 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
         if assembly['status'] == 'deferred' or cutoffs:
             if set(cutoffs) != set(SOURCES):
                 raise ValueError('Deferred assembly lacks the source waterlines')
-            newest = max(timestamp(v) for v in cutoffs.values())
             for source, value in cutoffs.items():
-                if newest - timestamp(value) > timedelta(days=2):
-                    blockers.append({'source': source, 'reason': 'candidate_cutoff_lag', 'candidate_cutoff_at': value})
-                elif now - timestamp(value) > timedelta(hours=SOURCES[source]):
+                sources[source]['qualified_cutoff_at'] = value
+                if now - timestamp(value) > maximum_age(source, senate_days):
                     blockers.append({'source': source, 'reason': 'candidate_stale', 'candidate_cutoff_at': value})
+    senate = sources['senate_efd']
+    qualified = senate.get('qualified_cutoff_at') or next((row.get('data_cutoff_at')
+        for row in manifest.get('source_health', []) if row.get('source_id') == 'senate_efd'), None)
+    if qualified:
+        senate['qualified_cutoff_at'] = qualified
+        senate['stale'] |= now - timestamp(qualified) > timedelta(hours=48)
+        if assembly is None and now - timestamp(qualified) > maximum_age('senate_efd', senate_days):
+            blockers.append({'source':'senate_efd','reason':'candidate_stale','candidate_cutoff_at':qualified})
+    if senate['stale'] and not any(a['key'] == 'source:senate_efd' for a in alerts):
+        alerts.append({'key':'source:senate_efd', 'title':'[Health] senate_efd collection blocked or stale',
+                       'detail':json.dumps(senate, ensure_ascii=False, sort_keys=True)})
+    waterlines = [value for value in (qualified, senate.get('last_successful_collection_at')) if value]
+    if waterlines:
+        since = min(waterlines, key=timestamp)
+        senate['grace_active'] = bool(senate['stale'] and
+            senate_grace_allowed(source_status.get('senate_efd', {})) and
+            now - timestamp(since) <= maximum_age('senate_efd', senate_days) and
+            not any(row['source'] == 'senate_efd' for row in blockers))
+        if now - timestamp(since) >= SENATE_WARNING_AGE:
+            alerts.append({'key':'senate-stale-20d', 'title':'[Health] Senate data has reached 20 days stale',
+                'detail':json.dumps(senate, ensure_ascii=False, sort_keys=True), 'one_shot':True,
+                'condition':{'source':'senate_efd','waterline_at':since,'threshold_days':20}})
     published = manifest.get('generated_at')
     candidates = [v for v in (publication_success_at, previous.get('last_successful_publication_check_at'), published) if v]
     last_live = max(candidates, key=timestamp) if candidates else None
@@ -148,7 +176,9 @@ def reconcile_issues(api, health):
         marker = '<!-- production-health:' + key + ' -->'
         matches = [issue for issue in issues if marker in (issue.get('body') or '')]
         condition = (health['blocking_sources'] if key == 'publication' else
-            {k: health['sources'][key.split(':', 1)[1]].get(k) for k in ('status', 'failed_step', 'http_status')}
+            {k: health['sources'][key.split(':', 1)[1]].get(k) for k in
+             (('status','failed_step','http_status','stale','grace_active','max_stale_days')
+              if key == 'source:senate_efd' else ('status','failed_step','http_status'))}
                 if key.startswith('source:') else alert['condition'])
         fingerprint = hashlib.sha256(json.dumps(condition, sort_keys=True).encode()).hexdigest()
         condition_marker = '<!-- condition:' + fingerprint + ' -->'
@@ -158,7 +188,9 @@ def reconcile_issues(api, health):
             results.append({'key': key, 'number': issue['number'], 'action': 'created'})
         else:
             issue = next((i for i in matches if i.get('state', 'open') == 'open'), matches[0])
-            if issue.get('state', 'open') == 'closed':
+            if alert.get('one_shot') and condition_marker in (issue.get('body') or ''):
+                results.append({'key':key,'number':issue['number'],'action':'already_notified'})
+            elif issue.get('state', 'open') == 'closed':
                 api.request('/issues/' + str(issue['number']), 'PATCH', {'state': 'open', 'body': body})
                 results.append({'key': key, 'number': issue['number'], 'action': 'reopened'})
             else:
@@ -173,7 +205,7 @@ def reconcile_issues(api, health):
         prefix = '<!-- production-health:'
         if body.startswith(prefix) and issue.get('state', 'open') == 'open':
             key = body[len(prefix):].split(' -->', 1)[0]
-            closable = (key in {'publication', 'smoke', *('source:' + s for s in SOURCES)} or
+            closable = (key in {'publication', 'smoke', 'senate-stale-20d', *('source:' + s for s in SOURCES)} or
                         key in health.get('quality_observed_scopes', []) or
                         key.startswith('quality-summary:') and any(k.startswith('quality-summary:') for k in current))
             if key not in current and closable:

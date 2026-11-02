@@ -106,11 +106,16 @@ def validate_publication(review_root: Path, candidate_path: Path) -> dict:
 
     cutoff = _read(review_root / "status" / "disclosure_cutoff.json",
                    "unified cutoff audit")
-    if cutoff.get("schema_version") != "disclosure-cutoff-audit/v1" \
+    if cutoff.get("schema_version") not in {"disclosure-cutoff-audit/v1", "disclosure-cutoff-audit/v2"} \
             or set((cutoff.get("sources") or {})) != {"house_clerk", "oge", "senate_efd"}:
         raise ReleaseReadinessError("Unified cutoff audit does not cover all publication sources")
     if cutoff.get("candidate_sha256") != digest(encode(candidate)):
         raise ReleaseReadinessError("Unified candidate does not match its cutoff audit")
+    per_source = candidate['meta'].get('source_cutoff_policy') == 'per_source/v1'
+    if per_source and (cutoff.get('schema_version') != 'disclosure-cutoff-audit/v2' or
+            cutoff.get('mode') != 'per_source_cutoff' or
+            cutoff.get('reference_cutoff_at') != candidate['meta'].get('data_cutoff_at')):
+        raise ReleaseReadinessError('Per-source cutoff policy does not match its audit')
     retained_transactions = retained_holdings = 0
     for source_id, source_audit in cutoff["sources"].items():
         source_path = review_root / "candidates" / "sources" / f"{source_id}-current.json"
@@ -130,6 +135,19 @@ def validate_publication(review_root: Path, candidate_path: Path) -> dict:
                     "OGE qualified holding count does not match its source candidate")
         if source_audit.get("candidate_sha256") != digest(encode(source_candidate)):
             raise ReleaseReadinessError(f"{source_id} source candidate does not match cutoff audit")
+        if per_source:
+            from .disclosure_candidate import project_source_candidate
+            projection = project_source_candidate(source_id, source_candidate)
+            native = projection['data_cutoff_at']
+            published = [row for row in candidate['source_health'] if row.get('source_id') == source_id]
+            actual = {kind:len(projection[kind]) for kind in ('people','transactions','reported_holdings')}
+            if (len(published) != 1 or published[0].get('data_cutoff_at') != native or
+                    source_audit.get('native_cutoff_at') != native or
+                    source_audit.get('input_counts') != actual or
+                    source_audit.get('retained_counts') != actual or
+                    source_audit.get('filtered_transaction_count') != 0 or
+                    source_audit.get('filtered_holding_count') != 0):
+                raise ReleaseReadinessError(f'{source_id} native source cutoffs or facts changed in assembly')
         retained = source_audit.get("retained_counts")
         if not isinstance(retained, dict):
             raise ReleaseReadinessError(f"{source_id} cutoff audit has no retained counts")

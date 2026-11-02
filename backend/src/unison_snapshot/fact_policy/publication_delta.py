@@ -139,6 +139,11 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
         current = _index(prepared.get(entity), f"prepared {entity}")
         by_source = {name: _index(value.get(entity), f"{name} {entity}")
                      for name, value in sources.items()}
+        if entity != 'people' and any(row.get('source_id') == 'senate_efd' and
+                row.get('stale') is True for row in unified.get('source_health', [])):
+            for identifier, row in old.items():
+                if row.get('source_id') == 'senate_efd' and current.get(identifier) != row:
+                    raise InventoryError('Stale Senate publication must retain every previous fact exactly')
         if proposed.keys() != current.keys():
             raise InventoryError(f"prepared {entity} IDs differ from review")
         for record_id, row in current.items():

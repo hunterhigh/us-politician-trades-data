@@ -87,6 +87,30 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertEqual(result["reported_holding_count"], 1)
         self.assertEqual(result["oge_form_201_excluded_count"], 99)
 
+    def test_native_cutoff_audit_keeps_newer_house_and_oge_rows_and_rejects_truncation(self):
+        from unison_snapshot.disclosure_candidate import build_disclosure_candidate
+        for index,(source,value) in enumerate(self.sources.items()):
+            cutoff='2026-10-23T00:00:00Z' if source=='senate_efd' else '2026-10-30T00:00:00Z'
+            value['meta']['data_cutoff_at']=cutoff
+            value['people'][0]['disclosure_authority']=source
+            value['source_health'][0].update(status='partial',data_cutoff_at=cutoff)
+            for kind in ('transactions','reported_holdings'):
+                for row in value[kind]:
+                    row.update(source_id=source,person_id=value['people'][0]['id'],filed_at=cutoff)
+            self._write(f'candidates/sources/{source}-current.json',value)
+        base={'meta':{'is_demo':False},'people':[],'transactions':[],'reported_holdings':[],
+              'source_health':[],'security_market_data':[]}
+        audit={}
+        candidate=build_disclosure_candidate(base,self.sources,harmonization_audit=audit)
+        audit['candidate_sha256']=digest(encode(candidate))
+        self._write('candidates/disclosure-current.json',candidate)
+        self._write('status/disclosure_cutoff.json',audit)
+        self.assertEqual(validate_publication(self.root,self.candidate_path)['transaction_count'],3)
+        audit['sources']['oge']['filtered_transaction_count']=1
+        self._write('status/disclosure_cutoff.json',audit)
+        with self.assertRaisesRegex(ReleaseReadinessError,'native source cutoffs or facts changed'):
+            validate_publication(self.root,self.candidate_path)
+
     def test_accepts_declared_queues_without_changing_candidate_facts(self):
         value=json.loads((self.root/'status/house_holdings.json').read_bytes())
         value['remaining_archive_count']=1;value['current_member_annual_count']+=1
