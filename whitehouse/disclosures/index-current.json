@@ -1,19 +1,19 @@
 {
   "page_archive": {
-    "archive_path": "whitehouse/disclosures/pages/8d0a0b56f00f9775ad11a47ffcef9760e01d545708896eecfe5b392e61d8f8f6.html",
-    "byte_length": 365624,
+    "archive_path": "whitehouse/disclosures/pages/d71651fe0f52b9e2580ae45cd3cd048ac0cda7450f6110da9ea8a98fb0902e3b.html",
+    "byte_length": 336338,
     "headers": {
       "content-type": "text/html; charset=UTF-8"
     },
     "page_url": "https://www.whitehouse.gov/disclosures/",
     "quarantine_count": 11,
     "report_link_count": 354,
-    "retrieved_at": "2026-10-29T15:24:27.772212+00:00",
+    "retrieved_at": "2026-11-02T18:35:30.263631+00:00",
     "schema_version": "whitehouse-public-disclosures-page/v1",
-    "sha256": "8d0a0b56f00f9775ad11a47ffcef9760e01d545708896eecfe5b392e61d8f8f6",
+    "sha256": "d71651fe0f52b9e2580ae45cd3cd048ac0cda7450f6110da9ea8a98fb0902e3b",
     "source_id": "whitehouse_public_disclosures"
   },
-  "page_sha256": "8d0a0b56f00f9775ad11a47ffcef9760e01d545708896eecfe5b392e61d8f8f6",
+  "page_sha256": "d71651fe0f52b9e2580ae45cd3cd048ac0cda7450f6110da9ea8a98fb0902e3b",
   "page_url": "https://www.whitehouse.gov/disclosures/",
   "quarantine": [],
   "quarantine_count": 0,
