@@ -291,6 +291,13 @@ jobs:
             fi
           done < .local/parse-batch.txt
           printf 'Parsed %s archived PTRs; %s require parser attention.\n' "$parsed" "$failed" >> "$GITHUB_STEP_SUMMARY"
+      - name: Persist parsed House review before full qualification
+        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025'
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/house-source
+          roles: review
+          message: House Persist bounded parse progress ${{ github.run_id }}
       - name: Refresh deterministic House identities
         if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025'
         env:

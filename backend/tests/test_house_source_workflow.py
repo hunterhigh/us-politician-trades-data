@@ -19,6 +19,9 @@ class HouseSourceWorkflowTests(unittest.TestCase):
         self.assertIn('uses: ./.github/actions/data-trees',text)
         names=('Publish immutable evidence first','Save archive checkpoint and collection state',
                'Persist collection state after evidence','Select unprocessed evidence',
+               'Parse and prepare machine extraction artifacts',
+               'Persist parsed House review before full qualification',
+               'Build automatic qualification artifacts',
                'Build and validate frontend candidate')
         indexes=[text.index('- name: '+name) for name in names]
         self.assertEqual(indexes,sorted(indexes))
@@ -29,6 +32,12 @@ class HouseSourceWorkflowTests(unittest.TestCase):
         self.assertIn("python -m unison_snapshot assemble-source", text)
         self.assertIn("--source house_clerk", text)
         self.assertNotIn('9115820',text);self.assertNotIn('9116141',text)
+        checkpoint=text.split('- name: Persist parsed House review before full qualification',1)[1].split('- name:',1)[0]
+        self.assertIn('uses: ./.github/actions/publish-data',checkpoint)
+        self.assertIn('roles: review',checkpoint)
+        self.assertNotIn('roles: state',checkpoint)
+        self.assertNotIn('roles: main',checkpoint)
+        self.assertNotIn('always()',checkpoint)
 
     def test_historical_checkpoint_cannot_advance_the_current_source_waterline(self):
         shell=bash_binary()
