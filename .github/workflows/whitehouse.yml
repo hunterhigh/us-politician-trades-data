@@ -370,7 +370,8 @@ jobs:
     if: always() && (inputs.mode == '' || inputs.mode == 'all' || inputs.mode == 'rebuild')
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The merged OGE source includes complete native visibility replay.
+    timeout-minutes: 60
     env:
       OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
       OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
