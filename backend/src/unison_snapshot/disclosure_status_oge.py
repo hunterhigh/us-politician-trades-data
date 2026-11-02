@@ -801,7 +801,9 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
     cache_path = review / 'oge/extractions' / record['report_id'] / sha / (version.replace('/', '-') + '.json')
     if (not cache_path.resolve().is_relative_to(review.resolve()) or not cache_path.is_file()
             or cache_path.stat().st_size > 16 * 1024 * 1024):
-        raise ValueError('OGE selected source cache is unavailable or exceeds budget')
+        size = cache_path.stat().st_size if cache_path.is_file() else None
+        raise ValueError('OGE selected source cache is unavailable or exceeds budget: '
+                         f'report={record["report_id"]}, parser={version}, bytes={size}')
     raw = _read(cache_path)
     from .oge_native_owner_scope import source_interpretation_binding
     if (source_interpretation_binding(raw) != selected or

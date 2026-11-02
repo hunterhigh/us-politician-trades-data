@@ -101,6 +101,15 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertNotIn('HEAD:refs/heads/main', content)
         self.assertNotIn('earliest + timedelta', content)
         self.assertIn('c.get("observed_at", c["metadata"]["retrieved_at"])', content)
+        names=('Stage parsed OGE observations', 'Persist parsed OGE review before candidate verification',
+               'Publish normalized review data and build source candidate',
+               'Save the valid source and assemble current peer projections')
+        order=[content.index('- name: '+name) for name in names]
+        self.assertEqual(order,sorted(order))
+        checkpoint=content.split('- name: Persist parsed OGE review before candidate verification',1)[1].split('- name:',1)[0]
+        self.assertIn('roles: review',checkpoint)
+        self.assertNotIn('roles: state',checkpoint)
+        self.assertNotIn('roles: main',checkpoint)
 
     def test_all_source_workflows_include_oge_when_available(self):
         for name in ("house.yml", "senate.yml", "oge.yml"):
