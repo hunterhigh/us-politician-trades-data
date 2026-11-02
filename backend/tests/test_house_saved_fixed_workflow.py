@@ -41,8 +41,15 @@ def step(name):
 def scheduled_fixed_body(name):
     condition,body=step(name)
     if condition is None:return body
+    ready="steps.selection.outputs.cache_ready == 'true'"
+    combined="inputs.filing_year != '2025' && (inputs.materialize_saved_paper == true || "+ready+")"
+    if condition==combined:
+        return ('if [ "${UNISON_HOUSE_FILING_YEAR:-}" != "2025" ] && '
+                '{ [ "$MATERIALIZE_SAVED_PAPER" = "true" ] || [ "$HOUSE_CACHE_READY" = "true" ]; }; then\n'
+                +body+'\nfi\n')
     if condition not in {'inputs.materialize_saved_paper != true',
-                         "inputs.materialize_saved_paper != true && inputs.filing_year != '2025'"}:
+            "inputs.materialize_saved_paper != true && inputs.filing_year != '2025'",
+            "inputs.materialize_saved_paper != true && inputs.filing_year != '2025' && "+ready}:
         raise ValueError('Unsupported fixed-writer workflow condition in this bounded scheduler')
     # Evaluate the actual workflow selection for both dispatch values. A
     # missing condition really executes the unmodified writer and fails saved
@@ -50,6 +57,7 @@ def scheduled_fixed_body(name):
     predicate='[ "$MATERIALIZE_SAVED_PAPER" != "true" ]'
     if 'inputs.filing_year' in condition:
         predicate+=' && [ "${UNISON_HOUSE_FILING_YEAR:-}" != "2025" ]'
+    if ready in condition:predicate+=' && [ "$HOUSE_CACHE_READY" = "true" ]'
     return 'if '+predicate+'; then\n'+body+'\nfi\n'
 
 
@@ -92,13 +100,14 @@ class HouseSavedFixedWorkflowTests(unittest.TestCase):
             'result=subprocess.run([sys.executable,*args])\n'
             'raise SystemExit(result.returncode)\n',encoding='utf-8')
 
-    def execute(self,body,*,saved):
+    def execute(self,body,*,saved,cache_ready=True):
         script=('set -euo pipefail\n'
                 'python() { "$REAL_PYTHON" "$TEST_SHIM" "$@"; }\n'
                 'git() { echo "No Git/network operation in this test" >&2; return 90; }\n'+body)
         env=dict(os.environ,REAL_PYTHON=sys.executable,TEST_SHIM=str(self.shim),TEST_REPO=str(ROOT),
             TEST_CALL_LOG=str(self.calls),EVIDENCE_ROOT=str(self.evidence),REVIEW_ROOT=str(self.review),
             STATE_ROOT=str(self.state),MATERIALIZE_SAVED_PAPER='true' if saved else 'false',
+            HOUSE_CACHE_READY='true' if cache_ready else 'false',
             PAPER_DOCUMENT_ID=self.data['metadata']['document_id'],PARSER_COMMIT='a'*40,
             GITHUB_STEP_SUMMARY=str(self.root/'step-summary.md'),MSYS_NO_PATHCONV='1',PYTHONUTF8='1')
         env['CORRECTION_DIR']=str(getattr(self,'correction_dir',ROOT/'backend/data/corrections/house_clerk'))
@@ -146,6 +155,20 @@ class HouseSavedFixedWorkflowTests(unittest.TestCase):
                 self.assertTrue(any(call[:3]==script.split() if script.startswith('-m ') else (call and call[0]=='backend/scripts/'+script) for call in calls))
                 self.assertTrue(all(p.read_bytes()==raw for p,raw in before.items()))
                 self.assertTrue(all(p.read_bytes()==raw for p,raw in self.original.items()))
+
+    def test_pending_cache_batch_preserves_candidate_qualifications_and_waterline(self):
+        qualification=self.review/'house_clerk/qualifications'/self.relative
+        before={p:p.read_bytes() for p in (qualification,self.candidate,self.state/'status/house_clerk.json')}
+        names=['Refresh deterministic House identities','Build automatic qualification artifacts',
+               'Bridge bounded House paper observations into qualification',
+               'Qualify registered House paper corrections','Build qualification queue status',
+               'Build and validate frontend candidate']
+        body='\n'.join(scheduled_fixed_body(name) for name in names)
+        done=self.execute(body,saved=False,cache_ready=False)
+        self.assertEqual(done.returncode,0,done.stdout+done.stderr)
+        self.assertFalse(self.calls.exists())
+        self.assertTrue(all(p.read_bytes()==raw for p,raw in before.items()))
+        self.assertTrue(all(p.read_bytes()==raw for p,raw in self.original.items()))
 
 
 if __name__=='__main__':unittest.main()

@@ -95,6 +95,12 @@ def select(args):
     Path('.local').mkdir(exist_ok=True)
     Path('.local/parse-batch.txt').write_text(
         ''.join(f'{path}\n' for path in selected), encoding='utf-8')
+    remaining=len(pending)+len(retries)-len(selected)
+    print(json.dumps({'pending_parse_count':len(pending),'parser_retry_count':len(retries),
+                      'selected_count':len(selected),'remaining_after_batch':remaining}))
+    if output:=getattr(args,'github_output',None):
+        with output.open('a',encoding='utf-8') as stream:
+            stream.write(f'remaining_after_batch={remaining}\ncache_ready={str(remaining==0).lower()}\n')
 
 
 def ocr(args):
