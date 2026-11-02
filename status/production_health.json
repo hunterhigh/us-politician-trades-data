@@ -103,13 +103,13 @@
     }
   ],
   "assembly": {
-    "attempted_at": "2026-11-02T09:13:06.692096+00:00",
-    "candidate_sha256": "ed875f9b3da5f6e4e31d81ffa84842d5ccc403ebd18cb5af21bc8d0d334f9494",
-    "data_cutoff_at": "2026-11-02T08:33:33.545480+00:00",
+    "attempted_at": "2026-11-02T13:32:15.341833+00:00",
+    "candidate_sha256": "5c35c95ab23c26eabd948918794c1b69c92e1ee84084d18bfb86f9283280f781",
+    "data_cutoff_at": "2026-11-02T12:55:11.572680+00:00",
     "schema_version": "disclosure-assembly-status/v1",
     "source_cutoffs": {
       "house_clerk": "2026-10-28T22:42:19+00:00",
-      "oge": "2026-11-02T08:33:33.545480+00:00",
+      "oge": "2026-11-02T12:55:11.572680+00:00",
       "senate_efd": "2026-10-23T07:42:53.699480+00:00"
     },
     "status": "ready"
@@ -121,7 +121,7 @@
       "source": "house_clerk"
     }
   ],
-  "checked_at": "2026-11-02T12:43:48.640815+00:00",
+  "checked_at": "2026-11-02T13:33:47.346287+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -150,7 +150,7 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "86485f7beb728542065e4b81b9139647c3b98571",
+  "quality_review_commit": "f9c322e56dd6be6040ac43b08837492bb0b79480",
   "schema_version": "production-health/v1",
   "smoke": {
     "checked_at": "2026-11-02T11:13:41.067734+00:00",
@@ -220,13 +220,13 @@
       "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-02T08:46:08.107335+00:00",
-      "last_successful_collection_at": "2026-11-02T08:33:33.545480+00:00",
-      "qualified_cutoff_at": "2026-11-02T08:33:33.545480+00:00",
+      "last_attempt_at": "2026-11-02T13:07:21.874864+00:00",
+      "last_successful_collection_at": "2026-11-02T12:55:11.572680+00:00",
+      "qualified_cutoff_at": "2026-11-02T12:55:11.572680+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/41413526582"
+      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/41448257422"
     },
     "senate_efd": {
       "detail": "Senate catalog collection failed; prior source data is retained.",
