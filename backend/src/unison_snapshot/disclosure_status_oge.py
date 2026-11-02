@@ -799,11 +799,15 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
             selected.get('document_id') != record.get('report_id')):
         raise ValueError('OGE source interpretation selection differs from report identity')
     cache_path = review / 'oge/extractions' / record['report_id'] / sha / (version.replace('/', '-') + '.json')
+    # Native visibility variants retain the complete per-glyph paint evidence.
+    # Their larger serialized input still needs the same whole-input binding
+    # and original replay below; ordinary historical caches keep their limit.
+    cache_limit = (64 if version in VERSIONS else 16) * 1024 * 1024
     if (not cache_path.resolve().is_relative_to(review.resolve()) or not cache_path.is_file()
-            or cache_path.stat().st_size > 16 * 1024 * 1024):
+            or cache_path.stat().st_size > cache_limit):
         size = cache_path.stat().st_size if cache_path.is_file() else None
         raise ValueError('OGE selected source cache is unavailable or exceeds budget: '
-                         f'report={record["report_id"]}, parser={version}, bytes={size}')
+                         f'report={record["report_id"]}, parser={version}, bytes={size}, limit={cache_limit}')
     raw = _read(cache_path)
     from .oge_native_owner_scope import source_interpretation_binding
     if (source_interpretation_binding(raw) != selected or
