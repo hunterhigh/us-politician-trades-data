@@ -83,14 +83,14 @@ class ProducerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Shard size"):
             self.build(max_blob_bytes=20)
 
-    def test_board_only_can_exceed_old_limit_but_not_24_mib(self):
+    def test_board_only_can_exceed_old_limit_but_not_64_mib(self):
         data = deepcopy(self.data)
         data["transactions"] = []
         data["reported_holdings"] = []
         processor = SimpleNamespace(build_snapshot=lambda _candidate: None)
         with patch("unison_snapshot.builder.load", return_value=processor):
             for name_bytes, accepted in ((8 * 1024 * 1024 + 1000, True),
-                                         (12 * 1024 * 1024 + 1000, False)):
+                                         (32 * 1024 * 1024 + 1000, False)):
                 with self.subTest(accepted=accepted):
                     data["people"][0]["display_name"] = "A" * name_bytes
                     data["people"][1]["display_name"] = "B" * name_bytes
@@ -101,7 +101,7 @@ class ProducerTests(unittest.TestCase):
                     bundle = self.build(data)
                     board_path = f"board/{bundle.manifest['board']}.json"
                     self.assertGreater(len(bundle.files[board_path]), 16 * 1024 * 1024)
-                    self.assertLessEqual(len(bundle.files[board_path]), 24 * 1024 * 1024)
+                    self.assertLessEqual(len(bundle.files[board_path]), 64 * 1024 * 1024)
                     self.assertTrue(all(len(content) <= 16 * 1024 * 1024 for path, content
                                         in bundle.files.items() if path.startswith(("people/", "tickers/"))))
                     self.assertEqual(digest(bundle.files[board_path]), bundle.manifest["board"])

@@ -17,7 +17,7 @@ from .house_ptr import DETERMINISTIC_IDENTITY_BASES, OWNER_CODES
 
 EXTRACTION_SCHEMA = "house-holding-extraction/v1"
 QUALIFICATION_SCHEMA = "house-holding-qualification/v1"
-PARSER_VERSION = "house-annual-holdings-2026-03"
+PARSER_VERSION = "house-annual-holdings-2026-04"
 SUPPORTED_REPORT_TYPES = {"O": "Annual Report"}
 ASSET_RE = re.compile(
     r"^(.*?)\s*(?:\(([A-Z][A-Z0-9.\-^/]{0,31})\))?\s*\[([A-Z0-9]{2})\]\s*$")
@@ -175,6 +175,14 @@ def _asset_code_close(raw: str) -> re.Match[str] | None:
     return next((match for match in re.finditer(r"\[[A-Z0-9]{2}\]", raw)
                  if not raw[match.end():].lstrip().startswith("⇒")), None)
 
+
+def is_account_heading(words: list[dict], asset_x: float, owner_x: float) -> bool:
+    """A bare parent path has no owner, value or other financial cells."""
+    asset = _clean(" ".join(str(w.get("text", "")) for w in words
+                            if asset_x - 4 <= float(w["x0"]) < owner_x - 2))
+    return bool(asset.endswith("⇒") and not any(
+        _clean(w.get("text")) for w in words if float(w["x0"]) >= owner_x - 4))
+
 def annual_report_period_from_pdf(full_text: str, metadata: dict) -> tuple[str, str]:
     """Return a period only when the PDF itself closes the annual-member semantics.
 
@@ -264,6 +272,8 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
         for top, line_words in lines:
             if top <= header_top + 10 or top >= section_end:
                 continue
+            if is_account_heading(line_words, float(asset_x), float(owner_x)):
+                continue
             asset_words = [word for word in line_words if float(asset_x) - 4 <= float(word["x0"]) < float(owner_x) - 2]
             value_words = [word for word in line_words if float(value_x) - 4 <= float(word["x0"]) < float(income_x) - 2]
             value_text = _clean(" ".join(str(word.get("text", "")) for word in value_words))
@@ -319,7 +329,10 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
             # belong to another row, including rows with an open/unknown value.
             closed = _asset_code_close(asset)
             if closed:
-                asset = asset[:closed.end()]
+                # Adjacent repeated printed codes are part of the same cell;
+                # preserve the source spelling and stable IDs of old holdings.
+                repeated = re.match(r"(?:\s*" + re.escape(closed.group()) + r")*", asset[closed.end():])
+                asset = asset[:closed.end() + repeated.end()]
             owner_code = _clean(" ".join(str(word.get("text", "")) for word in owner_words))
             raw_value = _clean(" ".join(value_lines))
             asset_match = ASSET_RE.fullmatch(asset)
@@ -374,10 +387,12 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
                 previous["asset_type_code"] is None and
                 (previous["asset_raw"].rstrip().endswith("⇒") or
                  "⇒" in previous["asset_raw"] and re.fullmatch(
-                     r"\([A-Z][A-Z0-9.\-^/]{0,31}\)\s*\[[A-Z0-9]{2}\]", row["asset_raw"])) and
+                     r"(?:\([A-Z0-9][A-Z0-9.\-^/]{0,31}\)\s*)?\[[A-Z0-9]{2}\]", row["asset_raw"])) and
                 row["asset_type_code"] is not None and row["owner_code"] is None and
                 (not row["value_raw"] or
-                 previous["value_raw"].endswith("-") and VALUE_EXACT_RE.fullmatch(row["value_raw"]))):
+                 (previous["value_raw"].endswith("-") or re.fullmatch(
+                     r"(?:Spouse/DC\s+)?Over", previous["value_raw"], re.I))
+                 and VALUE_EXACT_RE.fullmatch(row["value_raw"]))):
             asset = _clean(previous["asset_raw"] + " " + row["asset_raw"])
             match = ASSET_RE.fullmatch(asset)
             if match is not None:
@@ -389,14 +404,17 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
                     asset_type_code=code, instrument_type=ASSET_TYPES.get(code),
                     value_raw=value_raw, value_low=value[0] if value else None,
                     value_high=value[1] if value else None,
+                    excluded_no_reportable_value=value_raw == "None",
                     asset_hierarchy={"account_path_raw": [part.strip() for part in name.split("⇒")[:-1]],
                                      "leaf_asset_raw": name.split("⇒")[-1].strip(), "status": "explicit_path"})
                 previous["review_reasons"] = [reason for reason in previous["review_reasons"]
                     if reason not in {"asset_layout_unsupported", "unknown_asset_type_code", "value_not_representable"}]
                 if code not in ASSET_TYPES:
                     previous["review_reasons"].append("unknown_asset_type_code")
-                if value is None:
+                if value is None and value_raw != "None":
                     previous["review_reasons"].append("value_not_representable")
+                if value is not None and value[1] is None:
+                    previous["value_low_exclusive"] = True
                 owner_raw = previous["owner_code"] or ""
                 evidence = previous["evidence"]
                 # Existing formal rows were already complete and never enter
@@ -417,7 +435,7 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
     return extracted, explicit_none and not extracted
 
 
-def parse_archived_financial_report(root: Path, metadata: dict) -> dict:
+def parse_archived_financial_report(root: Path, metadata: dict, *, source_observation: dict | None = None) -> dict:
     if (metadata.get("source_id") != "house_clerk" or metadata.get("filing_type") != "O" or
             metadata.get("report_type") != "Annual Report"):
         raise HouseIndexError("House holding metadata is not a supported annual report")
@@ -464,8 +482,22 @@ def parse_archived_financial_report(root: Path, metadata: dict) -> dict:
         "explicit_no_holdings": explicit_none, "rows": rows,
     }
     from .house_annual_sections import observe_annual_sections
-    result["source_text_coverage"] = observe_annual_sections(page_objects, result)["source_text_coverage"]
+    observation = observe_annual_sections(page_objects, result)
+    result["source_text_coverage"] = observation["source_text_coverage"]
+    if source_observation is not None:
+        source_observation.update(observation)
     return result
+
+
+def verify_holding_observation(extraction: dict, observation: dict) -> None:
+    """Replay the saved complete source pages before granting partial Schedule A."""
+    from .house_annual_sections import observe_annual_sections
+    pages = observation.get("source_word_pages")
+    if (not isinstance(pages, list) or not pages or
+            extract_schedule_a_pages(pages, source_sha256=extraction.get("source_sha256"))[0] != extraction.get("rows") or
+            observe_annual_sections(pages, extraction) != observation or
+            observation.get("source_text_coverage") != extraction.get("source_text_coverage")):
+        raise HouseIndexError("House partial holding source observations differ")
 
 
 def qualify_financial_report(extraction: dict, identity: dict) -> dict:
@@ -513,13 +545,16 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
         row_problems.append(sorted(set(problems)))
         report_reasons.extend(problems)
     coverage = extraction.get("source_text_coverage", {})
+    sections = [s for p in coverage.get("pages", []) for s in p.get("sections", [])]
+    a_sections = [s for s in sections if s.get("section") == "A"]
+    unresolved = lambda s: s.get("disposition_counts", {}).get("unresolved_financial_text", 0)
     partial_allowed = bool(identity_valid and report_reasons and not extraction.get("document_reasons") and
         any(not problems and not row.get("excluded_no_reportable_value")
             for row, problems in zip(extraction["rows"], row_problems, strict=True)) and
         coverage.get("schema_version") == "house-annual-native-text-coverage/v1" and
         coverage.get("source_sha256") == extraction.get("source_sha256") and
-        coverage.get("unresolved_financial_text_line_count") == 0 and
-        any(s.get("section") == "A" for p in coverage.get("pages", []) for s in p.get("sections", [])) and
+        coverage.get("unresolved_financial_text_line_count") == sum(unresolved(s) for s in sections) and
+        a_sections and all(unresolved(s) == 0 for s in a_sections) and
         all(not problems or (set(problems) <= {"value_not_representable", "value_bounds_unresolved"}
             and isinstance(row.get("value_raw"), str) and row["value_raw"].strip().casefold() == "undetermined"
             and row.get("value_low") is None and row.get("value_high") is None

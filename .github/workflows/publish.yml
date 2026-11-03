@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '31 22 * * 1-5'
   workflow_run:
-    workflows: [Prepare licensed market data, House source pipeline, Senate source pipeline, OGE direct 278-T pipeline, White House source pipeline]
+    workflows: [Prepare licensed market data, House source pipeline, House annual holdings parser replay, Senate source pipeline, OGE direct 278-T pipeline, White House source pipeline]
     branches: [code]
     types: [completed]
   workflow_dispatch:

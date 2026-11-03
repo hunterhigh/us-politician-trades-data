@@ -63,6 +63,8 @@ def validate_publication(review_root: Path, candidate_path: Path) -> dict:
     holdings = _read(review_root / "status" / "house_holdings.json", "House holdings status")
     if holdings.get("schema_version") != "house-holding-run/v1":
         raise ReleaseReadinessError("House holdings status schema is unsupported")
+    if holdings.get("pending_parser_upgrade_count", 0):
+        raise ReleaseReadinessError("House annual parser upgrade is not complete")
     if _count(holdings, "evidence_count", "House holdings status") + \
             _count(holdings, "remaining_archive_count", "House holdings status") < \
             _count(holdings, "current_member_annual_count", "House holdings status"):

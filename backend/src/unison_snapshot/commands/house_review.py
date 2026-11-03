@@ -295,7 +295,16 @@ def backfill(args):
     print(json.dumps({key:value for key,value in receipt.items() if key!='reports'}))
 
 
-HANDLERS = {'select': select, 'ocr': ocr, 'status': status, 'backfill': backfill,
+def replay_holdings(args):
+    import json
+    from unison_snapshot.house_holdings_replay import replay_batch
+    result = replay_batch(args.evidence_root, args.review_root, parser_commit=args.parser_commit,
+                          batch_size=args.batch_size)
+    print(json.dumps(result), flush=True)
+    Path(args.run_dir, 'house-holdings-replay.json').write_text(json.dumps(result), encoding='utf-8')
+
+
+HANDLERS = {'select': select, 'ocr': ocr, 'status': status, 'backfill': backfill, 'replay-holdings': replay_holdings,
             'select-holdings': select_holdings, 'holding-status': holding_status}
 
 
@@ -320,7 +329,7 @@ def main():
         parser.error('batch-size must be between 1 and 25')
     if args.year and not re.fullmatch(r'[0-9]{4}', args.year):
         parser.error('year must be a four-digit filing year')
-    if args.mode in {'status', 'holding-status'} and not re.fullmatch(r'[0-9a-f]{40}', args.parser_commit or ''):
+    if args.mode in {'status', 'holding-status', 'replay-holdings'} and not re.fullmatch(r'[0-9a-f]{40}', args.parser_commit or ''):
         parser.error('parser-commit must be a fixed Git commit')
     if args.mode == 'ocr' and args.github_output is None:
         parser.error('github-output is required for OCR planning')

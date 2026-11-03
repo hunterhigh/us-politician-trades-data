@@ -199,13 +199,13 @@ class PublicRepositoryTests(unittest.TestCase):
         with self.assertRaisesRegex(PublicSnapshotError, "not found"):
             self.repo.fetch("person", "No Such Person")
 
-    def test_board_24_mib_budget_preserves_hash_and_frozen_commit(self):
+    def test_board_64_mib_budget_preserves_hash_and_frozen_commit(self):
         original_manifest = json.loads(self.files["manifest.json"])
         original_board = json.loads(self.files[f"board/{original_manifest['board']}.json"])
-        self.assertEqual(LIMITS["board"], 24 * 1024 * 1024)
+        self.assertEqual(LIMITS["board"], 64 * 1024 * 1024)
         self.assertEqual(LIMITS["shard"], 16 * 1024 * 1024)
-        for size, accepted in ((16 * 1024 * 1024 + 1, True),
-                               (24 * 1024 * 1024 + 1, False)):
+        for size, accepted in ((64 * 1024 * 1024, True),
+                               (64 * 1024 * 1024 + 1, False)):
             with self.subTest(size=size):
                 board = dict(original_board, padding="")
                 board["padding"] = "x" * (size - len(encode(board)))

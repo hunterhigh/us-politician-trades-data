@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 
 from .house import HouseIndexError
-from .house_holdings import ASSET_RE, ASSET_TYPES, OWNER_CODES, _clean, _lines, _value
+from .house_holdings import ASSET_RE, ASSET_TYPES, OWNER_CODES, _clean, _lines, _value, is_account_heading
 
 
 SCHEMA = "house-annual-sections-observation/v4"
@@ -81,6 +81,8 @@ def annual_text_coverage(pages: list[dict], extraction: dict, schedule_b: list[d
                 if (not previous and line_top < top+40 and
                         text in ({"$1,000?"} if section == "A" else {"$200?", "Type Gains >"})):
                     disposition = "printed_header_extension"
+                elif section == "A" and is_account_heading(tokens, x["Asset"], x["Owner"]):
+                    disposition = "explicit_account_heading"
                 elif exact:
                     disposition = "parsed_row_anchor"
                 elif re.match(r"^(?:D|L|Description|Location|Comments?):", text, re.I) or text == "None disclosed.":
