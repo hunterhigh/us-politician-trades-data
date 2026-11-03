@@ -32,6 +32,7 @@ class HouseNativeContrastTests(unittest.TestCase):
                 if kind=='white_zero' and w['top']==326:
                     continue
                 white = (w['text'] == 'Example' and kind in {'white', 'white_dark', 'white_black'}) or (kind == 'white_zero' and w['top'] == 326)
+                white |= kind == 'all_assets_white' and w['text'] in {'Example', 'Other'}
                 p.insert_text((w['x0'], w['top']+w['size']), w['text'], fontsize=w['size'],
                               color=(1, 1, 1) if white else (0, 0, 0))
             if kind=='white_zero':
