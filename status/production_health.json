@@ -127,7 +127,7 @@
       "source": "house_clerk"
     }
   ],
-  "checked_at": "2026-11-03T03:40:13.625372+00:00",
+  "checked_at": "2026-11-03T03:46:55.045301+00:00",
   "integrity_failures": [
     {
       "category": "snapshot_contract",
