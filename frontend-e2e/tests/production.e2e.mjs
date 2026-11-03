@@ -70,7 +70,11 @@ try {
     if (message.type() === 'error') errors.push(`console: ${message.text()}`);
   });
   await page.goto(pathToFileURL(path.resolve(input)).href, { waitUntil: 'load', timeout: 120_000 });
-  assert.match(await page.title(), /White House Stock Tracker/);
+  if (data.meta.amount_policy === 'bounded-and-open-separate/v1') {
+    assert.equal(await page.title(), 'Unison · Dashboard');
+  } else {
+    assert.match(await page.title(), /White House Stock Tracker/);
+  }
   assert.equal(await page.locator('[data-window-block]').count(), 2);
   assert.ok(await page.locator('[data-person-link]').count() > 0);
   assert.ok(await page.locator('[data-ticker-link]').count() > 0);
