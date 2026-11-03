@@ -14,7 +14,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from .builder import LAYOUT, SCHEMA
+from .builder import LAYOUT, SCHEMA, MAX_BOARD_BYTES
 from .builder import timestamp, restore_shard_disclosure_relations
 from .codec import bucket, encode
 from .disclosure_status import (MAX_STATUS_BYTES, validate_reference, validate_summary,
@@ -24,7 +24,7 @@ SHA1 = re.compile(r"[0-9a-f]{40}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 NAME = re.compile(r"[A-Za-z0-9_.-]{1,100}")
 LIMITS = {"manifest": 16 * 1024, "index": 8 * 1024,
-          "shard": 16 * 1024 * 1024, "board": 24 * 1024 * 1024}
+          "shard": 16 * 1024 * 1024, "board": MAX_BOARD_BYTES}
 
 
 class PublicSnapshotError(RuntimeError):
@@ -223,6 +223,11 @@ class PublicSnapshotRepository:
                         raise ValueError('missing freshness flags')
                 except (TypeError,ValueError) as error:
                     raise PublicSnapshotError('Manifest source cutoff or freshness flag is invalid') from error
+        from .holding_coverage import restore as restore_holding_coverage
+        try:
+            restore_holding_coverage(value, lambda path, limit: self._read(commit,path,limit))
+        except (ValueError,TypeError) as error:
+            raise PublicSnapshotError(str(error)) from error
         if 'known_gaps' in value:
             from .known_gaps import MAX_BYTES, REFERENCE_SCHEMA, validate, validate_reference as gaps_reference
             try:

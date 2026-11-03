@@ -1,0 +1,114 @@
+name: House annual holdings parser replay
+on:
+  push:
+    branches: [code]
+    paths:
+      - backend/src/unison_snapshot/house_holdings.py
+      - backend/src/unison_snapshot/house_annual_sections.py
+      - backend/src/unison_snapshot/house_holdings_replay.py
+      - .github/workflows/house-holdings-replay.yml
+  workflow_dispatch:
+permissions:
+  packages: read
+  contents: write
+  issues: write
+concurrency:
+  group: disclosure-source-writer
+  queue: max
+  cancel-in-progress: false
+env:
+  SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
+jobs:
+  replay:
+    if: github.ref == 'refs/heads/code'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: house_clerk
+      - name: Prepare controlled archived House inputs
+        uses: ./.github/actions/data-trees
+        with:
+          scope: house
+          workspace: ${{ runner.temp }}/house-holdings-replay
+      - name: Reparse stale holding artifacts and checkpoint bounded batches
+        id: replay
+        env:
+          PARSER_COMMIT: ${{ github.sha }}
+          PYTHONPATH: backend/src
+        run: |
+          changed=false
+          previous=-1
+          while :; do
+            python -m unison_snapshot house-review replay-holdings
+            read -r selected remaining assemble <<< "$(python - <<'PY'
+          import json,os
+          from pathlib import Path
+          value=json.loads(Path(os.environ['RUNNER_TEMP'],'house-holdings-replay.json').read_text())
+          print(value['selected'],value['remaining'],str(value['requires_assembly']).lower())
+          PY
+          )"
+            if [ "$assemble" = true ]; then changed=true; fi
+            if [ "$selected" -gt 0 ]; then
+              test "$previous" -lt 0 || test "$remaining" -lt "$previous"
+              python -m unison_snapshot data-trees publish \
+                --workspace "$UNISON_SOURCE_WORKSPACE" --role review \
+                --message "House annual parser checkpoint $GITHUB_RUN_ID: $remaining remaining"
+            fi
+            if [ "$remaining" -eq 0 ]; then break; fi
+            test "$selected" -gt 0
+            previous="$remaining"
+          done
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+      - name: Assemble upgraded holdings through the normal source candidate
+        if: steps.replay.outputs.changed == 'true'
+        env:
+          PARSER_COMMIT: ${{ github.sha }}
+          PYTHONPATH: backend/src
+        run: |
+          base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
+          test -f "$base"
+          python -m unison_snapshot build-house-candidate \
+            --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+            --state-status "$STATE_ROOT/status/house_clerk.json" \
+            --base "$base" --output "$base"
+          cp "$base" "$REVIEW_ROOT/candidates/house-current.json"
+          python -m unison_snapshot assemble-source \
+            --workspace "$UNISON_SOURCE_WORKSPACE" --source house_clerk \
+            --base backend/data/empty-disclosure.json --builder-commit "$PARSER_COMMIT" \
+            --html-output "$RUNNER_TEMP/house-holdings-upgraded.html"
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from unison_snapshot.house_holdings import PARSER_VERSION
+          from unison_snapshot.house_holdings_replay import read,write
+          path=Path(os.environ['REVIEW_ROOT'])/'status/house_holdings.json'
+          status=read(path)
+          assert status['pending_parser_upgrade_count']==0
+          status.update(candidate_parser_version=PARSER_VERSION,candidate_parser_commit=os.environ['PARSER_COMMIT'])
+          write(path,status)
+          PY
+      - name: Persist the completed source candidate
+        if: steps.replay.outputs.changed == 'true'
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/house-holdings-replay
+          roles: review state
+          message: House annual parser replay ${{ github.run_id }}
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity

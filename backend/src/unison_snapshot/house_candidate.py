@@ -326,17 +326,14 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                 relative = path.relative_to(review_root / "house_clerk" / "holding_qualifications")
                 extraction = _read_json(review_root / "house_clerk" / "holding_extractions" / relative,
                                         "House partial holding extraction")
-                observation = _read_json(review_root / "house_clerk" / "holding_section_observations" / relative,
+                observation_path = review_root / "house_clerk" / "holding_source_observations" / relative
+                if not observation_path.is_file():
+                    observation_path = review_root / "house_clerk" / "holding_section_observations" / relative
+                observation = _read_json(observation_path,
                                          "House partial holding observations")
-                from .house_holdings import extract_schedule_a_pages, qualify_financial_report
-                from .house_annual_sections import observe_annual_sections
-                pages = observation.get("source_word_pages")
-                if not isinstance(pages, list) or not pages:
-                    raise HouseIndexError("House partial holding report has no saved source pages")
-                parsed, _ = extract_schedule_a_pages(pages, source_sha256=extraction.get("source_sha256"))
-                if (parsed != extraction.get("rows") or observe_annual_sections(pages, extraction) != observation or
-                        observation.get("source_text_coverage") != extraction.get("source_text_coverage") or
-                        qualify_financial_report(extraction, identity) != artifact):
+                from .house_holdings import verify_holding_observation, qualify_financial_report
+                verify_holding_observation(extraction, observation)
+                if qualify_financial_report(extraction, identity) != artifact:
                     raise HouseIndexError("House partial holding qualification differs from saved source observations")
             total_qualified += len(rows)
             total_quarantined += len(quarantined)

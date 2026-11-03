@@ -10,7 +10,7 @@ from .builder import Bundle, LAYOUT, SCHEMA, restore_shard_disclosure_relations
 from .codec import bucket, digest
 
 SHA = re.compile(r"[0-9a-f]{40}")
-PATH = re.compile(r"(?:manifest\.json|(?:people|tickers)/[0-9a-f]{2}/(?:index|[0-9a-f]{64})\.json|board/[0-9a-f]{64}\.json)")
+PATH = re.compile(r"(?:manifest\.json|(?:people|tickers)/[0-9a-f]{2}/(?:index|[0-9a-f]{64})\.json|(?:board|status)/[0-9a-f]{64}\.json)")
 
 
 class GitStore:
@@ -124,6 +124,12 @@ class GitStore:
 def assemble(store: GitStore, commit: str, *, mode: str = "dashboard", key: str | None = None) -> dict:
     """Reference test harness, NOT the counterpart's unprovided snapshot_repo.py."""
     manifest = json.loads(store.read(commit, "manifest.json"))
+    from .holding_coverage import restore as restore_holding_coverage
+    def read_coverage(path, limit):
+        raw = store.read(commit,path)
+        if len(raw)>limit:raise ValueError('Holding coverage size limit exceeded')
+        return raw
+    restore_holding_coverage(manifest,read_coverage)
     if manifest.get("schema_version") != SCHEMA or manifest.get("storage_layout") != LAYOUT:
         raise ValueError("Unsupported manifest contract")
 

@@ -46,6 +46,10 @@ House、OGE的采集与合格水位均不得超过48小时。Senate可以保留�
 
 manifest预算16KiB；摘要较大时，known_gaps使用known-gaps-reference/v1引用同一固定提交的status/<sha256>.json（上限256KiB），含哈希和字节数。客户端校验后还原完整摘要；不截断人物、原因或未知信息。报告页脚及人物页使用正常公开读取、处理和渲染入口展示摘要。
 
+完整board上限64MiB，人物/证券分片保持16MiB；生产和公开读取使用同一预算，超限或哈希不符仍拒绝。House年报解析器版本变化后，受控工作流自动从已归档原件重跑旧版持仓结果，逐批持久化，全部完成后组装；持仓原文证明不会自动扩大Schedule B交易接入范围。
+
+部分持仓覆盖证据较大时，manifest的holding_report_coverage使用holding-report-coverage-reference/v1引用同一提交的status/<sha256>.json（上限4MiB），校验长度及哈希后恢复完整数组；不截断报告、行ID或未定值说明，兼容旧版内嵌数组。
+
 ## 前端基准
 
 最高基准为用户指定`C:/Users/admin/Downloads/politician-disclosures (3).html`，已按原字节入库为`contract/politician-disclosures.html`，SHA-256：

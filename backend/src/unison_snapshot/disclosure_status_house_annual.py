@@ -61,7 +61,7 @@ def build_house_annual_status(evidence: Path, review: Path,
 
     artifacts = {}
     keys = set(archives)
-    for kind in ("holding_extractions", "holding_qualifications", "holding_section_observations", "holding_identities"):
+    for kind in ("holding_extractions", "holding_qualifications", "holding_section_observations", "holding_source_observations", "holding_identities"):
         base = review / "house_clerk" / kind
         artifacts[kind] = {}
         for path in sorted(base.glob("*/*/*.json")):
@@ -140,7 +140,7 @@ def build_house_annual_status(evidence: Path, review: Path,
             key = year, docid, selected
             extraction = artifacts["holding_extractions"].get(key)
             qualification = artifacts["holding_qualifications"].get(key)
-            for kind in ("holding_extractions", "holding_qualifications", "holding_section_observations"):
+            for kind in ("holding_extractions", "holding_qualifications", "holding_section_observations", "holding_source_observations"):
                 value = artifacts[kind].get(key)
                 if value is not None and any(value["source"].get(field) != versions[selected].get(field)
                         for field in ("filed_date", "filing_type", "report_type")):
@@ -157,14 +157,10 @@ def build_house_annual_status(evidence: Path, review: Path,
                     raise ValueError("House annual holding qualification differs from saved extraction")
                 # Partial-value permission requires the same source replay as the candidate.
                 if "holding_coverage" in qualification:
-                    from .house_annual_sections import observe_annual_sections
-                    from .house_holdings import extract_schedule_a_pages
-                    obs = artifacts["holding_section_observations"].get(key, {})
-                    pages = obs.get("source_word_pages", [])
-                    if (not pages or extract_schedule_a_pages(pages, source_sha256=selected)[0] != extraction.get("rows") or
-                            observe_annual_sections(pages, extraction) != obs or
-                            extraction.get("source_text_coverage") != obs.get("source_text_coverage")):
-                        raise ValueError("House annual partial holding source observations differ")
+                    from .house_holdings import verify_holding_observation
+                    obs = artifacts["holding_source_observations"].get(key,
+                        artifacts["holding_section_observations"].get(key, {}))
+                    verify_holding_observation(extraction, obs)
                 eligible = qualification.get("production_eligible") is True
                 rows = qualification["holdings"] if eligible else []
                 record["qualified_holding_count"] = len(rows)

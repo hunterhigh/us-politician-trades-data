@@ -19,6 +19,7 @@ from .market_store import (MARKET_COVERAGE_SCHEMA, MIXED_MARKET_COVERAGE_SCHEMA,
 
 SCHEMA = "politician-dashboard/v1"
 LAYOUT = "hash-sharded-v2"
+MAX_BOARD_BYTES = 64 * 1024 * 1024
 TRANSACTION_RELATION_POLICY = 'source_bound_independent_disclosures/v1'
 ARRAYS = ("people", "transactions", "reported_holdings", "security_market_data")
 SOURCES = {"house_clerk", "senate_efd", "oge"}
@@ -278,7 +279,7 @@ def restore_shard_disclosure_relations(meta: dict, shard: dict, *, subset: bool 
 
 def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
           max_blob_bytes: int = 16 * 1024 * 1024,
-          max_board_bytes: int = 24 * 1024 * 1024, allow_production: bool = False,
+          max_board_bytes: int = MAX_BOARD_BYTES, allow_production: bool = False,
           allow_empty_production: bool = False, allow_market: bool = False,
           market_commit: str | None = None,
           market_pages: tuple[str, ...] | list[str] | None = None,
@@ -448,6 +449,8 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     if market_commit is not None:
         manifest["market_commit"] = market_commit
         manifest["market_pages"] = list(market_pages or [])
+    from .holding_coverage import attach as attach_holding_coverage
+    attach_holding_coverage(manifest, files)
     files["manifest.json"] = encode(manifest)
     if len(files["manifest.json"]) > 16 * 1024:
         raise ValueError("Manifest exceeds the public snapshot size budget")
