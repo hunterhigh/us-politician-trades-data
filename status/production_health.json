@@ -127,7 +127,7 @@
       "source": "house_clerk"
     }
   ],
-  "checked_at": "2026-11-03T00:25:51.051650+00:00",
+  "checked_at": "2026-11-03T01:32:56.578446+00:00",
   "integrity_failures": [
     {
       "category": "snapshot_contract",
@@ -172,7 +172,7 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "ee8c29b563bd7d171ac343b3101ee6281b2fcf33",
+  "quality_review_commit": "575e36b4ab532efcb14bda45eca5656556e23fe8",
   "schema_version": "production-health/v1",
   "smoke": {
     "checked_at": "2026-11-02T15:58:39.361809+00:00",
@@ -230,8 +230,8 @@
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-02T15:57:02+00:00",
-      "last_successful_collection_at": "2026-11-02T15:57:02+00:00",
+      "last_attempt_at": "2026-11-03T00:59:29+00:00",
+      "last_successful_collection_at": "2026-11-03T00:59:29+00:00",
       "qualified_cutoff_at": "2026-10-28T22:42:19+00:00",
       "stale": false,
       "status": "ok",
