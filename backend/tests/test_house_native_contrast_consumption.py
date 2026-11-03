@@ -60,6 +60,8 @@ class HouseNativeContrastConsumptionTests(unittest.TestCase):
         base = deepcopy(BASE)
         if prior:
             base['transactions'] = qualify_automatic(raw, IDENTITY)['transactions']
+            from unison_snapshot.house_candidate import _person
+            base['people'] = [_person(IDENTITY)]
         self.write(root/'base.json', base)
         return {'root':root,'evidence':evidence,'review':review,'pdf':pdf,'extraction':extraction,
                 'qualification':qualification,'q':q,'raw':raw,'base':base}
@@ -123,6 +125,26 @@ class HouseNativeContrastConsumptionTests(unittest.TestCase):
         done=self.candidate(data,expected=1)
         self.assertIn('correction',done.stderr+done.stdout)
         self.assertEqual(out.read_bytes(),b'existing candidate')
+
+    def test_wholly_unknown_current_report_retains_prior_person_and_facts(self):
+        data=self.prepare('all_assets_white',prior=True)
+        self.assertEqual(data['q']['transactions'],[])
+        self.assertEqual(len(data['q']['quarantined']),2)
+        candidate=self.candidate(data)
+        self.assertEqual(candidate['people'],data['base']['people'])
+        self.assertEqual(candidate['transactions'],sorted(data['base']['transactions'],key=lambda row:row['id']))
+        scopes=build_house_status(data['evidence'],data['review'],candidate['transactions'],[])
+        record=scopes[0]['reports'][0]
+        self.assertEqual(record['qualified_transaction_count'],0)
+        self.assertEqual(record['retained_source_unqualified_transaction_ids'],sorted(row['id'] for row in candidate['transactions']))
+        self.reader(candidate,scopes)
+        original=(data['root']/'candidate.json').read_bytes()
+        self.candidate(data,prior_path=data['root']/'candidate.json')
+        self.assertEqual((data['root']/'candidate.json').read_bytes(),original)
+        forged=deepcopy(data['base']);forged['people'][0]['display_name']='Forged identity'
+        self.write(data['root']/'forged-base.json',forged)
+        self.candidate(data,prior_path=data['root']/'forged-base.json',expected=1)
+        self.assertEqual((data['root']/'candidate.json').read_bytes(),original)
 
     def test_source_cache_upgrade_retains_original_label_through_normal_consumers(self):
         data=self.prepare('visible_account_contrast',prior=True)

@@ -178,6 +178,7 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     revision_sources = []
     contrast_sources = []
     paper_owner_people = set()
+    restored_contrast_people = set()
     for path in paths:
         qualification = _read_json(path, "House qualification artifact")
         if qualification.get("schema_version") != QUALIFICATION_SCHEMA:
@@ -402,6 +403,14 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                                     if selected[identifier].get(key) != prior.get(key))
                     raise HouseIndexError(f'Changed House contrast fact {identifier} requires a separate source correction: {fields}')
             selected[identifier] = deepcopy(prior)
+            person_id = prior['person_id']
+            if person_id not in identities:
+                # An existing fact may survive a newly unknown paint reading.
+                # Its source-bound official identity must survive with it even
+                # when this person has no newly qualified rows in any report.
+                identities[person_id] = {field: qualification['identity'].get(field)
+                                         for field in PERSON_FIELDS}
+                restored_contrast_people.add(person_id)
     transactions = sorted(selected.values(), key=lambda row:row['id'])
     quarantined_count -= sum(len(q["quarantined"]) - len(revision_resolution["qualifications"].get(
         str(q.get("document_id")), q)["quarantined"]) for q, _ in revision_sources)
@@ -431,13 +440,14 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     candidate["people"] = sorted((_person({"person_id": person_id, **identity})
                                   for person_id, identity in identities.items()), key=lambda row: row["id"])
     for index, person in enumerate(candidate['people']):
-        if person['id'] not in paper_owner_people:
+        if person['id'] not in paper_owner_people | restored_contrast_people:
             continue
         prior = [item for item in base.get('people', []) if item.get('id') == person['id']]
         if prior:
             fields = ('id', 'display_name', 'role', 'office_type', 'chamber', 'party', 'state', 'disclosure_authority')
             if len(prior) != 1 or any(prior[0].get(key) != person.get(key) for key in fields):
-                raise HouseIndexError('House paper owner correction changed the existing person identity')
+                mechanism = 'paper owner correction' if person['id'] in paper_owner_people else 'contrast retention'
+                raise HouseIndexError(f'House {mechanism} changed the existing person identity')
             candidate['people'][index] = deepcopy(prior[0])
     candidate["transactions"] = sorted(transactions, key=lambda row: row["id"])
     from .house_ptr import revision_reference_dispositions
