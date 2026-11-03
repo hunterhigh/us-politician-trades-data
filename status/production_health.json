@@ -127,7 +127,7 @@
       "source": "house_clerk"
     }
   ],
-  "checked_at": "2026-11-03T02:16:14.622090+00:00",
+  "checked_at": "2026-11-03T03:40:13.625372+00:00",
   "integrity_failures": [
     {
       "category": "snapshot_contract",
@@ -172,10 +172,10 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "575e36b4ab532efcb14bda45eca5656556e23fe8",
+  "quality_review_commit": "457cfd5d770364aa20cf6282c7bc63ba24e9e56e",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-02T15:58:39.361809+00:00",
+    "checked_at": "2026-11-03T03:40:13.078365+00:00",
     "checks": [
       {
         "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
@@ -210,7 +210,7 @@
         "status": "passed"
       }
     ],
-    "client_sha256": "08b1bd70d75edff8bb3eed0d086fa04ea52542f00023ffc82e2ff78a4e68a7d8",
+    "client_sha256": "d071c96cf11f41b6a2e2172b93886f9016e86b8097effbb052d0666a3b439ba4",
     "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
     "failed_snapshots": {},
     "last_good_commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
@@ -230,8 +230,8 @@
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-03T00:59:29+00:00",
-      "last_successful_collection_at": "2026-11-03T00:59:29+00:00",
+      "last_attempt_at": "2026-11-03T02:32:02+00:00",
+      "last_successful_collection_at": "2026-11-03T02:32:02+00:00",
       "qualified_cutoff_at": "2026-10-28T22:42:19+00:00",
       "stale": false,
       "status": "ok",
