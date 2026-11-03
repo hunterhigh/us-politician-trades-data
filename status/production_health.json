@@ -127,7 +127,7 @@
       "source": "house_clerk"
     }
   ],
-  "checked_at": "2026-11-03T01:32:56.578446+00:00",
+  "checked_at": "2026-11-03T02:16:14.622090+00:00",
   "integrity_failures": [
     {
       "category": "snapshot_contract",
@@ -139,7 +139,7 @@
           "b294bb0ac9d0555fe67e7563d6f550738056433f3b67b8ada3df438c61b9e1bd"
         ],
         "overflow": false,
-        "run_id": "41475734127",
+        "run_id": "41556554568",
         "schema_version": "integrity-conditions/v1"
       },
       "scope": "house_clerk"
