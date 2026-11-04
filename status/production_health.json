@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-04T14:37:57.559389+00:00",
+  "checked_at": "2026-11-04T21:17:07.104109+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -178,7 +178,7 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "288ea9d7f45fedeefa07f34bae84f92e05d36792",
+  "quality_review_commit": "bf01709d7e95221992b4addb07e79395a71ac6bf",
   "schema_version": "production-health/v1",
   "smoke": {
     "checked_at": "2026-11-04T13:26:06.087989+00:00",
@@ -236,8 +236,8 @@
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-04T08:02:12+00:00",
-      "last_successful_collection_at": "2026-11-04T08:02:12+00:00",
+      "last_attempt_at": "2026-11-04T19:46:35+00:00",
+      "last_successful_collection_at": "2026-11-04T19:46:35+00:00",
       "qualified_cutoff_at": "2026-11-04T04:46:00+00:00",
       "stale": false,
       "status": "ok",
