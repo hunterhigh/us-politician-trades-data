@@ -2,7 +2,7 @@ name: Publish complete production snapshot
 
 on:
   schedule:
-    - cron: '31 22 * * 1-5'
+    - cron: '31 4,10,16,22 * * *'
   workflow_run:
     workflows: [Prepare licensed market data, House source pipeline, House annual holdings parser replay, Senate source pipeline, OGE direct 278-T pipeline, White House source pipeline]
     branches: [code]
