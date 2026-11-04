@@ -202,6 +202,15 @@ def _punctuation_reference(profile):
     return reference if reference['families'][0]['global_profile'] == profile else None
 
 
+def _quote_reference(profile):
+    from pathlib import Path
+    reference = json.loads((Path(__file__).resolve().parents[2] /
+        'data/font_references/georgia_right_quote.json').read_bytes())
+    if _sha(_canonical(reference)) != 'af7284db5fcc0c9993cea7d446df2fe5691b4f20f65e92b99d50e4615a5dbf16':
+        raise SourceFontError('trusted_quote_reference_corrupted')
+    return reference if reference['families'][0]['global_profile'] == profile else None
+
+
 def _unicode_map(data):
     from pdfminer.cmapdb import FileUnicodeMap, CMapParser
 
@@ -319,6 +328,9 @@ def observe_house_id_font(font_spec, font_file_bytes: bytes, used_cids) -> dict:
                 entry = indexed.get(glyph["fingerprint"])
                 if entry is None:
                     supplement = _punctuation_reference(profile)
+                    if supplement is None or not any(v['fingerprint'] == glyph['fingerprint']
+                            for v in supplement['families'][0]['glyphs']):
+                        supplement = _quote_reference(profile)
                     if supplement is not None:
                         extra = {v['fingerprint']: v for v in supplement['families'][0]['glyphs']}
                         entry = extra.get(glyph['fingerprint'])

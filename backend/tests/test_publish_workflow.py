@@ -61,7 +61,10 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn('git push --atomic origin ":$PREFLIGHT_MAIN_REF" ":$PREFLIGHT_MARKET_REF"',
                       content)
         self.assertIn("exit 86", content)
-        self.assertNotIn("\n      - name:", content[publish + 1:])
+        cleanup = content.index("Clean up this run's temporary preflight refs")
+        self.assertLess(publish, cleanup)
+        self.assertIn("always() && steps.preflight.outcome != 'skipped'", content[cleanup:])
+        self.assertIn('bash .github/scripts/cleanup-preflight-refs.sh', content[cleanup:])
         self.assertIn('verify-prepared-publication', content)
         self.assertIn("prepared-readback/dashboard.html", content)
         self.assertIn('python -m unison_snapshot publication-probes', content)

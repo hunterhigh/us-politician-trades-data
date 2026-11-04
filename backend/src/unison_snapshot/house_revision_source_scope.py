@@ -8,6 +8,7 @@ against their selected originals rather than accepting a saved positive token.
 from __future__ import annotations
 
 from contextlib import ExitStack
+from copy import deepcopy
 from hashlib import sha256
 import io
 
@@ -43,6 +44,31 @@ def _overlaps(a, b):
             and max(a[1], b[1]) < min(a[3], b[3]))
 
 
+class _PaintInventory(list):
+    """Index every located source event without weakening overlap checks."""
+    def __init__(self, events, budget):
+        from .native_bichrome_visibility import _FootprintIndex
+        super().__init__(events)
+        self.located = [i for i, event in enumerate(events)
+                        if event['outer_device_pixels'] is not None]
+
+        class Budget:
+            maximum = MAX_WORD_COMPARISONS
+
+            @property
+            def used(self):
+                return budget['comparisons']
+
+            def charge(self, kind, count=1):
+                _charge(budget, count)
+
+        self.index = _FootprintIndex([events[i]['outer_device_pixels']
+                                     for i in self.located], Budget())
+
+    def touching(self, box):
+        return [self[self.located[i]] for i in sorted(self.index.touching(box))]
+
+
 def _validate_source_character_bindings(occurrences, binding_result, fonts):
     """Bind independently parsed source CIDs, font programs and Unicode maps."""
     _need(binding_result.get("status") == "observed", "source_character_binding_unknown")
@@ -70,7 +96,7 @@ def _validate_source_character_bindings(occurrences, binding_result, fonts):
 def _group_domain(occurrences, indices, inventory, *, allow_header_background=False,
                   allow_status_color=False, allow_row_background=False, budget=None):
     """Exclude only the independently bound declaration's own source events."""
-    _charge(budget, len(indices) + len(inventory))
+    _charge(budget, len(indices) + (0 if isinstance(inventory, _PaintInventory) else len(inventory)))
     selected = [occurrences[i] for i in indices]
     _need(bool(selected) and len(set(indices)) == len(indices), "declaration_glyph_membership_invalid")
     conditional = ({"nonglyph_paint_domain_intersects"}
@@ -95,7 +121,8 @@ def _group_domain(occurrences, indices, inventory, *, allow_header_background=Fa
            max(v["outer_device_pixels"][3] for v in selected)]
     own_events = {v["paint_event"] for v in selected}
     _need(len(own_events) == len(selected), "declaration_paint_membership_duplicated")
-    for event in inventory:
+    candidates = inventory.touching(box) if isinstance(inventory, _PaintInventory) else inventory
+    for event in candidates:
         if event["event"] in own_events or not _overlaps(box, event["outer_device_pixels"]):
             continue
         background = event.get("uniform_background")
@@ -128,7 +155,49 @@ def inspect_native_house_revision_source(source):
     return _inspect_native_house_source(source, financial=False)
 
 
-def _inspect_native_house_source(source, *, financial):
+def _trailing_note_scope(source_sha, pages, replay, row_members):
+    """Account for source notes beyond the old 120-point financial block.
+
+    Extend only role-accounting copies. Financial fields, IDs, original raw
+    observations and the set of consumed financial words remain unchanged.
+    The full existing table/closing census must accept every added word.
+    """
+    from .house_native_coverage import _header_cells, _in
+    from .house_ptr import _modern_report_ledger
+    rows, members = deepcopy(replay['transactions']), deepcopy(row_members)
+    extended = []
+    for number, page in enumerate(pages, 1):
+        local = [(i, row) for i, row in enumerate(rows)
+                 if any(s['page'] == number for s in row['evidence']['segments'])]
+        footnotes = [w for w in page['words'] if 'asset-type-codes.aspx' in w['text']]
+        if not local or len(footnotes) != 1:
+            continue
+        cells = _header_cells(page, page.get('native_page_geometry', {}))
+        if cells is None:
+            continue
+        index, row = local[-1]
+        segment = next(s for s in row['evidence']['segments'] if s['page'] == number)
+        old = segment['bbox_points']
+        end = footnotes[0]['top'] - 2
+        extra = [(i, w) for i, w in enumerate(page['words'])
+                 if old[1] <= w['top'] < end and w['bottom'] > old[3] + .8]
+        if not extra or any(w.get('size', 9) >= 8.8 for _, w in extra):
+            continue
+        segment['bbox_points'] = [old[0], old[1],
+            max(old[2], max(w['x1'] for _, w in extra)), end]
+        for block in members[index]['blocks']:
+            if block['page_number'] == number:
+                block['word_indices'] = sorted(set(block['word_indices']) | {
+                    i for i, w in enumerate(page['words']) if _in(w, segment['bbox_points'])})
+        extended.append({'raw_row_id': row['extraction_id'], 'page_number': number,
+                         'original_bounds': old, 'scope_bounds': segment['bbox_points']})
+    ledger = _modern_report_ledger(source_sha, pages, rows) if extended else replay['source_report_ledger']
+    if not extended or ledger.get('relation_coverage') != 'accounted':
+        return replay['transactions'], row_members, replay['source_report_ledger'], []
+    return rows, members, ledger, extended
+
+
+def _inspect_native_house_source(source, *, financial, indexed=False, legacy=False):
     """Reopen an immutable context document and prove its native ID inventory.
 
     The context loader authenticates official identity/index selection. This
@@ -141,6 +210,8 @@ def _inspect_native_house_source(source, *, financial):
               "scope_complete": False, "pages": [], "reasons": []}
     budget = {"comparisons": 0, "limit": MAX_WORD_COMPARISONS}
     result["budget"] = budget
+    if indexed:
+        result['paint_inventory_lookup'] = 'bounded-source-spatial-index/v1'
     try:
         import fontTools
         import pdfplumber
@@ -178,11 +249,17 @@ def _inspect_native_house_source(source, *, financial):
             selected = saved
             if isinstance(saved.get('native_contrast_financial_profile'), dict):
                 profile = saved['native_contrast_financial_profile']
-                _need(profile.get('profile_version') == FINANCIAL_PROFILE,
+                _need(profile.get('profile_version') in FINANCIAL_PROFILES,
                       'selected_financial_profile_version_unsupported')
                 selected = profile.get('source', {}).get('raw_projection')
             _need(replay == selected, "selected_extraction_differs_from_original_native_projection")
             ledger = replay.get("source_report_ledger", {})
+            role_rows = replay['transactions']
+            if financial and not legacy and ledger.get('relation_coverage') != 'accounted':
+                role_rows, row_members, ledger, extended = _trailing_note_scope(
+                    source.source_sha256, pages, replay, row_members)
+                if extended:
+                    result['trailing_note_scope'] = {'extensions': extended, 'source_report_ledger': ledger}
             _need(ledger.get("relation_coverage") == "accounted"
                   and len(ledger.get("pages", [])) == len(pages)
                   and all(p.get("coverage") in {"located", "non_table"} for p in ledger["pages"]),
@@ -228,19 +305,22 @@ def _inspect_native_house_source(source, *, financial):
                     fonts[pointer.font_ref] = (pointer, observed)
 
                 paint = inspect_house_id_source_paint(source.pdf_bytes, source_sha256=source.source_sha256,
-                    page_number=number, font_program_loader=outline, font_source_observer=observe_font)
+                    page_number=number, font_program_loader=outline, font_source_observer=observe_font,
+                    **({'max_numeric_operations': 1_000_000} if financial and not legacy else {}))
                 _need(paint["status"] == "observed" and paint["processed_pages"] == [number]
                       and paint["page_count"] == len(pages), "source_paint_inventory_unknown")
                 occurrences = paint["occurrences"]
                 _charge(budget, len(occurrences))
                 _validate_source_character_bindings(occurrences, chars, fonts)
+                inventory = (_PaintInventory(paint['paint_inventory'], budget)
+                             if indexed else paint['paint_inventory'])
                 tuples = list(WordExtractor(x_tolerance=2, y_tolerance=2,
                               extra_attrs=["size"]).iter_extract_tuples(chars["chars"]))
                 _need([word for word, _ in tuples] == page["words"], "source_word_membership_projection_differs")
                 ordinals = {id(char): i for i, char in enumerate(chars["chars"])}
                 members = [[ordinals[id(char)] for char in word_chars] for _, word_chars in tuples]
                 declaration = observe_native_house_id_declarations(page, chars["chars"],
-                    source_sha256=source.source_sha256, page_number=number, source_rows=replay["transactions"],
+                    source_sha256=source.source_sha256, page_number=number, source_rows=role_rows,
                     **({'allow_unnumbered': True, 'source_pages': pages} if financial else {}))
                 _need(declaration["status"] in {"observed_declarations", "observed_role"},
                       "source_ID_declaration_roles_unknown")
@@ -260,7 +340,7 @@ def _inspect_native_house_source(source, *, financial):
                           and sorted(i for group in exact_members for i in group) == sorted(header_indices),
                           "source_header_anchors_not_exactly_accounted")
                 for index in header_indices:
-                    domain = _group_domain(occurrences, members[index], paint["paint_inventory"],
+                    domain = _group_domain(occurrences, members[index], inventory,
                                            allow_header_background=True, budget=budget)
                     _need(sum(_inside(cell, domain) for cell in declaration["role_evidence"]["header_cells"]) == 1,
                           "header_actual_paint_outside_unique_source_cell")
@@ -276,7 +356,7 @@ def _inspect_native_house_source(source, *, financial):
                               and glyph["source_unicode"] in "0123456789", "official_ID_glyph_not_proven_digit")
                         digits.append(glyph["source_unicode"])
                     _need("".join(digits) == item["reported_transaction_id"], "official_ID_source_text_differs")
-                    domain = _group_domain(occurrences, indices, paint["paint_inventory"],
+                    domain = _group_domain(occurrences, indices, inventory,
                                            allow_row_background=financial, budget=budget)
                     header = declaration["role_evidence"]["header_cells"][0]
                     _need(header[0] <= domain[0] < domain[2] <= header[2] and domain[1] >= header[3],
@@ -309,7 +389,7 @@ def _inspect_native_house_source(source, *, financial):
                         # Continuation pages may carry no repeated status; the
                         # full native ledger checks its uniqueness across pages.
                         for index in status_words:
-                            domain = _group_domain(occurrences, members[index], paint["paint_inventory"],
+                            domain = _group_domain(occurrences, members[index], inventory,
                                                    allow_status_color=True, allow_row_background=financial, budget=budget)
                             _need(any(_inside(box, domain) for box in boxes), "filing_status_actual_paint_outside_source_row")
                             anchors.append({"word_index": index, "source_paint_domain": domain})
@@ -321,9 +401,18 @@ def _inspect_native_house_source(source, *, financial):
                 if financial:
                     result.setdefault('financial_rows', []).extend(_financial_page_rows(
                         page, number, replay, row_members, members, chars, occurrences,
-                        paint['paint_inventory'], budget))
+                        inventory, budget))
+            if financial and not legacy and not indexed and any(
+                    'source_scope_comparison_budget_exceeded' in row['reasons']
+                    for row in result.get('financial_rows', [])):
+                return _inspect_native_house_source(source, financial=True, indexed=True)
             result.update(status="observed_scope", scope_complete=True)
     except _Unknown as error:
+        # Preserve successful historical proofs byte for byte. Only a bounded
+        # financial replay that exhausted the old full-scan work budget retries
+        # with the same complete event inventory and exact overlap predicate.
+        if financial and not legacy and not indexed and str(error) == 'source_scope_comparison_budget_exceeded':
+            return _inspect_native_house_source(source, financial=True, indexed=True)
         result["reasons"] = [str(error)]
     except ImportError:
         result["reasons"] = ["source_scope_dependencies_unavailable"]
@@ -332,7 +421,9 @@ def _inspect_native_house_source(source, *, financial):
     return result
 
 
-FINANCIAL_PROFILE = 'house-native-source-financial/v1'
+LEGACY_FINANCIAL_PROFILE = 'house-native-source-financial/v1'
+FINANCIAL_PROFILE = 'house-native-source-financial/v2'
+FINANCIAL_PROFILES = frozenset({LEGACY_FINANCIAL_PROFILE, FINANCIAL_PROFILE})
 
 
 def _financial_page_rows(page, number, replay, row_members, members, chars,
@@ -372,12 +463,13 @@ def _financial_page_rows(page, number, replay, row_members, members, chars,
     return result
 
 
-def replay_native_house_financial_source(root, metadata_path, base):
+def replay_native_house_financial_source(root, metadata_path, base, *, profile_version=FINANCIAL_PROFILE):
     """Read source bytes; a saved contrast result never certifies new fields."""
     from types import SimpleNamespace
     from .house_native_contrast import _load, _selected_source
     from .house_ptr import observe_native_word_pages, parse_word_pages, planned_ocr_pages
-    result = {'profile_version': FINANCIAL_PROFILE, 'status': 'unknown',
+    _need(profile_version in FINANCIAL_PROFILES, 'financial_source_profile_version_unsupported')
+    result = {'profile_version': profile_version, 'status': 'unknown',
               'source_sha256': base.get('source_sha256'),
               'document_id': base.get('source', {}).get('document_id'),
               'raw_projection': None, 'rows': [], 'scope': None, 'reasons': []}
@@ -398,7 +490,8 @@ def replay_native_house_financial_source(root, metadata_path, base):
               'financial_source_raw_rows_differ_from_selected_contrast')
         source = SimpleNamespace(document_id=metadata['document_id'], source_sha256=metadata['sha256'],
             metadata=metadata, pdf_bytes=content, extraction=raw, planned_ocr_pages=())
-        scope = _inspect_native_house_source(source, financial=True)
+        scope = _inspect_native_house_source(source, financial=True,
+                    legacy=profile_version == LEGACY_FINANCIAL_PROFILE)
         result['scope'] = scope
         _need(scope['status'] == 'observed_scope' and scope['scope_complete'] is True,
               'financial_source_scope_unknown')
