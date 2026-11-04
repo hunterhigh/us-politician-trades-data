@@ -104,13 +104,25 @@ try {
   assert.ok(await page.locator('#drawerContent a[href^="https://"]').count() > 0);
   await page.keyboard.press('Escape');
 
-  await page.locator('#window-30 .timeline-row:visible [data-person-link]:visible, #window-90 .timeline-row:visible [data-person-link]:visible').first().click();
+  const timeline = page.locator(`#window-${data.meta.default_window_days || 30} .timeline-row:visible`);
+  const firstTransactionId = await timeline.first().getAttribute('data-tx');
+  await timeline.first().locator('[data-person-link]').first().click();
   assert.equal(await page.locator('#personPage').getAttribute('aria-hidden'), 'false');
-  const tickerLink = page.locator('#personPage [data-ticker-link]').first();
+  assert.equal(await page.locator(`#personPage [data-person-tx="${firstTransactionId}"]`).count(), 1);
+  await page.locator('#personBack').click();
+
+  // A valid disclosure (for example a bank CD) need not have a mapped ticker.
+  // Verify the person-to-security path using a row that actually has one.
+  const tickerTimeline = timeline.filter({ has: page.locator('[data-ticker-link]') }).first();
+  assert.ok(await tickerTimeline.count() > 0, 'A timeline disclosure must expose a mapped ticker for this navigation probe');
+  const expectedTicker = await tickerTimeline.locator('[data-ticker-link]').first().getAttribute('data-ticker-link');
+  await tickerTimeline.locator('[data-person-link]').first().click();
+  assert.equal(await page.locator('#personPage').getAttribute('aria-hidden'), 'false');
+  const tickerLink = page.locator(`#personPage [data-ticker-link="${expectedTicker}"]`).first();
   assert.ok(await tickerLink.count() > 0);
   await tickerLink.click();
   assert.equal(await page.locator('#stockPage').getAttribute('aria-hidden'), 'false');
-  assert.ok((await page.locator('.stock-ticker').textContent())?.trim());
+  assert.equal((await page.locator('.stock-ticker').textContent())?.trim(), expectedTicker);
 
   await page.locator('#stockBack').click();
   await page.locator('#personBack').click();
