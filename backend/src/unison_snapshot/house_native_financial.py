@@ -12,7 +12,9 @@ from pathlib import Path, PurePosixPath
 from .house import HouseIndexError
 
 PROFILE_KEY = 'native_contrast_financial_profile'
-PROFILE_VERSION = 'house-native-source-financial/v1'
+LEGACY_PROFILE_VERSION = 'house-native-source-financial/v1'
+PROFILE_VERSION = 'house-native-source-financial/v2'
+PROFILE_VERSIONS = frozenset({LEGACY_PROFILE_VERSION, PROFILE_VERSION})
 
 
 def _row_map(rows, key, label):
@@ -30,7 +32,7 @@ def _row_map(rows, key, label):
 def _source_report(base, reading):
     """Validate source API structure; source semantics belong to its replay."""
     from .house_ptr import SCHEMA, PARSER_VERSION
-    if (not isinstance(reading, dict) or reading.get('profile_version') != PROFILE_VERSION or
+    if (not isinstance(reading, dict) or reading.get('profile_version') not in PROFILE_VERSIONS or
             reading.get('source_sha256') != base.get('source_sha256') or
             reading.get('document_id') != str(base.get('source', {}).get('document_id')) or
             reading.get('status') not in {'observed', 'unknown'}):
@@ -69,18 +71,22 @@ def _source_report(base, reading):
     return raw, proofs
 
 
-def augment_selected_native_contrast(root, metadata_path, base):
+def augment_selected_native_contrast(root, metadata_path, base, *, profile_version=PROFILE_VERSION):
     """Retain the base and separately explain any newly source-proven row."""
     from .house_native_contrast import PARSER_VERSIONS, _digest, _json
     from .house_revision_source_scope import replay_native_house_financial_source
     if (not isinstance(base, dict) or base.get('parser_version') not in PARSER_VERSIONS or
             PROFILE_KEY in base):
         raise HouseIndexError('House source financial extension requires an original contrast reading')
-    reading = replay_native_house_financial_source(root, metadata_path, base)
+    if profile_version not in PROFILE_VERSIONS:
+        raise HouseIndexError('House source financial profile version is unsupported')
+    reading = replay_native_house_financial_source(root, metadata_path, base, profile_version=profile_version)
+    if reading.get('profile_version') != profile_version:
+        raise HouseIndexError('House source financial replay version differs')
     raw, proofs = _source_report(base, reading)
     if raw is None or not _upgradable_ids(base, proofs):
         return deepcopy(base)
-    profile = {'profile_version': PROFILE_VERSION, 'base_sha256': _digest(base),
+    profile = {'profile_version': profile_version, 'base_sha256': _digest(base),
                'source': deepcopy(reading),
                'original_base_dispositions': deepcopy(base['native_contrast_dispositions'])}
     report = deepcopy(base)
@@ -98,7 +104,7 @@ def augment_selected_native_contrast(root, metadata_path, base):
             # The old paint result remains unchanged in the profile's base copy.
             disposition.update(status='current_projected', current_projected=deepcopy(projected[identifier]),
                                reasons=[])
-            disposition[PROFILE_KEY] = {'profile_version': PROFILE_VERSION, 'raw_row_id': identifier}
+            disposition[PROFILE_KEY] = {'profile_version': profile_version, 'raw_row_id': identifier}
     # Reuse the existing bounded contrast serializer, including its proof budget.
     return _json({**report, PROFILE_KEY: profile})
 
@@ -164,7 +170,8 @@ def qualify_source_financial(extraction, identity, evidence_root, revision_ids=f
     base = parse_selected_native_contrast(root, metadata, required=True)
     if base is None:
         raise HouseIndexError('House source financial original no longer selects contrast')
-    fresh = augment_selected_native_contrast(root, metadata, base)
+    profile_version = extraction[PROFILE_KEY].get('profile_version')
+    fresh = augment_selected_native_contrast(root, metadata, base, profile_version=profile_version)
     if fresh != extraction:
         raise HouseIndexError('House source financial saved profile differs from original replay')
     reading = fresh[PROFILE_KEY]['source']
@@ -211,7 +218,7 @@ def qualify_source_financial(extraction, identity, evidence_root, revision_ids=f
                                   | set(failure.get('reasons', [])))}
             disposition.update(status='unknown', current_projected=None,
                                reasons=deepcopy(bad[identifier]['reasons']))
-        disposition[PROFILE_KEY] = {'profile_version': PROFILE_VERSION, 'raw_row_id': identifier}
+        disposition[PROFILE_KEY] = {'profile_version': profile_version, 'raw_row_id': identifier}
     order = list(raw_rows)
     result['transactions'] = [good[identifier] for identifier in order if identifier in good]
     result['quarantined'] = [bad[identifier] for identifier in order if identifier in bad]

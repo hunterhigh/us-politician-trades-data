@@ -100,6 +100,23 @@ class HouseIdSourceFontTests(unittest.TestCase):
         self.assertFalse(result['glyphs'][2]['numeric'])
         self.assertFalse(result['visibility_proven']); self.assertFalse(result['ID_scope_proven'])
 
+    def test_quote_supplement_is_source_matched_and_does_not_change_existing_proofs(self):
+        before = self.observe(cids=[1])
+        reduced = deepcopy(self.reference)
+        quote = reduced['families'][0]['glyphs'].pop(1)
+        quote['cmap_unicode'] = [0x2019]
+        supplement = deepcopy(reduced)
+        supplement['families'][0]['glyphs'] = [quote]
+        with patch.object(fonts, '_punctuation_reference', return_value=None), \
+                patch.object(fonts, '_quote_reference', return_value=supplement) as lookup:
+            self.assertEqual(self.observe(cids=[1]), before)
+            lookup.assert_not_called()
+            good = self.observe(spec(self.data, {2: '\u2019'}), cids=[2], reference=reduced)
+            self.assertEqual(good['status'], 'observed', good)
+            bad = self.observe(spec(self.data, {2: '1'}), cids=[2], reference=reduced)
+            self.assertEqual(bad['status'], 'unknown')
+        self.assertIsNone(fonts._quote_reference({'unrecognized_global_font': True}))
+
     def test_missing_or_literal_NUL_only_accepts_unique_proven_nonnumeric_smallcaps(self):
         for mapping in ({}, {3: '\x00'}):
             result = self.observe(spec(self.data, mapping), cids=[3])

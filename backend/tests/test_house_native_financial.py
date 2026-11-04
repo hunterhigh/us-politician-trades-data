@@ -130,6 +130,19 @@ class HouseNativeFinancialTests(unittest.TestCase):
         with self.assertRaises((HouseIndexError, ValueError)):
             qualify_automatic(report, IDENTITY)
 
+    def test_existing_v1_profile_keeps_its_version_during_source_replay(self):
+        from unison_snapshot.house_native_financial import (
+            augment_selected_native_contrast, LEGACY_PROFILE_VERSION, PROFILE_KEY)
+        profile = self.profile(observed=True)
+        profile['profile_version'] = LEGACY_PROFILE_VERSION
+        with self.source_reader(profile) as reader:
+            report = augment_selected_native_contrast(self.root, self.metadata, self.base,
+                                                     profile_version=LEGACY_PROFILE_VERSION)
+            result = qualify_automatic(report, IDENTITY, evidence_root=self.root)
+        self.assertEqual(result[PROFILE_KEY]['profile_version'], LEGACY_PROFILE_VERSION)
+        self.assertTrue(all(call.kwargs['profile_version'] == LEGACY_PROFILE_VERSION
+                            for call in reader.call_args_list))
+
     def test_unknown_profile_flows_through_normal_candidate_and_report_status(self):
         from unison_snapshot.house_candidate import build_house_candidate
         from unison_snapshot.disclosure_status_house import build_house_status

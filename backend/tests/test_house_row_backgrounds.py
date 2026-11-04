@@ -3,7 +3,7 @@ from copy import deepcopy
 import unittest
 
 import test_house_revision_source_scope as source
-from unison_snapshot.house_revision_source_scope import _group_domain, _Unknown
+from unison_snapshot.house_revision_source_scope import _group_domain, _Unknown, _PaintInventory, _trailing_note_scope
 from test_house_native_coverage import template, geometry, SHA
 from unison_snapshot.house_native_coverage import closing_role_pages
 
@@ -62,6 +62,63 @@ class RowBackgroundTests(unittest.TestCase):
         with self.assertRaises(_Unknown):
             _group_domain(paint['occurrences'], [0, 1], paint['paint_inventory'],
                           allow_row_background=True)
+
+    def test_spatial_inventory_keeps_visible_and_occluded_group_results_identical(self):
+        text = b'BT /F 12 Tf 1 0 0 1 40 400 Tm <00010002> Tj ET'
+        for body, visible in ((text, True), (b'1 1 1 rg '+text, False),
+                (text+b' 1 1 1 rg 35 390 40 40 re f', False),
+                (b'.933333 .933333 .933333 rg 35 390 40 40 re f 0 0 0 rg '+text, True)):
+            paint = self.paint(body)
+            budget = {'comparisons': 0}
+            inventories = [paint['paint_inventory'], _PaintInventory(paint['paint_inventory'], budget)]
+            for inventory in inventories:
+                with self.subTest(body=body, indexed=isinstance(inventory, _PaintInventory)):
+                    if visible:
+                        self.assertTrue(_group_domain(paint['occurrences'], [0, 1], inventory,
+                            allow_status_color=True, allow_row_background=True, budget=budget))
+                    else:
+                        with self.assertRaises(_Unknown):
+                            _group_domain(paint['occurrences'], [0, 1], inventory,
+                                allow_status_color=True, allow_row_background=True, budget=budget)
+
+    def test_note_scope_extension_preserves_raw_rows_and_rejects_extra_financial_lines(self):
+        from test_house_native_coverage import mixed_template
+        from test_house_ptr import META, word
+        from unison_snapshot.house_ptr import parse_word_pages
+        for financial in (False, True):
+            pages = mixed_template()
+            page = pages[0]
+            for w in page['words']:
+                if w['top'] >= 420:
+                    w['top'] += 100
+            for boxes in page['native_page_geometry'].values():
+                if isinstance(boxes, list):
+                    for box in boxes:
+                        if isinstance(box, list) and len(box) == 4:
+                            if box[1] >= 420:
+                                box[1] += 100; box[3] += 100
+                            elif box[1] == 352:
+                                box[3] = 510
+            page['words'] += ([word('Continuation of the official description.', 105, 465, 8.5)]
+                if not financial else [word('P', 265, 465, 8.5), word('09/10/2026', 326, 465, 8.5),
+                                       word('$15,001 - $50,000', 445, 465, 8.5)])
+            for w in page['words']:
+                w['bottom'] = w['top'] + w.get('size', 9)
+                w['x1'] = w['x0'] + 5
+            members = []
+            raw = parse_word_pages(META, SHA, pages, copy_allowed=True, _row_member_sink=members)
+            before, old_members = deepcopy(raw), deepcopy(members)
+            rows, _, ledger, extensions = _trailing_note_scope(SHA, pages, raw, members)
+            self.assertEqual(raw, before)
+            self.assertEqual(members, old_members)
+            if financial:
+                self.assertFalse(extensions)
+                self.assertEqual(rows, raw['transactions'])
+            else:
+                self.assertTrue(extensions)
+                self.assertEqual(ledger['relation_coverage'], 'accounted')
+                self.assertEqual([{k:v for k,v in row.items() if k!='evidence'} for row in rows],
+                                 [{k:v for k,v in row.items() if k!='evidence'} for row in raw['transactions']])
 
     def test_closing_tail_can_omit_empty_vehicle_and_continue_signature(self):
         pages = template()

@@ -99,7 +99,8 @@ TEXT = b"BT /F 12 Tf 1 0 0 1 40 400 Tm <00010002> Tj ET\n"
 
 def pdf_source(body=TEXT, *, form=True, state=b"/ca 1 /CA 1 /BM /Normal",
                extra_resource=b"", form_extra=b"", page_extra=b"", pages=1,
-               descriptor_extra=b"", cid_map=b"/Identity", image=False):
+               descriptor_extra=b"", cid_map=b"/Identity", image=False,
+               catalog_extra=b"", extra_objects=None):
     def stream(blob, extra=b""):
         return b"<< /Length " + str(len(blob)).encode() + b" " + extra + b" >>\nstream\n" + blob + b"\nendstream"
     font = (b"<< /Type /Font /Subtype /Type0 /BaseFont /SourceProof /Encoding /Identity-H "
@@ -129,6 +130,9 @@ def pdf_source(body=TEXT, *, form=True, state=b"/ca 1 /CA 1 /BM /Normal",
         objects[number] = (b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /CropBox [0 0 612 792] "
                            b"/Resources " + page_resources + b" /Contents 4 0 R " + page_extra + b" >>")
     output = bytearray(b"%PDF-1.4\n")
+    if catalog_extra:
+        objects[1] = objects[1][:-2] + catalog_extra + b' >>'
+    objects.update(extra_objects or {})
     offsets = [0]
     for i in range(1, max(objects) + 1):
         offsets.append(len(output))
@@ -147,6 +151,47 @@ def inspect(raw, **kwargs):
 
 
 class HouseIdSourcePaintTests(unittest.TestCase):
+    def test_spatial_census_keeps_late_cover_and_respects_work_budget(self):
+        from types import SimpleNamespace
+        from unison_snapshot.house_id_source_paint import _PagePaint
+        counts = {'comparisons': 0}
+
+        def charge(kind, amount=1):
+            counts[kind] += amount
+            self.assertLessEqual(counts[kind], 1000)
+
+        painter = object.__new__(_PagePaint)
+        painter.o = SimpleNamespace(limits={'comparisons': 1000}, counts=counts, charge=charge)
+        painter.events = [{'event': i+1, 'kind': 'glyph', 'outer_device_pixels': [32*i, 10, 32*i+3, 15]}
+                          for i in range(40)]
+        painter.events.append({'event': 41, 'kind': 'path', 'outer_device_pixels': [0, 10, 3, 15]})
+        painter.occurrences = [{'occurrence': i, 'paint_event': i+1, 'unresolved': [],
+                                'outer_device_pixels': event['outer_device_pixels']}
+                               for i, event in enumerate(painter.events[:40])]
+        painter.observations()
+        self.assertEqual(painter.occurrences[0]['intersecting_paint_events'], [41])
+        self.assertEqual(painter.occurrences[0]['paint_status'], 'unknown')
+        self.assertTrue(all(not v['intersecting_paint_events'] for v in painter.occurrences[1:]))
+
+    def test_nonpainting_catalog_metadata_keeps_all_paint_checks_and_rejects_other_programs(self):
+        xml = b'<x:xmpmeta xmlns:x="adobe:ns:meta/"/>'
+        metadata = b'<< /Type /Metadata /Subtype /XML /Length ' + str(len(xml)).encode() + b' >>\nstream\n' + xml + b'\nendstream'
+        options = {'catalog_extra': b'/MarkInfo << /Marked true >> /Metadata 13 0 R',
+                   'extra_objects': {13: metadata}}
+        plain, annotated = inspect(pdf_source()), inspect(pdf_source(**options))
+        self.assertEqual(annotated['status'], 'observed', annotated)
+        self.assertEqual(plain['occurrences'], annotated['occurrences'])
+        self.assertEqual(plain['paint_inventory'], annotated['paint_inventory'])
+        for extra in (b'/OpenAction 4 0 R', b'/OCProperties << >>',
+                      b'/MarkInfo << /Marked true /Suspects true >>'):
+            self.assertEqual(inspect(pdf_source(catalog_extra=extra))['status'], 'unknown')
+        raw = pdf_source(catalog_extra=(b'/OutputIntents [<< /Type /OutputIntent /S /GTS_PDFA1 '
+            b'/OutputConditionIdentifier (sRGB) /DestOutputProfile 13 0 R >>]'),
+            extra_objects={13: b'<< /N 3 /Length 4 >>\nstream\nfake\nendstream'})
+        rejected = inspect(raw)
+        self.assertEqual(rejected['status'], 'unknown')
+        self.assertIn('catalog_output_profile_unsupported', str(rejected['unresolved']))
+
     def test_source_CIDs_and_font_bytes_bind_occurrences_without_digit_meaning(self):
         raw = pdf_source()
         result = inspect(raw)

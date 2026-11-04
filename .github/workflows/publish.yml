@@ -447,3 +447,11 @@ jobs:
             "refs/tags/published/$MAIN_SHA" \
             "refs/tags/published-market/$MARKET_SHA" \
             ":$PREFLIGHT_MAIN_REF" ":$PREFLIGHT_MARKET_REF"
+      - name: Clean up this run's temporary preflight refs
+        if: ${{ always() && steps.preflight.outcome != 'skipped' && steps.main.outputs.main_sha != '' && steps.market.outputs.market_sha != '' }}
+        timeout-minutes: 3
+        env:
+          PREFLIGHT_RUN_ID: ${{ github.run_id }}
+          PREFLIGHT_MAIN_SHA: ${{ steps.main.outputs.main_sha }}
+          PREFLIGHT_MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+        run: bash .github/scripts/cleanup-preflight-refs.sh

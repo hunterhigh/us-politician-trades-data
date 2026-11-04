@@ -1000,11 +1000,31 @@ class _PagePaint:
 
     def observations(self):
         unresolved = []
+        index = None
+        located = []
+        if len(self.occurrences) * len(self.events) > self.o.limits['comparisons'] - self.o.counts.get('comparisons', 0):
+            from .native_bichrome_visibility import _FootprintIndex
+            objects = self.o
+
+            class Budget:
+                maximum = objects.limits['comparisons']
+
+                @property
+                def used(self):
+                    return objects.counts.get('comparisons', 0)
+
+                def charge(self, kind, count=1):
+                    objects.charge('comparisons', count)
+
+            located = [i for i, event in enumerate(self.events) if event['outer_device_pixels'] is not None]
+            index = _FootprintIndex([self.events[i]['outer_device_pixels'] for i in located], Budget())
         for occurrence in self.occurrences:
             outer = occurrence["outer_device_pixels"]
             blockers, nonglyph = [], []
             if outer is not None:
-                for event in self.events:
+                events = ([self.events[located[i]] for i in sorted(index.touching(outer))]
+                          if index is not None else self.events)
+                for event in events:
                     self.o.charge("comparisons")
                     other = event["outer_device_pixels"]
                     if event["event"] != occurrence["paint_event"] and other is not None and _overlaps(outer, other):
@@ -1023,8 +1043,33 @@ class _PagePaint:
 
 def _pages(objects, max_pages):
     catalog = objects.object(objects.root)
-    _keys(catalog, {"Type", "Pages"}, {"Type", "Pages"})
+    _keys(catalog, {"Type", "Pages", "Metadata", "MarkInfo", "OutputIntents"}, {"Type", "Pages"})
     _need(catalog["Type"] == _Name("Catalog"), "catalog_type_unsupported")
+    if 'MarkInfo' in catalog:
+        mark = objects.resolve(catalog['MarkInfo'])
+        _keys(mark, {'Marked'}, {'Marked'})
+        _need(type(mark['Marked']) is bool, 'catalog_mark_info_unsupported')
+    if 'Metadata' in catalog:
+        metadata = objects.object(catalog['Metadata'])
+        _keys(metadata, {'Type', 'Subtype', 'Length', 'Filter'}, {'Type', 'Subtype', 'Length'})
+        _need(metadata['Type'] == _Name('Metadata') and metadata['Subtype'] == _Name('XML')
+              and len(objects.stream(catalog['Metadata'])) <= 65536, 'catalog_metadata_unsupported')
+    if 'OutputIntents' in catalog:
+        intents = objects.resolve(catalog['OutputIntents'])
+        _need(isinstance(intents, list) and len(intents) == 1, 'catalog_output_intents_unsupported')
+        intent = objects.resolve(intents[0])
+        _keys(intent, {'Type', 'S', 'OutputConditionIdentifier', 'DestOutputProfile'},
+              {'Type', 'S', 'OutputConditionIdentifier', 'DestOutputProfile'})
+        _need(intent['Type'] == _Name('OutputIntent') and intent['S'] == _Name('GTS_PDFA1')
+              and intent['OutputConditionIdentifier'] == b'sRGB', 'catalog_output_intent_unsupported')
+        profile = objects.object(intent['DestOutputProfile'])
+        _keys(profile, {'N', 'Length', 'Filter'}, {'N', 'Length'})
+        # The installed standard sRGB profile, independently matched against
+        # the original. Other output color programs must remain unsupported.
+        _need(_int(profile['N']) == 3 and hashlib.sha256(objects.stream(
+            intent['DestOutputProfile'])).hexdigest() ==
+            '2b3aa1645779a9e634744faf9b01e9102b0c9b88fd6deced7934df86b949af7e',
+            'catalog_output_profile_unsupported')
     result, seen = [], set()
 
     def visit(reference, inherited=None, depth=0):
