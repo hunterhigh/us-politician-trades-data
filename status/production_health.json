@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-04T05:00:34.566749+00:00",
+  "checked_at": "2026-11-04T05:29:12.057145+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -178,7 +178,7 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "21d36910bbac5ab9a162b80d007dc91cdb54d172",
+  "quality_review_commit": "ba8b515d8bc0b7d517fc78e7fa59929c48f34aa0",
   "schema_version": "production-health/v1",
   "smoke": {
     "checked_at": "2026-11-04T05:00:34.171469+00:00",
@@ -229,7 +229,7 @@
     "snapshot_id": "6da3021d305953135496f6f40cd91a9219b8a814a9839ad072b624ee651f6828",
     "status": "passed"
   },
-  "snapshot_changed": true,
+  "snapshot_changed": false,
   "snapshot_id": "6da3021d305953135496f6f40cd91a9219b8a814a9839ad072b624ee651f6828",
   "sources": {
     "house_clerk": {
