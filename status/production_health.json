@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-05T14:01:42.217666+00:00",
+  "checked_at": "2026-11-05T14:02:35.891785+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -161,7 +161,7 @@
       "number": 290
     },
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "quality-summary:2026-W45",
       "number": 311
     }
