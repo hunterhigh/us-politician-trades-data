@@ -2,17 +2,17 @@
   "added_person_count": 16,
   "annual_part7_incomparable_row_count": 14617,
   "annual_part7_overlap_count": 25,
-  "base_transaction_count": 5612,
+  "base_transaction_count": 5693,
   "candidate_is_append_only": true,
-  "candidate_sha256": "8f72ffa5e3852dd82678d2c1b7a397d40b2141d70d0ceb395000bbd399f92c2d",
-  "candidate_transaction_count": 7262,
+  "candidate_sha256": "3941a9dfc9fe5bdebbd9133124d5aa99b915b96b57c7f51040e2a5c441adfa99",
+  "candidate_transaction_count": 7396,
   "catalog_report_count": 81,
   "catalog_sha256": "af2fe1a5afc2bce555f07cddd0c8fd104e639f6f163464523a5a9c88465de1b8",
-  "data_cutoff_at": "2026-11-05T05:30:41.857091+00:00",
+  "data_cutoff_at": "2026-11-05T09:14:18.565933+00:00",
   "existing_transaction_mutation_count": 0,
   "extraction_failure_count": 0,
   "promoted_report_count": 38,
-  "promoted_transaction_count": 1650,
+  "promoted_transaction_count": 1703,
   "promoted_transaction_ids": [
     "oge-278t:0001ce3c7bb1737dfee0e31b",
     "oge-278t:003835652d6631bb469094ad",
@@ -42,11 +42,13 @@
     "oge-278t:02fc00d680a16d8a20bdf335",
     "oge-278t:02fcee192d1c7845e8a7d37c",
     "oge-278t:0309be5cbcad2391e06407f3",
+    "oge-278t:0342b5bb117532ad898af116",
     "oge-278t:0343a9033a12c82bd42c5e33",
     "oge-278t:0353214eb2a31d419f632604",
     "oge-278t:037467839bd922dcd51b9cbf",
     "oge-278t:037fb47874951576ec19cce4",
     "oge-278t:03b69c154e48a055f91fa825",
+    "oge-278t:03bea5f54943ee776dfb0bfb",
     "oge-278t:03ffe6a9c28d9ed30f7f71de",
     "oge-278t:0405fab351b35bcd208b6f91",
     "oge-278t:040b4f110a240118d9f16e87",
@@ -57,6 +59,7 @@
     "oge-278t:04d586696df1477f2b80c6ce",
     "oge-278t:04fa3bf28bf9173af019592e",
     "oge-278t:05103de23140a142fe87d19f",
+    "oge-278t:051b343b41f91afcbbfd3e4c",
     "oge-278t:053a782ec8e917a0842a0775",
     "oge-278t:057edb8e953d6287ac92b45e",
     "oge-278t:05c4de2daa7b429e021a175e",
@@ -100,6 +103,8 @@
     "oge-278t:0c0e53d4d64886fce6c27782",
     "oge-278t:0c1ea63c67137acf112cfb9d",
     "oge-278t:0c4e68834dcdb5495e329b0a",
+    "oge-278t:0c6ec9aa79f532080f5cf296",
+    "oge-278t:0cb251f9bfa203575123c28b",
     "oge-278t:0cbbaafdcef269294890b621",
     "oge-278t:0cbf49c944dbed0f39b6cdd2",
     "oge-278t:0cfc05542c65cf5e54abad3d",
@@ -123,6 +128,7 @@
     "oge-278t:100fce88906e488eb35be419",
     "oge-278t:108c815a183436dbf25a6382",
     "oge-278t:109a3e1b8564ec020dc9505c",
+    "oge-278t:10ad9630a265774fd0a550d7",
     "oge-278t:10da9876a8bbcb5c85dc656e",
     "oge-278t:1103f63c4d3bc2afd7f53a57",
     "oge-278t:112252b15f0ed4172ed876ee",
@@ -144,6 +150,7 @@
     "oge-278t:139a40836026349842ff0930",
     "oge-278t:13c43bfa73ba466d896af5a3",
     "oge-278t:13c5060d3614b41372988308",
+    "oge-278t:1470a13fb3d8aa94eab882f0",
     "oge-278t:1489c0c2296926c26e70ec2f",
     "oge-278t:14ddc0441501db8cbab77cdb",
     "oge-278t:14e4373436d4898ec3f0bfc6",
@@ -159,6 +166,7 @@
     "oge-278t:16105f529669d02d76846a82",
     "oge-278t:16183328d188658b017f5f77",
     "oge-278t:162ca9bb9d1a84953c3f9d2e",
+    "oge-278t:16533fe218a6eab98d5af364",
     "oge-278t:16d5c5f3ed950931b06e0b16",
     "oge-278t:170ae4f29b522eac825d380b",
     "oge-278t:184ede9d28d55efa16d12aa3",
@@ -193,12 +201,14 @@
     "oge-278t:1c1e053c69cb67143411b4fa",
     "oge-278t:1c4f2f4c8fe9503db5ef87b0",
     "oge-278t:1c5f693040e0012db54b45f2",
+    "oge-278t:1c978354eca27e6ef31ddece",
     "oge-278t:1cd956d65730137ea27bdfcf",
     "oge-278t:1cdc8ba170fc83f728537634",
     "oge-278t:1cfa8e215e2444b5a941dafe",
     "oge-278t:1d5af0c7d865256510a83a64",
     "oge-278t:1d78af2fd95096e693041808",
     "oge-278t:1da357f587f9db5ee0d74833",
+    "oge-278t:1deeb2b525001b7bfec16d37",
     "oge-278t:1e40a0713ba0fc9f0cb47593",
     "oge-278t:1e73fb4f0d6ed4060016ee14",
     "oge-278t:1e9a9ea4ead449c0466d6a47",
@@ -210,6 +220,7 @@
     "oge-278t:1f3efc5fdff3bbc2f837fe36",
     "oge-278t:1f42ba2a689a45df74c242d3",
     "oge-278t:1f844bb1b220a4cf44ac9b20",
+    "oge-278t:1fc3cfe056d275faedfbdaf4",
     "oge-278t:2017582bfcd035328e82e15f",
     "oge-278t:208f59a7dc0b1b10aadc4a7f",
     "oge-278t:209bf041ebffbb05ea322552",
@@ -264,6 +275,7 @@
     "oge-278t:274f3fbe90e999cf8cf9995e",
     "oge-278t:2767a0929b48ffa9ad9afad3",
     "oge-278t:278db8b834a53ae783c8cef4",
+    "oge-278t:27d75cd9f4dbe4d81b355133",
     "oge-278t:27ef792dca54a93483e101e2",
     "oge-278t:28164d06adaa6a4115222b07",
     "oge-278t:281f50e066fee9158d61e894",
@@ -315,6 +327,7 @@
     "oge-278t:2ecd3024c05422453fc54a1c",
     "oge-278t:2f0ff58510897dc67410e8b2",
     "oge-278t:2f1e6e0d5df1fefe673f060a",
+    "oge-278t:2f3053e034b3eb5a76c6c01b",
     "oge-278t:2f66661bb1cd01ad362cecad",
     "oge-278t:2fadb7565a8b95465d98b78b",
     "oge-278t:2fbeb997bcbd1b3e50ff3196",
@@ -325,6 +338,7 @@
     "oge-278t:3034749e3f332dcb19ccb873",
     "oge-278t:309c3f2abdb7bd7e3bf43e51",
     "oge-278t:309d24c12ff1ce77ec1b725b",
+    "oge-278t:30db7b3be2274b3adb83ae13",
     "oge-278t:30f0416f336b54963cee1884",
     "oge-278t:30f8cea539ecc56079e1076b",
     "oge-278t:30fa498d18a0d358afa7a824",
@@ -379,6 +393,7 @@
     "oge-278t:37d52e083cd10ce5d5ced6a7",
     "oge-278t:381a0311313df44a0635f2b6",
     "oge-278t:384e66d4122ccbf45695a58c",
+    "oge-278t:3852c053a79ef28f3e67ebb1",
     "oge-278t:386c27a7e906b7fd81b2bd49",
     "oge-278t:387e2c8e81c114d4d3759317",
     "oge-278t:3885d84428407db5dacbebf1",
@@ -387,6 +402,7 @@
     "oge-278t:38a3f69c264df984bebf9640",
     "oge-278t:38d0b8424a84ff9847685a0b",
     "oge-278t:39195ef17182030a39f692a5",
+    "oge-278t:39261fbe5f759876a00adfe7",
     "oge-278t:3952cc61d8dd95aa9105ce8d",
     "oge-278t:397a17be8609cbbe69df3392",
     "oge-278t:3a023df3f0ef741b1877dbc7",
@@ -409,6 +425,7 @@
     "oge-278t:3bfc584dcdf9145fb48b870c",
     "oge-278t:3bfd24bbf9fef23d08587983",
     "oge-278t:3c835c1b6260411a1122933e",
+    "oge-278t:3cced837537607caf96d13a7",
     "oge-278t:3cdb47fc98c4fbdda097c535",
     "oge-278t:3cf5523916258c0ba6a47be8",
     "oge-278t:3cfbe37cc0b85aa213c79d18",
@@ -478,6 +495,7 @@
     "oge-278t:458af2d8fe3405dfa5ee7d50",
     "oge-278t:45b76d23827310030635860d",
     "oge-278t:45d37b4994508f2f44ed563f",
+    "oge-278t:45dd6e935a334a654e6c04ff",
     "oge-278t:45fbfe8697ab1871a1b4f899",
     "oge-278t:46304eddd13761100585175a",
     "oge-278t:46c023eeea810196eae6b176",
@@ -528,6 +546,7 @@
     "oge-278t:4e8d9e53ee4bf1b25a31ea0b",
     "oge-278t:4ebcfa3ff7820f5f93ed9ed7",
     "oge-278t:4ebe0d45e9d117ab40e4f777",
+    "oge-278t:4ec5d8d1e7c73cb0e64d9292",
     "oge-278t:4ed7d37b65018b551bd5a857",
     "oge-278t:4f1256ffb3c267df156d8891",
     "oge-278t:4f34948939c2ff4c7987ca13",
@@ -626,6 +645,7 @@
     "oge-278t:5eea4383f22054c55e3a0ca6",
     "oge-278t:5f02384769ddfd65f88919d1",
     "oge-278t:5f1e31b8232f2cb78e71c581",
+    "oge-278t:5f23a1237a0e2febb8b5d4d0",
     "oge-278t:5f895c9b8c0d49e247056668",
     "oge-278t:5fb6d9aa180de92899d96b99",
     "oge-278t:5fc123812cdd20751d38aedf",
@@ -664,6 +684,7 @@
     "oge-278t:651d6756f2ede3a81b737332",
     "oge-278t:6562d30f72794bf736eec8ce",
     "oge-278t:6563f4033101814681ff08f6",
+    "oge-278t:656c4090ea18e59b0f7d1014",
     "oge-278t:6579e9f6dfe131f8ea3f2b13",
     "oge-278t:65977300bd60580bc0db5f9e",
     "oge-278t:659ec9ef30434d175bed43a4",
@@ -737,6 +758,7 @@
     "oge-278t:708a44f2828524a3dd1e44d7",
     "oge-278t:70c6559a33e890550c84f7c6",
     "oge-278t:70c7b2b5f9682456d62dffc1",
+    "oge-278t:7114b6d1e5bf5d6f6d6f19d3",
     "oge-278t:7117d69431e0a4cd97f0f437",
     "oge-278t:712dcca5954442963057f0a3",
     "oge-278t:71304810fbe6500b12c920b1",
@@ -809,6 +831,7 @@
     "oge-278t:7c3b7e31144ed56c22ee230d",
     "oge-278t:7c45a2ad42e15f1ef9babcd5",
     "oge-278t:7c52f86916edccdd5fa7bd4c",
+    "oge-278t:7c5ee56fa0b881747efc8301",
     "oge-278t:7c6a76ce6ad358a55d85e8d7",
     "oge-278t:7cd0a2fc923592d40d110548",
     "oge-278t:7ce656d0ba9121c76074fbb3",
@@ -817,6 +840,7 @@
     "oge-278t:7d4f335718cea9a5356aabfd",
     "oge-278t:7d544a94a3d821cb150440f0",
     "oge-278t:7d7db4940a251c11dde287c0",
+    "oge-278t:7da5eb7d400ba8ab60903e58",
     "oge-278t:7daa4db0636a4cb603097a16",
     "oge-278t:7ddc1dbfa0c1901cb72a9ab8",
     "oge-278t:7de19162ad9a74538c11ddf8",
@@ -912,6 +936,7 @@
     "oge-278t:8cf80b1e40a3a2327f650ee3",
     "oge-278t:8cfcdb570482bb734e429f58",
     "oge-278t:8d11ae83474446a21611b85b",
+    "oge-278t:8d2da19629d8e74bb2bb7c09",
     "oge-278t:8d3c7a3c53c931b046064f33",
     "oge-278t:8d5f84fef120d7a330db4737",
     "oge-278t:8d5fd1956d15a948d0ded9d0",
@@ -1013,6 +1038,7 @@
     "oge-278t:9b26feeab5eeb77109adf171",
     "oge-278t:9b35d1cad25c8f257f69f69a",
     "oge-278t:9b82c94c842c013976ab3649",
+    "oge-278t:9bcdcfb9e8b13b7ed6260c0b",
     "oge-278t:9bd73d1cff1e849964e711ac",
     "oge-278t:9bf5863c6a1ef86563b8a5b2",
     "oge-278t:9c40e3ff0a5f1b5e6f2fb35d",
@@ -1043,14 +1069,18 @@
     "oge-278t:9f7288985938ff4e5b4e607f",
     "oge-278t:9f7909e18f6d02cfeb106087",
     "oge-278t:9f7dcf3d8d43ca6a0a21de39",
+    "oge-278t:9f89140f4a91c08cc8882ffb",
     "oge-278t:9f8d18e0ba80370d4ed0c6c7",
     "oge-278t:9f9c46ad1de2743b14516b8e",
     "oge-278t:9fb66b09a068c5128786a450",
+    "oge-278t:a015d00e0eafe947069574fe",
     "oge-278t:a055ff0538a94e12a334ca89",
     "oge-278t:a0704a1a3e5fb666c5305fda",
+    "oge-278t:a07bfc610bee8d000a4628c7",
     "oge-278t:a09de1d11ba7a3db81d42598",
     "oge-278t:a0bf262651cf75beb22d131d",
     "oge-278t:a0c03570a7300aeefaa2d477",
+    "oge-278t:a0f3646049c9aa66e580fa8e",
     "oge-278t:a106246eb46b59a7b755744d",
     "oge-278t:a10f837a79c022af1f82088a",
     "oge-278t:a110674b25d43bfd06fa2817",
@@ -1076,12 +1106,14 @@
     "oge-278t:a4d4f2fd202b95c5ef0234b2",
     "oge-278t:a4dfe9a15eada789522de845",
     "oge-278t:a4ee2a81d11b68d681d6eb50",
+    "oge-278t:a4f8acd2fc83317b53bfb9ad",
     "oge-278t:a52dc6f3cff7b573af1e228f",
     "oge-278t:a58925e5cb91535d5112b67f",
     "oge-278t:a5f1c6fb7c1046ea31d8d929",
     "oge-278t:a636bdca7d8310410c131cf5",
     "oge-278t:a64f210cda11d0d1b74df384",
     "oge-278t:a66927c804e534a27e935c78",
+    "oge-278t:a69c8a1422a384001446dc03",
     "oge-278t:a6ba5e9228b3bcb0012e1c70",
     "oge-278t:a6cd121fd7450b1768a24a46",
     "oge-278t:a6fba3df2173ce1060e84b82",
@@ -1091,6 +1123,8 @@
     "oge-278t:a7cbf34c10825f21fb78c61d",
     "oge-278t:a7f254fd24ad2a9ea3d41f86",
     "oge-278t:a8399f8592a1d41ffe382d25",
+    "oge-278t:a85b7fa51eaa3ee01be4798d",
+    "oge-278t:a87d7edb0e0a8ebfa67d324c",
     "oge-278t:a8b5ff7b9ab4ba190c73935f",
     "oge-278t:a8bf8c48880fc232efa388f8",
     "oge-278t:a91d46263e00b4abd8e7010f",
@@ -1152,6 +1186,7 @@
     "oge-278t:b2862cf149a3f2f975f0eff6",
     "oge-278t:b291dd6b303b7cc6fd1df243",
     "oge-278t:b2a09b78ee4f810c94611101",
+    "oge-278t:b2abf02205fad7b8bea55f16",
     "oge-278t:b2b30abc7e89385bfe5b5fe2",
     "oge-278t:b2b677b913f596d2dd8e543b",
     "oge-278t:b2bbb6d5456faa8ba60aac3f",
@@ -1165,6 +1200,7 @@
     "oge-278t:b3e31bbd6524142b61e0e1ae",
     "oge-278t:b4107896f4b76e2a9c31d82d",
     "oge-278t:b47666b61571a99d8d1378c3",
+    "oge-278t:b49197e4289b96db69df6789",
     "oge-278t:b4927ca6dec41b7b1efc63a6",
     "oge-278t:b4ebbf0bb1e408031dc5d988",
     "oge-278t:b52554f8aa0e0e22e3760cdc",
@@ -1174,6 +1210,7 @@
     "oge-278t:b57a82346bf45cf2d5fc240b",
     "oge-278t:b581e3dadce5460979bc017b",
     "oge-278t:b5a01c35bc2dedc49b24a691",
+    "oge-278t:b5a47f765c07030e56dccbf6",
     "oge-278t:b5d3866b599cfa60de139d3f",
     "oge-278t:b624aee864ecf580beacd813",
     "oge-278t:b63898dd1e12456f7ff4109e",
@@ -1195,6 +1232,7 @@
     "oge-278t:b8fee4f3e484c36a2b7b6efa",
     "oge-278t:b94b578c5e7f7669af7cb99f",
     "oge-278t:b9709a6e1587bfb889bb2da4",
+    "oge-278t:ba0a3c3f0c5842f4af8614e9",
     "oge-278t:ba0ab147809e3edecbe06d2d",
     "oge-278t:ba393d6c30406cfe1cde7d1d",
     "oge-278t:ba444deb08571fcc1415bd80",
@@ -1205,6 +1243,7 @@
     "oge-278t:ba9055799749855954200dd2",
     "oge-278t:babcce1f972f1962e06f6516",
     "oge-278t:bad2348e36a203cfabfa94c8",
+    "oge-278t:bafad5641d9967b4e3939b39",
     "oge-278t:bb1039e0f05ccb98a1a5b5e6",
     "oge-278t:bb2da7e0afd121757da17dea",
     "oge-278t:bb483fceccc1f60da40ace37",
@@ -1270,8 +1309,10 @@
     "oge-278t:c4c2081bf54b882af6686712",
     "oge-278t:c4df322df59ee839d4df14c7",
     "oge-278t:c4f70ff3e0c4c03efad20091",
+    "oge-278t:c4fdc82b3211c9d916103403",
     "oge-278t:c505419c34f96e0acab9a518",
     "oge-278t:c5250a5d00de82237e150c51",
+    "oge-278t:c539686d210baeefb37367b6",
     "oge-278t:c54b50df71e1672ffa72d7c4",
     "oge-278t:c54d03ba1bc04b52c7a1b614",
     "oge-278t:c569be79c345f791e61fc3d7",
@@ -1293,12 +1334,14 @@
     "oge-278t:c75a905887be38efbb8a7c62",
     "oge-278t:c75e74523cf8ff5e2733fb65",
     "oge-278t:c78427a68ea04fba15dc3b11",
+    "oge-278t:c79a599d05d0826639999c91",
     "oge-278t:c87286a60223b159806b1b39",
     "oge-278t:c8786b13a986ca4f74e03739",
     "oge-278t:c880b86f594a36f941c2646f",
     "oge-278t:c88970a5b93354e6f3b6f40d",
     "oge-278t:c89503bf52b5e089adb82688",
     "oge-278t:c8a0ead318d613cf92f9b4b8",
+    "oge-278t:c9099fd5943bcc9046bbf16e",
     "oge-278t:c97ea6a7f80dac32ec6f97bd",
     "oge-278t:c98795ce320e954ab0ac8f8f",
     "oge-278t:c9b7adcfa0bdce64caaa1712",
@@ -1343,11 +1386,13 @@
     "oge-278t:cf3e01a5e8a1c1056e1f1388",
     "oge-278t:cf5ae6d60ceb6e0b144ae02e",
     "oge-278t:cfa7952e717a09490182a5db",
+    "oge-278t:d00fcb1576908847d543c62d",
     "oge-278t:d039f19a484f7038e56ff8a6",
     "oge-278t:d05e4e7d1cbced63e09a641c",
     "oge-278t:d0c7b1a68c06fe76afbe38f5",
     "oge-278t:d0da190cef15f836468e3ee1",
     "oge-278t:d13408d5aab58764c9d377e7",
+    "oge-278t:d14cd1cea44578da28ae280b",
     "oge-278t:d15f2689b707bd4729cc2e56",
     "oge-278t:d160260556009cbc568ef9b1",
     "oge-278t:d1605f2e314d364ab980ec57",
@@ -1369,6 +1414,7 @@
     "oge-278t:d3d69c16313472962d867618",
     "oge-278t:d3e2a9a8aa3bca9398812410",
     "oge-278t:d40bd95f9d1491db4a0442b5",
+    "oge-278t:d41c965c9342524bf16cace9",
     "oge-278t:d43bd871de221d176d87cf0f",
     "oge-278t:d446c0272747d38c4cc574f0",
     "oge-278t:d476a9a36f39a8aef14eb69d",
@@ -1408,6 +1454,7 @@
     "oge-278t:d88d6ee6458869a500acf735",
     "oge-278t:d89364d403b0918b253958e1",
     "oge-278t:d8aa8d173e2b6b58c29d0852",
+    "oge-278t:d8c1c59588b946cc0b96ca48",
     "oge-278t:d9005d6ceab0287523991ad4",
     "oge-278t:d901b4cf8df925ac5cf668a5",
     "oge-278t:d9834aa6959ff605db1fd38d",
@@ -1459,6 +1506,7 @@
     "oge-278t:e0f84940d4a25ef6339f05c0",
     "oge-278t:e10b6c1dd1f59045030f8c3a",
     "oge-278t:e11d1b6bbb846a2decded01f",
+    "oge-278t:e13619c35c60574dc160fdb6",
     "oge-278t:e1645c5dc08b7af48b58ebe8",
     "oge-278t:e1687c2f53364a96018ee3d6",
     "oge-278t:e17f07bf96c46a5fd780539c",
@@ -1492,6 +1540,7 @@
     "oge-278t:e55f9a6e9fe288d23c525df7",
     "oge-278t:e6087edc01ac336d317969b7",
     "oge-278t:e618a9208ff80c34c4b0afad",
+    "oge-278t:e62180cff1a20da211407894",
     "oge-278t:e62cef765868ba4c3fd9f898",
     "oge-278t:e65c7623b566bb1f735e3e66",
     "oge-278t:e678aefaa7dbf72c794ca184",
@@ -1508,7 +1557,9 @@
     "oge-278t:e84bb062b9cfe02831ac7306",
     "oge-278t:e84eb32cddf7dda518cd002a",
     "oge-278t:e89a11c795ac3734e707ff2c",
+    "oge-278t:e8b99969faa656f2d262dd32",
     "oge-278t:e8c7a335c55db3622bf6fd59",
+    "oge-278t:e8ef71e0180e9631b0e54ec6",
     "oge-278t:e8efe2d3b341369fd1d5d828",
     "oge-278t:e905277d9cfa0ed7729f9932",
     "oge-278t:e927c926dce083f190001d29",
@@ -1541,6 +1592,7 @@
     "oge-278t:ecdf89680716e8fe9d0770ba",
     "oge-278t:ed4f5c9a52eb498ac61d23ad",
     "oge-278t:ed7da6c395fb35c0f06c55aa",
+    "oge-278t:ed83c18a8c3381b62ec12e63",
     "oge-278t:ed84c97f6ad8952dda86415e",
     "oge-278t:edd8b34b427eb2b32db49ff4",
     "oge-278t:edf0c82a0c8307ff2ba7cb61",
@@ -1632,6 +1684,7 @@
     "oge-278t:f9f4f0496dca9b10b1e751b8",
     "oge-278t:fa4c79fc904fec3edc9809a4",
     "oge-278t:fa943eefff4b986f40c0fa65",
+    "oge-278t:faa0ab0cf93d66cf24589782",
     "oge-278t:faa75451b46fa06ae24d376f",
     "oge-278t:fabb94b26a51c0f4b41f28b9",
     "oge-278t:fabc926b3cd1c4f1341e3661",
@@ -1665,8 +1718,8 @@
     "oge-278t:ff92b09ef985b0f6804ce92f",
     "oge-278t:ffa9df785a2abdbaf7e4566b"
   ],
-  "pure_oge_candidate_sha256": "5acf0fb33e971cadf540a00d36c81754dcf66b4d7cdf6432e98faba0c6dc1b13",
-  "quarantined_row_count": 8275,
+  "pure_oge_candidate_sha256": "ff78b763a1ff3ec8f79d77f4b5406dac7ecdd93d685bb7b25c3f428106222175",
+  "quarantined_row_count": 8222,
   "report_count": 81,
   "reports": [
     {
@@ -1675,8 +1728,8 @@
       "filed_at": "2026-06-25",
       "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
-      "promoted_count": 69,
-      "quarantined_count": 1080,
+      "promoted_count": 71,
+      "quarantined_count": 1078,
       "rows": [
         {
           "annual_part7_overlap": false,
@@ -2159,6 +2212,20 @@
           "extraction_id": "oge-278t:45fbfe8697ab1871a1b4f899",
           "reasons": [],
           "row_number": 990,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:656c4090ea18e59b0f7d1014",
+          "reasons": [],
+          "row_number": 83,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:ed83c18a8c3381b62ec12e63",
+          "reasons": [],
+          "row_number": 959,
           "status": "promoted"
         },
         {
@@ -2967,8 +3034,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:0b45eb1c94585ba51db85a8d",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 76,
           "status": "quarantined"
@@ -3022,15 +3088,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:656c4090ea18e59b0f7d1014",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 83,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c756cde7e0850624a45a7dea",
           "reasons": [
             "amount_range_unsupported"
@@ -3042,8 +3099,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8116fe8ecd9902d359875ad4",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 88,
           "status": "quarantined"
@@ -4611,8 +4667,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:db185339c0cb8342f5c1a7f5",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 271,
           "status": "quarantined"
@@ -4716,8 +4771,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3440d96dcfec74f78343801d",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 287,
           "status": "quarantined"
@@ -4753,8 +4807,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8e128efc3541241545a61404",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 291,
           "status": "quarantined"
@@ -5602,8 +5655,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:31a38cb03edbac6e9894bb00",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 380,
           "status": "quarantined"
@@ -5641,8 +5693,7 @@
           "extraction_id": "oge-278t:dc0e0e5914313f4fb196d155",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 384,
           "status": "quarantined"
@@ -5862,8 +5913,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:031ccbe505d303c5c15122de",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 409,
           "status": "quarantined"
@@ -8139,8 +8189,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:97430a013ba9e0f4ceb6c864",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 660,
           "status": "quarantined"
@@ -9403,8 +9452,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:773679a6d74cf3e2e9e01cf6",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 790,
           "status": "quarantined"
@@ -9459,7 +9507,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7af847360caedf9f161e5f26",
           "reasons": [
-            "amount_range_unsupported",
             "transaction_date_invalid",
             "transaction_type_unsupported"
           ],
@@ -9498,8 +9545,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:74151d18fd89aa83a7a0d856",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 801,
           "status": "quarantined"
@@ -9568,8 +9614,7 @@
           "extraction_id": "oge-278t:c68de75812b5ac2c069d9cc9",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 808,
           "status": "quarantined"
@@ -9963,8 +10008,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8bd163bcdc2666bae72770a4",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 853,
           "status": "quarantined"
@@ -9992,8 +10036,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:12f2e76269c8c1559fde9a15",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 857,
           "status": "quarantined"
@@ -10951,15 +10994,6 @@
             "transaction_date_invalid"
           ],
           "row_number": 958,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:ed83c18a8c3381b62ec12e63",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 959,
           "status": "quarantined"
         },
         {
@@ -13488,6 +13522,15 @@
         },
         {
           "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:d10d818b79c97717719cad6e",
+          "reasons": [
+            "transaction_after_filer_signature"
+          ],
+          "row_number": 3193,
+          "status": "quarantined"
+        },
+        {
+          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:02d888a9bd1964432fd24243",
           "reasons": [
             "ocr_row_confidence_below_threshold"
@@ -14050,8 +14093,7 @@
           "extraction_id": "oge-278t:ebe71aec95dfa196cb9b6d23",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 31,
           "status": "quarantined"
@@ -14093,7 +14135,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:26921eddb51e9ac989e5d986",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -14298,7 +14339,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:158a96b0d4b4c3cffd919978",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid"
           ],
@@ -14450,8 +14490,7 @@
           "extraction_id": "oge-278t:ce7bcae2c687732519f53a81",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 68,
           "status": "quarantined"
@@ -14573,8 +14612,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 80,
           "status": "quarantined"
@@ -14617,8 +14655,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e08ed773a8b6aa875ba8dfab",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 84,
           "status": "quarantined"
@@ -14683,8 +14720,7 @@
           "extraction_id": "oge-278t:62cab7df0f8936988e7a21e7",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 90,
           "status": "quarantined"
@@ -14827,8 +14863,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 103,
           "status": "quarantined"
@@ -15148,8 +15183,7 @@
           "extraction_id": "oge-278t:f6a8d3fa8bbdc915cff9608f",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 132,
           "status": "quarantined"
@@ -15306,7 +15340,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:afd9ad45979b2cc813d301e8",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -15396,8 +15429,7 @@
           "extraction_id": "oge-278t:adaeb0e41761173fb4b75188",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 154,
           "status": "quarantined"
@@ -15898,8 +15930,7 @@
           "extraction_id": "oge-278t:dc041e1d166bdf83220d0c0e",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 200,
           "status": "quarantined"
@@ -16065,8 +16096,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 215,
           "status": "quarantined"
@@ -16127,8 +16157,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f4d104589e87d2c41fb6e10c",
           "reasons": [
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 221,
           "status": "quarantined"
@@ -16170,8 +16199,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 225,
           "status": "quarantined"
@@ -16246,8 +16274,7 @@
           "extraction_id": "oge-278t:35f3c06c61550c4f7d124dee",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 232,
           "status": "quarantined"
@@ -16257,8 +16284,7 @@
           "extraction_id": "oge-278t:77de4ca5480187fe8ec8cb5b",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 233,
           "status": "quarantined"
@@ -16402,8 +16428,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 246,
           "status": "quarantined"
@@ -16542,8 +16567,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 259,
           "status": "quarantined"
@@ -16553,8 +16577,7 @@
           "extraction_id": "oge-278t:7da3a64e9d91d405bdd20fcf",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 260,
           "status": "quarantined"
@@ -16709,8 +16732,7 @@
           "extraction_id": "oge-278t:baa104502612534b3fa4b22a",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 274,
           "status": "quarantined"
@@ -16721,8 +16743,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 275,
           "status": "quarantined"
@@ -16948,8 +16969,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 296,
           "status": "quarantined"
@@ -17365,8 +17385,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 334,
           "status": "quarantined"
@@ -17467,7 +17486,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f362125d85fa51d5b0cc9f58",
           "reasons": [
-            "amount_range_unsupported",
             "transaction_date_invalid",
             "transaction_type_unsupported"
           ],
@@ -17479,8 +17497,7 @@
           "extraction_id": "oge-278t:ad30d49218be744eb5f3cc02",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 344,
           "status": "quarantined"
@@ -17651,7 +17668,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7e744ecb1a6473810a8094b8",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -17665,8 +17681,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 361,
           "status": "quarantined"
@@ -17687,7 +17702,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ec71c0880c92750f13b61b1b",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -17709,7 +17723,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cfb24b6303029699da38e803",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid"
           ],
@@ -17811,8 +17824,7 @@
           "extraction_id": "oge-278t:4cf92585aa008af8d6b9426a",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 374,
           "status": "quarantined"
@@ -17822,8 +17834,7 @@
           "extraction_id": "oge-278t:030a8b970c14f1e9aa4e06de",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 375,
           "status": "quarantined"
@@ -17846,8 +17857,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 377,
           "status": "quarantined"
@@ -18189,8 +18199,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 409,
           "status": "quarantined"
@@ -18334,8 +18343,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 422,
           "status": "quarantined"
@@ -18459,8 +18467,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ab3a758c97ceaef15fb05814",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 435,
           "status": "quarantined"
@@ -18849,8 +18856,7 @@
           "extraction_id": "oge-278t:7910694783ca4dda1609cd77",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 472,
           "status": "quarantined"
@@ -18915,8 +18921,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 478,
           "status": "quarantined"
@@ -19140,8 +19145,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 498,
           "status": "quarantined"
@@ -19269,8 +19273,7 @@
           "extraction_id": "oge-278t:16a8913f0710007ff41d3d64",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 510,
           "status": "quarantined"
@@ -19399,8 +19402,7 @@
           "extraction_id": "oge-278t:f8a9607ea9221e39664ec1f5",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 522,
           "status": "quarantined"
@@ -19474,8 +19476,7 @@
           "extraction_id": "oge-278t:ac97b1476de667e6cbec92a6",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 529,
           "status": "quarantined"
@@ -19485,8 +19486,7 @@
           "extraction_id": "oge-278t:a881fe2070c754e6eff7a5d8",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 530,
           "status": "quarantined"
@@ -19624,7 +19624,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ff1a1ff371976d21d5d03ae2",
           "reasons": [
-            "amount_range_unsupported",
             "transaction_date_invalid",
             "transaction_type_unsupported"
           ],
@@ -19646,8 +19645,7 @@
           "extraction_id": "oge-278t:3650e08243e5064297cca592",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 545,
           "status": "quarantined"
@@ -19743,8 +19741,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:20135fb5595387b1d4df14d3",
           "reasons": [
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 554,
           "status": "quarantined"
@@ -19776,8 +19773,7 @@
           "extraction_id": "oge-278t:bf046d514adccde34222935b",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 557,
           "status": "quarantined"
@@ -19808,8 +19804,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8d4cd8c1edd7e22e91b5f865",
           "reasons": [
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 560,
           "status": "quarantined"
@@ -19904,8 +19899,7 @@
           "extraction_id": "oge-278t:5b5dec0cb54ec032edca5cab",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 569,
           "status": "quarantined"
@@ -19926,8 +19920,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 571,
           "status": "quarantined"
@@ -19949,8 +19942,7 @@
           "extraction_id": "oge-278t:3e5c452dd3989b1aa3fbcfa2",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 573,
           "status": "quarantined"
@@ -20577,8 +20569,7 @@
           "extraction_id": "oge-278t:c9eac81dbabae631afbf6a93",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 630,
           "status": "quarantined"
@@ -20621,8 +20612,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 634,
           "status": "quarantined"
@@ -20711,8 +20701,7 @@
           "extraction_id": "oge-278t:b060bab013bf75d8323fb7a0",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 642,
           "status": "quarantined"
@@ -20745,8 +20734,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 645,
           "status": "quarantined"
@@ -20800,8 +20788,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 650,
           "status": "quarantined"
@@ -21014,8 +21001,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 670,
           "status": "quarantined"
@@ -21192,8 +21178,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b19da22607502c8155616681",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 686,
           "status": "quarantined"
@@ -21227,8 +21212,7 @@
           "extraction_id": "oge-278t:429e41f7eed221d3132548d9",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 689,
           "status": "quarantined"
@@ -21301,8 +21285,7 @@
           "extraction_id": "oge-278t:c40f148b9fc9fc2df466036e",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 698,
           "status": "quarantined"
@@ -21416,8 +21399,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cf8b1e6b2c2c91688bc736d9",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 711,
           "status": "quarantined"
@@ -21459,8 +21441,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 715,
           "status": "quarantined"
@@ -21761,8 +21742,7 @@
           "extraction_id": "oge-278t:0b7a9c8e90efb8c211eaa92e",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 745,
           "status": "quarantined"
@@ -22007,8 +21987,7 @@
           "extraction_id": "oge-278t:135180076cdc0b6694ee2dd9",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 767,
           "status": "quarantined"
@@ -22205,8 +22184,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e897537121435f67f2c38494",
           "reasons": [
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 786,
           "status": "quarantined"
@@ -22444,8 +22422,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:dc41e6028033bbe1a9b539e0",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 809,
           "status": "quarantined"
@@ -22546,8 +22523,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 818,
           "status": "quarantined"
@@ -22641,8 +22617,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:05235e29c08f32459f99643d",
           "reasons": [
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 827,
           "status": "quarantined"
@@ -22756,8 +22731,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:bb049e8a442dcb31c5fb2447",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 838,
           "status": "quarantined"
@@ -22903,8 +22877,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 853,
           "status": "quarantined"
@@ -22969,8 +22942,7 @@
           "extraction_id": "oge-278t:db5485ae251bd48cd7a374eb",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 859,
           "status": "quarantined"
@@ -22991,8 +22963,7 @@
           "extraction_id": "oge-278t:f1202670b8a0039f8cf46961",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 861,
           "status": "quarantined"
@@ -23003,8 +22974,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 862,
           "status": "quarantined"
@@ -23027,8 +22997,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 864,
           "status": "quarantined"
@@ -23145,8 +23114,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:79fb8ba30cc0f5646771b1ee",
           "reasons": [
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 875,
           "status": "quarantined"
@@ -23287,8 +23255,7 @@
           "extraction_id": "oge-278t:0b00ba1dd33ac542b43d5dc0",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 888,
           "status": "quarantined"
@@ -23532,7 +23499,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:86f6ac116206776346f03de2",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid"
           ],
@@ -23622,8 +23588,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 918,
           "status": "quarantined"
@@ -23645,8 +23610,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 920,
           "status": "quarantined"
@@ -24018,8 +23982,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 955,
           "status": "quarantined"
@@ -24083,8 +24046,7 @@
           "extraction_id": "oge-278t:9130822c2052528ec1f731e3",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 961,
           "status": "quarantined"
@@ -24580,8 +24542,7 @@
           "extraction_id": "oge-278t:8de8917ed118292f1714ad29",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 1005,
           "status": "quarantined"
@@ -24749,8 +24710,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1020,
           "status": "quarantined"
@@ -24761,8 +24721,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1021,
           "status": "quarantined"
@@ -24870,7 +24829,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e578d7f1fc40b88bff6c0a06",
           "reasons": [
-            "amount_range_unsupported",
             "transaction_date_invalid",
             "transaction_type_unsupported"
           ],
@@ -25017,8 +24975,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1044,
           "status": "quarantined"
@@ -25145,7 +25102,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a72530e2e0c2d72b6586ddca",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_type_unsupported"
           ],
@@ -25191,8 +25147,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1060,
           "status": "quarantined"
@@ -25214,8 +25169,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1062,
           "status": "quarantined"
@@ -25369,8 +25323,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1076,
           "status": "quarantined"
@@ -25392,8 +25345,7 @@
           "extraction_id": "oge-278t:14044b9de31a932bd37934d1",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 1078,
           "status": "quarantined"
@@ -25434,8 +25386,7 @@
           "extraction_id": "oge-278t:23f68d80baae5e2877641495",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1082,
           "status": "quarantined"
@@ -25795,8 +25746,7 @@
           "extraction_id": "oge-278t:32a543d48d08d0cc1ec3a500",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1114,
           "status": "quarantined"
@@ -25817,8 +25767,7 @@
           "extraction_id": "oge-278t:c0b88b666d5ff25d45570cb8",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1116,
           "status": "quarantined"
@@ -25894,8 +25843,7 @@
           "extraction_id": "oge-278t:3ef2f214e351b19f1cc0cb61",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1123,
           "status": "quarantined"
@@ -26296,8 +26244,7 @@
           "extraction_id": "oge-278t:519497c0b8a10f8bddf56d75",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1160,
           "status": "quarantined"
@@ -26408,8 +26355,7 @@
           "extraction_id": "oge-278t:766f7332e040a5a21db6d9c9",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 1170,
           "status": "quarantined"
@@ -26549,8 +26495,7 @@
           "extraction_id": "oge-278t:860cfc92bae53ade7512a8dd",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1183,
           "status": "quarantined"
@@ -26585,8 +26530,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1186,
           "status": "quarantined"
@@ -26727,8 +26671,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6a78c525271c530fd649a38e",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 1199,
           "status": "quarantined"
@@ -26770,8 +26713,7 @@
           "extraction_id": "oge-278t:15366052eeef82655d0b6d19",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1203,
           "status": "quarantined"
@@ -26846,8 +26788,7 @@
           "extraction_id": "oge-278t:a513532f9f4ae322a0b07204",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1210,
           "status": "quarantined"
@@ -27244,8 +27185,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1246,
           "status": "quarantined"
@@ -27321,8 +27261,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1253,
           "status": "quarantined"
@@ -27379,8 +27318,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1258,
           "status": "quarantined"
@@ -27486,8 +27424,7 @@
           "extraction_id": "oge-278t:088b8e95a5ebbdc78a38b536",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1268,
           "status": "quarantined"
@@ -28058,8 +27995,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1321,
           "status": "quarantined"
@@ -28078,8 +28014,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:23fe2a6574e214d3adcde9a1",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 1323,
           "status": "quarantined"
@@ -28247,8 +28182,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1338,
           "status": "quarantined"
@@ -28563,8 +28497,7 @@
           "extraction_id": "oge-278t:dc1cce8e59b8719b74caf582",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1367,
           "status": "quarantined"
@@ -28586,8 +28519,7 @@
           "extraction_id": "oge-278t:c75c7a18d6cb905f0d85d331",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1370,
           "status": "quarantined"
@@ -28733,8 +28665,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1383,
           "status": "quarantined"
@@ -29585,8 +29516,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1462,
           "status": "quarantined"
@@ -30022,8 +29952,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1501,
           "status": "quarantined"
@@ -31240,8 +31169,7 @@
           "extraction_id": "oge-278t:dd1eff238d6633f20c84b874",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1608,
           "status": "quarantined"
@@ -31262,8 +31190,7 @@
           "extraction_id": "oge-278t:22bbee8abb70dac3a4895a49",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1610,
           "status": "quarantined"
@@ -31317,8 +31244,7 @@
           "extraction_id": "oge-278t:34220fad7a2c87f3ff569168",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1615,
           "status": "quarantined"
@@ -31379,8 +31305,7 @@
           "extraction_id": "oge-278t:4e393fc41c9dcbd55ee5ca76",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1621,
           "status": "quarantined"
@@ -31448,8 +31373,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1627,
           "status": "quarantined"
@@ -31510,8 +31434,7 @@
           "extraction_id": "oge-278t:9cea2555fee4f0dab4c15a3e",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1633,
           "status": "quarantined"
@@ -31608,8 +31531,7 @@
           "extraction_id": "oge-278t:e8e3123f7a14104d5e77ae88",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1642,
           "status": "quarantined"
@@ -31674,8 +31596,7 @@
           "extraction_id": "oge-278t:2093430d33532862ae7d04d9",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1648,
           "status": "quarantined"
@@ -31697,8 +31618,7 @@
           "extraction_id": "oge-278t:2837fc7463abbb53fe347dd6",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1650,
           "status": "quarantined"
@@ -31796,8 +31716,7 @@
           "extraction_id": "oge-278t:78c3834a2414a12ca1fc4afd",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1659,
           "status": "quarantined"
@@ -31887,8 +31806,7 @@
           "extraction_id": "oge-278t:035298bea0b412e0b7b47984",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1667,
           "status": "quarantined"
@@ -32777,8 +32695,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1746,
           "status": "quarantined"
@@ -33086,8 +33003,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1774,
           "status": "quarantined"
@@ -33555,8 +33471,7 @@
           "extraction_id": "oge-278t:a93de8e94890106e43eb6e0f",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1817,
           "status": "quarantined"
@@ -33565,8 +33480,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:fdf55740d1e201d9bc1d4388",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 1818,
           "status": "quarantined"
@@ -33786,8 +33700,7 @@
           "extraction_id": "oge-278t:0cfc2b03599e60d62d6042a0",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1838,
           "status": "quarantined"
@@ -34380,8 +34293,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1890,
           "status": "quarantined"
@@ -35604,8 +35516,7 @@
           "extraction_id": "oge-278t:fe2957a90078fb9fe5cc53e4",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 1999,
           "status": "quarantined"
@@ -36153,8 +36064,7 @@
           "extraction_id": "oge-278t:b149618068dc0535c392e19e",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2049,
           "status": "quarantined"
@@ -36312,7 +36222,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4ee98d34a5c9f40e988fa498",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -36538,10 +36447,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:640bd7f52bccdea1445b21a9",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2083,
           "status": "quarantined"
@@ -36815,8 +36722,7 @@
           "extraction_id": "oge-278t:965351fb0aa1e74d721d6e5f",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2108,
           "status": "quarantined"
@@ -36836,8 +36742,7 @@
           "extraction_id": "oge-278t:13271ab3c2a90b53a32f4f6b",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2110,
           "status": "quarantined"
@@ -36869,8 +36774,7 @@
           "extraction_id": "oge-278t:bfe5c39646a0f825c4bcbaf8",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2113,
           "status": "quarantined"
@@ -36892,8 +36796,7 @@
           "extraction_id": "oge-278t:fe3fd94253ca1f1ca0278575",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2115,
           "status": "quarantined"
@@ -37051,7 +36954,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:bae97c06307539c32f361c85",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid"
           ],
@@ -37140,8 +37042,7 @@
           "extraction_id": "oge-278t:e4a643fea91be80b96bb8ee5",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2138,
           "status": "quarantined"
@@ -37285,8 +37186,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2151,
           "status": "quarantined"
@@ -37329,7 +37229,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:46a49e5ce27947551d7c8b30",
           "reasons": [
-            "amount_range_unsupported",
             "transaction_date_invalid",
             "transaction_type_unsupported"
           ],
@@ -37952,8 +37851,7 @@
           "extraction_id": "oge-278t:1a5ee222c3aacaa144d9d774",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2210,
           "status": "quarantined"
@@ -38141,7 +38039,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e99b4d4ceabf5fcf3d4239bd",
           "reasons": [
-            "amount_range_unsupported",
             "transaction_date_invalid",
             "transaction_type_unsupported"
           ],
@@ -38381,8 +38278,7 @@
           "extraction_id": "oge-278t:3fc3c707428ce121a8c7d036",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2249,
           "status": "quarantined"
@@ -38663,7 +38559,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a0859d8f64cb2de8cc62661c",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -39024,7 +38919,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:63762c404e3a21332563c0db",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_type_unsupported"
           ],
@@ -39491,8 +39385,7 @@
           "extraction_id": "oge-278t:f357e36c70a43dc12ec89b96",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 2351,
           "status": "quarantined"
@@ -39784,8 +39677,7 @@
           "extraction_id": "oge-278t:0d5eb060f08323db2e6d62db",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2379,
           "status": "quarantined"
@@ -41247,7 +41139,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:bc30de74f464e75a8daa1492",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid"
           ],
@@ -44296,8 +44187,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2772,
           "status": "quarantined"
@@ -44451,8 +44341,7 @@
           "extraction_id": "oge-278t:a32d58f05958c700e9566396",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2786,
           "status": "quarantined"
@@ -44510,8 +44399,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2791,
           "status": "quarantined"
@@ -44562,8 +44450,7 @@
           "extraction_id": "oge-278t:87e49d4a655845e870373ae4",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 2796,
           "status": "quarantined"
@@ -46947,8 +46834,7 @@
           "extraction_id": "oge-278t:ff6eefc4f7bd61578e8fbb0c",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3002,
           "status": "quarantined"
@@ -48780,8 +48666,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3164,
           "status": "quarantined"
@@ -48971,8 +48856,7 @@
           "extraction_id": "oge-278t:691070b08dd2c48224624d1c",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3181,
           "status": "quarantined"
@@ -49103,15 +48987,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:d10d818b79c97717719cad6e",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 3193,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:bbf809aac53dae69dfb69a0f",
           "reasons": [
             "amount_range_unsupported",
@@ -49238,8 +49113,7 @@
           "extraction_id": "oge-278t:9dfa56e7c3f578eff543bf27",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3205,
           "status": "quarantined"
@@ -49413,8 +49287,7 @@
           "extraction_id": "oge-278t:c038ee6071a81df892b9aafa",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3220,
           "status": "quarantined"
@@ -49491,7 +49364,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:399a44702a8fe7e45734a1a0",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -49632,8 +49504,7 @@
           "extraction_id": "oge-278t:b9624be0f5acecde19ff3888",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3239,
           "status": "quarantined"
@@ -49866,8 +49737,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3259,
           "status": "quarantined"
@@ -49888,7 +49758,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3fba29aa7da43e1d4f320014",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -50169,8 +50038,7 @@
           "extraction_id": "oge-278t:3e1d4a0ccb59d50c4b615b37",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3286,
           "status": "quarantined"
@@ -50819,8 +50687,7 @@
           "extraction_id": "oge-278t:c997490a3aea55e50be08223",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3343,
           "status": "quarantined"
@@ -50829,7 +50696,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:639e388c958bac04359dbeb2",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -50913,8 +50779,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3351,
           "status": "quarantined"
@@ -50945,7 +50810,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:5501cee95944c7436fa4e4ba",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -51490,8 +51354,7 @@
           "extraction_id": "oge-278t:6e11b80825811282f3d2686d",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3402,
           "status": "quarantined"
@@ -51512,8 +51375,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:166bb9f65fbe8b013c8570b1",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 3404,
           "status": "quarantined"
@@ -51546,7 +51408,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3a295e62a2c882001af1ed58",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid"
           ],
@@ -51558,8 +51419,7 @@
           "extraction_id": "oge-278t:682643ad385cd1a058628e98",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3408,
           "status": "quarantined"
@@ -51820,8 +51680,7 @@
           "extraction_id": "oge-278t:23e2635b4af7c9f7ff45faf8",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3431,
           "status": "quarantined"
@@ -51978,7 +51837,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3dfc6ac8fc58175c9e51e736",
           "reasons": [
-            "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
             "transaction_date_invalid",
             "transaction_type_unsupported"
@@ -52058,8 +51916,7 @@
           "extraction_id": "oge-278t:9013e993ff19e66a72f447d5",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3452,
           "status": "quarantined"
@@ -52260,8 +52117,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3472,
           "status": "quarantined"
@@ -52361,8 +52217,7 @@
           "extraction_id": "oge-278t:05f2d84a47ae132d631d7f29",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3481,
           "status": "quarantined"
@@ -52384,8 +52239,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3483,
           "status": "quarantined"
@@ -52909,8 +52763,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3530,
           "status": "quarantined"
@@ -53123,8 +52976,7 @@
           "extraction_id": "oge-278t:05a721ca4169d79fd2ec5d5b",
           "reasons": [
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3549,
           "status": "quarantined"
@@ -53619,8 +53471,7 @@
           "extraction_id": "oge-278t:cedd1a898dbc2d375a26008d",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 3593,
           "status": "quarantined"
@@ -53795,8 +53646,8 @@
       "filed_at": "2025-08-12",
       "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
-      "promoted_count": 465,
-      "quarantined_count": 42,
+      "promoted_count": 470,
+      "quarantined_count": 37,
       "rows": [
         {
           "annual_part7_overlap": false,
@@ -57055,6 +56906,41 @@
         },
         {
           "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:a87d7edb0e0a8ebfa67d324c",
+          "reasons": [],
+          "row_number": 53,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:16533fe218a6eab98d5af364",
+          "reasons": [],
+          "row_number": 98,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:1deeb2b525001b7bfec16d37",
+          "reasons": [],
+          "row_number": 136,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:1fc3cfe056d275faedfbdaf4",
+          "reasons": [],
+          "row_number": 255,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:a85b7fa51eaa3ee01be4798d",
+          "reasons": [],
+          "row_number": 469,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9db378030656522384c51606",
           "reasons": [
             "transaction_date_invalid"
@@ -57096,15 +56982,6 @@
             "transaction_date_invalid"
           ],
           "row_number": 50,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:a87d7edb0e0a8ebfa67d324c",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 53,
           "status": "quarantined"
         },
         {
@@ -57163,29 +57040,11 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:16533fe218a6eab98d5af364",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 98,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2b8d43c264240365d00f5fea",
           "reasons": [
             "transaction_date_invalid"
           ],
           "row_number": 122,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:1deeb2b525001b7bfec16d37",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 136,
           "status": "quarantined"
         },
         {
@@ -57222,15 +57081,6 @@
             "transaction_date_invalid"
           ],
           "row_number": 214,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:1fc3cfe056d275faedfbdaf4",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 255,
           "status": "quarantined"
         },
         {
@@ -57357,15 +57207,6 @@
             "description_missing"
           ],
           "row_number": 459,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:a85b7fa51eaa3ee01be4798d",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 469,
           "status": "quarantined"
         },
         {
@@ -58445,8 +58286,7 @@
           "extraction_id": "oge-278t:6c119b1d9ec9778af6fc8503",
           "reasons": [
             "no_eligible_transaction_rows",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 35,
           "status": "quarantined"
@@ -58570,8 +58410,7 @@
             "amount_range_unsupported",
             "no_eligible_transaction_rows",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 46,
           "status": "quarantined"
@@ -58835,8 +58674,7 @@
           "reasons": [
             "amount_range_unsupported",
             "no_eligible_transaction_rows",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 70,
           "status": "quarantined"
@@ -58907,8 +58745,7 @@
           "extraction_id": "oge-278t:76ed86bff736cbf091558a3f",
           "reasons": [
             "no_eligible_transaction_rows",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 76,
           "status": "quarantined"
@@ -58918,8 +58755,7 @@
           "extraction_id": "oge-278t:5bc5b5620fdcec464a7c12fb",
           "reasons": [
             "no_eligible_transaction_rows",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 77,
           "status": "quarantined"
@@ -58987,8 +58823,7 @@
           "reasons": [
             "no_eligible_transaction_rows",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 83,
           "status": "quarantined"
@@ -60072,8 +59907,8 @@
       "filed_at": "2026-08-12",
       "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
-      "promoted_count": 517,
-      "quarantined_count": 530,
+      "promoted_count": 547,
+      "quarantined_count": 500,
       "rows": [
         {
           "annual_part7_overlap": false,
@@ -63696,6 +63531,216 @@
         },
         {
           "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:7114b6d1e5bf5d6f6d6f19d3",
+          "reasons": [],
+          "row_number": 1,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:03bea5f54943ee776dfb0bfb",
+          "reasons": [],
+          "row_number": 69,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:d00fcb1576908847d543c62d",
+          "reasons": [],
+          "row_number": 72,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:30db7b3be2274b3adb83ae13",
+          "reasons": [],
+          "row_number": 74,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:c539686d210baeefb37367b6",
+          "reasons": [],
+          "row_number": 76,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:39261fbe5f759876a00adfe7",
+          "reasons": [],
+          "row_number": 77,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:d14cd1cea44578da28ae280b",
+          "reasons": [],
+          "row_number": 79,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:d8c1c59588b946cc0b96ca48",
+          "reasons": [],
+          "row_number": 95,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:051b343b41f91afcbbfd3e4c",
+          "reasons": [],
+          "row_number": 197,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:a0f3646049c9aa66e580fa8e",
+          "reasons": [],
+          "row_number": 297,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:9bcdcfb9e8b13b7ed6260c0b",
+          "reasons": [],
+          "row_number": 304,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:c4fdc82b3211c9d916103403",
+          "reasons": [],
+          "row_number": 379,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:e13619c35c60574dc160fdb6",
+          "reasons": [],
+          "row_number": 383,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:d41c965c9342524bf16cace9",
+          "reasons": [],
+          "row_number": 404,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:a69c8a1422a384001446dc03",
+          "reasons": [],
+          "row_number": 434,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:3852c053a79ef28f3e67ebb1",
+          "reasons": [],
+          "row_number": 436,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:1c978354eca27e6ef31ddece",
+          "reasons": [],
+          "row_number": 449,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:e8ef71e0180e9631b0e54ec6",
+          "reasons": [],
+          "row_number": 468,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:c9099fd5943bcc9046bbf16e",
+          "reasons": [],
+          "row_number": 521,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:3cced837537607caf96d13a7",
+          "reasons": [],
+          "row_number": 522,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:9f89140f4a91c08cc8882ffb",
+          "reasons": [],
+          "row_number": 671,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:faa0ab0cf93d66cf24589782",
+          "reasons": [],
+          "row_number": 676,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:0342b5bb117532ad898af116",
+          "reasons": [],
+          "row_number": 684,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:0cb251f9bfa203575123c28b",
+          "reasons": [],
+          "row_number": 836,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:c79a599d05d0826639999c91",
+          "reasons": [],
+          "row_number": 857,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:1470a13fb3d8aa94eab882f0",
+          "reasons": [],
+          "row_number": 870,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:0c6ec9aa79f532080f5cf296",
+          "reasons": [],
+          "row_number": 941,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:7da5eb7d400ba8ab60903e58",
+          "reasons": [],
+          "row_number": 943,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:a4f8acd2fc83317b53bfb9ad",
+          "reasons": [],
+          "row_number": 945,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:a07bfc610bee8d000a4628c7",
+          "reasons": [],
+          "row_number": 946,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e0d511883e74e9d018dffa22",
           "reasons": [
             "ocr_row_confidence_below_threshold"
@@ -63791,15 +63836,6 @@
             "ocr_row_confidence_below_threshold"
           ],
           "row_number": 880,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:7114b6d1e5bf5d6f6d6f19d3",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 1,
           "status": "quarantined"
         },
         {
@@ -64162,60 +64198,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:03bea5f54943ee776dfb0bfb",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 69,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:d00fcb1576908847d543c62d",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 72,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:30db7b3be2274b3adb83ae13",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 74,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:c539686d210baeefb37367b6",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 76,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:39261fbe5f759876a00adfe7",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 77,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:d14cd1cea44578da28ae280b",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 79,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:08e94c2a1827e5c86101bd70",
           "reasons": [
             "amount_range_unsupported"
@@ -64274,19 +64256,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cd97106924e32103f1efaa8f",
           "reasons": [
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 91,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:d8c1c59588b946cc0b96ca48",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 95,
           "status": "quarantined"
         },
         {
@@ -64482,15 +64454,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:051b343b41f91afcbbfd3e4c",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 197,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e1345a10a404d3549dfa3eff",
           "reasons": [
             "transaction_type_unsupported"
@@ -64548,8 +64511,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d5c5a8e0a9af63bbd904e7f9",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 238,
           "status": "quarantined"
@@ -64761,8 +64723,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8142995ea15941466d20448c",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 283,
           "status": "quarantined"
@@ -64832,15 +64793,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:a0f3646049c9aa66e580fa8e",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 297,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3e0a0527247dac3d4facb0c6",
           "reasons": [
             "amount_range_unsupported"
@@ -64855,15 +64807,6 @@
             "amount_range_unsupported"
           ],
           "row_number": 302,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:9bcdcfb9e8b13b7ed6260c0b",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 304,
           "status": "quarantined"
         },
         {
@@ -65115,8 +65058,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:577e8e780b5e6dbdf304e2fc",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 347,
           "status": "quarantined"
@@ -65269,15 +65211,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:c4fdc82b3211c9d916103403",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 379,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:11239178f941b73f70971d3f",
           "reasons": [
             "amount_range_unsupported"
@@ -65289,8 +65222,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:328557b2e6398c5b8f0b9148",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 381,
           "status": "quarantined"
@@ -65302,15 +65234,6 @@
             "transaction_type_unsupported"
           ],
           "row_number": 382,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:e13619c35c60574dc160fdb6",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 383,
           "status": "quarantined"
         },
         {
@@ -65338,15 +65261,6 @@
             "transaction_type_unsupported"
           ],
           "row_number": 396,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:d41c965c9342524bf16cace9",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 404,
           "status": "quarantined"
         },
         {
@@ -65396,24 +65310,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:a69c8a1422a384001446dc03",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 434,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:3852c053a79ef28f3e67ebb1",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 436,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8d206d950037718e7302ad7c",
           "reasons": [
             "amount_range_unsupported"
@@ -65428,15 +65324,6 @@
             "transaction_type_unsupported"
           ],
           "row_number": 448,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:1c978354eca27e6ef31ddece",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 449,
           "status": "quarantined"
         },
         {
@@ -65473,15 +65360,6 @@
             "transaction_type_unsupported"
           ],
           "row_number": 463,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:e8ef71e0180e9631b0e54ec6",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 468,
           "status": "quarantined"
         },
         {
@@ -65533,8 +65411,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:88afa68c41d38381562d0045",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 505,
           "status": "quarantined"
@@ -65599,28 +65476,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cb0628c710fe6a13e3fc73cd",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 520,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:c9099fd5943bcc9046bbf16e",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 521,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:3cced837537607caf96d13a7",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 522,
           "status": "quarantined"
         },
         {
@@ -65628,8 +65486,7 @@
           "extraction_id": "oge-278t:09f19b15fc4a4f4b840534df",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 523,
           "status": "quarantined"
@@ -66027,8 +65884,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a84a9f580b59f21a2eaf17b7",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 569,
           "status": "quarantined"
@@ -66817,15 +66673,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:9f89140f4a91c08cc8882ffb",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 671,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ba41e799eec154bc4251a373",
           "reasons": [
             "amount_range_unsupported"
@@ -66853,15 +66700,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:faa0ab0cf93d66cf24589782",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 676,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:67d775cee40ce096d1409e07",
           "reasons": [
             "amount_range_unsupported"
@@ -66873,8 +66711,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3c7bf2e6ce461aa812921924",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 682,
           "status": "quarantined"
@@ -66886,15 +66723,6 @@
             "amount_range_unsupported"
           ],
           "row_number": 683,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:0342b5bb117532ad898af116",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 684,
           "status": "quarantined"
         },
         {
@@ -67597,8 +67425,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3612132e0cdd8728afd93912",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 818,
           "status": "quarantined"
@@ -67716,15 +67543,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:0cb251f9bfa203575123c28b",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 836,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:eac5ffa6c0787ffdabcc0d95",
           "reasons": [
             "transaction_type_unsupported"
@@ -67772,27 +67590,16 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:93aaced0593bf41003a706d7",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 856,
           "status": "quarantined"
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:c79a599d05d0826639999c91",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 857,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9081a8b8ee38cb870ddff6a8",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 859,
           "status": "quarantined"
@@ -67864,15 +67671,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:1470a13fb3d8aa94eab882f0",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 870,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:20ccb6e43ec2c79a091edee0",
           "reasons": [
             "amount_range_unsupported"
@@ -67921,8 +67719,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8b2c3beb437fac5c383aefe8",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 886,
           "status": "quarantined"
@@ -68093,15 +67890,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:0c6ec9aa79f532080f5cf296",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 941,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:fb056293c7f6d2427ea66257",
           "reasons": [
             "transaction_type_unsupported"
@@ -68111,38 +67899,11 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:7da5eb7d400ba8ab60903e58",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 943,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3df5cbc2987527a34c1e481e",
           "reasons": [
             "amount_range_unsupported"
           ],
           "row_number": 944,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:a4f8acd2fc83317b53bfb9ad",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 945,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:a07bfc610bee8d000a4628c7",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 946,
           "status": "quarantined"
         },
         {
@@ -68158,8 +67919,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a7e0892eeb5af163ee39f0a5",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 949,
           "status": "quarantined"
@@ -68177,8 +67937,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a902c9c606231889522c0def",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 951,
           "status": "quarantined"
@@ -68878,8 +68637,8 @@
       "filed_at": "2026-01-14",
       "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
-      "promoted_count": 31,
-      "quarantined_count": 160,
+      "promoted_count": 42,
+      "quarantined_count": 149,
       "rows": [
         {
           "annual_part7_overlap": false,
@@ -69100,6 +68859,92 @@
         },
         {
           "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:4ec5d8d1e7c73cb0e64d9292",
+          "reasons": [],
+          "row_number": 24,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:8d2da19629d8e74bb2bb7c09",
+          "reasons": [],
+          "row_number": 26,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:45dd6e935a334a654e6c04ff",
+          "reasons": [],
+          "row_number": 47,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:5f23a1237a0e2febb8b5d4d0",
+          "reasons": [],
+          "row_number": 56,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:2f3053e034b3eb5a76c6c01b",
+          "reasons": [],
+          "row_number": 59,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:10ad9630a265774fd0a550d7",
+          "reasons": [],
+          "row_number": 84,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:e8b99969faa656f2d262dd32",
+          "reasons": [],
+          "row_number": 94,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:b2abf02205fad7b8bea55f16",
+          "reasons": [],
+          "row_number": 95,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:27d75cd9f4dbe4d81b355133",
+          "reasons": [],
+          "row_number": 127,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:ba0a3c3f0c5842f4af8614e9",
+          "reasons": [],
+          "row_number": 151,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:a015d00e0eafe947069574fe",
+          "reasons": [],
+          "row_number": 188,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:4928301240d994a08b9cde5d",
+          "reasons": [
+            "transaction_after_filer_signature"
+          ],
+          "row_number": 189,
+          "status": "quarantined"
+        },
+        {
+          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a36daaf052db600b8271a1dd",
           "reasons": [
             "amount_range_unsupported",
@@ -69293,29 +69138,11 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:4ec5d8d1e7c73cb0e64d9292",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 24,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d03cb1d8152168dcb1b9a2b7",
           "reasons": [
             "transaction_type_unsupported"
           ],
           "row_number": 25,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:8d2da19629d8e74bb2bb7c09",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 26,
           "status": "quarantined"
         },
         {
@@ -69498,15 +69325,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:45dd6e935a334a654e6c04ff",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 47,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:59c36e85396b21de41d47100",
           "reasons": [
             "amount_range_unsupported"
@@ -69518,8 +69336,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:16d8eb65701306d0c06158f8",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 49,
           "status": "quarantined"
@@ -69554,15 +69371,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:5f23a1237a0e2febb8b5d4d0",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 56,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1896e46b414e3064ae9c00c5",
           "reasons": [
             "transaction_type_unsupported"
@@ -69578,15 +69386,6 @@
             "transaction_type_unsupported"
           ],
           "row_number": 58,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:2f3053e034b3eb5a76c6c01b",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 59,
           "status": "quarantined"
         },
         {
@@ -69801,15 +69600,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:10ad9630a265774fd0a550d7",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 84,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f2529c36872828dae566e887",
           "reasons": [
             "transaction_type_unsupported"
@@ -69843,24 +69633,6 @@
             "transaction_type_unsupported"
           ],
           "row_number": 93,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:e8b99969faa656f2d262dd32",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 94,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:b2abf02205fad7b8bea55f16",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 95,
           "status": "quarantined"
         },
         {
@@ -70096,15 +69868,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:27d75cd9f4dbe4d81b355133",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 127,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c66c855d2dc5eeca8b0058df",
           "reasons": [
             "transaction_type_unsupported"
@@ -70301,15 +70064,6 @@
             "transaction_type_unsupported"
           ],
           "row_number": 150,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:ba0a3c3f0c5842f4af8614e9",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 151,
           "status": "quarantined"
         },
         {
@@ -70582,24 +70336,6 @@
             "transaction_type_unsupported"
           ],
           "row_number": 185,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:a015d00e0eafe947069574fe",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 188,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:4928301240d994a08b9cde5d",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 189,
           "status": "quarantined"
         },
         {
@@ -71857,8 +71593,8 @@
       "filed_at": "2026-06-25",
       "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
-      "promoted_count": 220,
-      "quarantined_count": 1155,
+      "promoted_count": 225,
+      "quarantined_count": 1150,
       "rows": [
         {
           "annual_part7_overlap": false,
@@ -73402,6 +73138,41 @@
         },
         {
           "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:bafad5641d9967b4e3939b39",
+          "reasons": [],
+          "row_number": 232,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:e62180cff1a20da211407894",
+          "reasons": [],
+          "row_number": 258,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:b5a47f765c07030e56dccbf6",
+          "reasons": [],
+          "row_number": 591,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:b49197e4289b96db69df6789",
+          "reasons": [],
+          "row_number": 690,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
+          "extraction_id": "oge-278t:7c5ee56fa0b881747efc8301",
+          "reasons": [],
+          "row_number": 826,
+          "status": "promoted"
+        },
+        {
+          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:591c1f870609ec78174fcc51",
           "reasons": [
             "ocr_row_confidence_below_threshold"
@@ -74548,8 +74319,7 @@
           "extraction_id": "oge-278t:32d219d5be255fea002c6ff4",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 107,
           "status": "quarantined"
@@ -74651,8 +74421,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c377b07630efdd9f2df05e9b",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 120,
           "status": "quarantined"
@@ -75212,8 +74981,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f017000cf3d9ccdc372bb2e0",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 193,
           "status": "quarantined"
@@ -75511,15 +75279,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:bafad5641d9967b4e3939b39",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 232,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3843280d4f614c03250bb018",
           "reasons": [
             "amount_range_unsupported",
@@ -75586,8 +75345,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d4e5f6adeed9095b276b4ebe",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 240,
           "status": "quarantined"
@@ -75711,15 +75469,6 @@
             "transaction_type_unsupported"
           ],
           "row_number": 256,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:e62180cff1a20da211407894",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 258,
           "status": "quarantined"
         },
         {
@@ -75857,8 +75606,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ddfe275420556ce463d2b85f",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 281,
           "status": "quarantined"
@@ -76528,8 +76276,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2cad3e3988103afba843fe24",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 362,
           "status": "quarantined"
@@ -77213,8 +76960,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:79b92d0de549872e10e5745d",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 451,
           "status": "quarantined"
@@ -77806,8 +77552,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4cf1e1a62f0d0fff9f7279e9",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 536,
           "status": "quarantined"
@@ -78069,8 +77814,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ca538316f6414a6d495f23a9",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 573,
           "status": "quarantined"
@@ -78195,15 +77939,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:b5a47f765c07030e56dccbf6",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 591,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ee8ea43ad7a37414d59fcde0",
           "reasons": [
             "amount_range_unsupported"
@@ -78215,8 +77950,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2bf16d88d5dbc7859db4af5a",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 593,
           "status": "quarantined"
@@ -78677,8 +78411,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6e9ac278dc681c7f9be0bedb",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 646,
           "status": "quarantined"
@@ -79017,15 +78750,6 @@
         },
         {
           "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:b49197e4289b96db69df6789",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 690,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
           "extraction_id": "oge-278t:199cc69b49f935d78d9f4b10",
           "reasons": [
             "amount_range_unsupported"
@@ -79084,8 +78808,7 @@
           "reasons": [
             "amount_range_unsupported",
             "ocr_row_confidence_below_threshold",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 698,
           "status": "quarantined"
@@ -79154,8 +78877,7 @@
           "extraction_id": "oge-278t:51b85697f7469e78b2f7d5cb",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 705,
           "status": "quarantined"
@@ -79174,8 +78896,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:5e1b173f971f7356b9777b4e",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 708,
           "status": "quarantined"
@@ -79412,8 +79133,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ce11a211dfe80376717ca5e9",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 738,
           "status": "quarantined"
@@ -79431,8 +79151,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:01c372ea1fe6d560173c28ba",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 740,
           "status": "quarantined"
@@ -79713,8 +79432,7 @@
           "extraction_id": "oge-278t:3e36431da995f156cbf38a91",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 775,
           "status": "quarantined"
@@ -79923,8 +79641,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ae4aa17fb3dd52736f0e95db",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 800,
           "status": "quarantined"
@@ -79972,8 +79689,7 @@
           "extraction_id": "oge-278t:12e6bf874c1ca2f2555fa245",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 807,
           "status": "quarantined"
@@ -80020,8 +79736,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6ef22a8a02746a7d77508a58",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 814,
           "status": "quarantined"
@@ -80108,15 +79823,6 @@
             "amount_range_unsupported"
           ],
           "row_number": 824,
-          "status": "quarantined"
-        },
-        {
-          "annual_part7_overlap": false,
-          "extraction_id": "oge-278t:7c5ee56fa0b881747efc8301",
-          "reasons": [
-            "transaction_type_unsupported"
-          ],
-          "row_number": 826,
           "status": "quarantined"
         },
         {
@@ -81402,8 +81108,7 @@
           "extraction_id": "oge-278t:1ca6306740c252fc07588e76",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 991,
           "status": "quarantined"
@@ -81682,8 +81387,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:201498305e2962d29994185c",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 1027,
           "status": "quarantined"
@@ -81864,8 +81568,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:098917fd22409d508e6d4b1f",
           "reasons": [
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 1056,
           "status": "quarantined"
@@ -81884,8 +81587,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:73a33d6bafb8535db11eda3a",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 1059,
           "status": "quarantined"
@@ -83172,8 +82874,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:69208032ac6eed908be68924",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 1223,
           "status": "quarantined"
@@ -83422,8 +83123,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1ce08748cd8f4b26f4a3aa5a",
           "reasons": [
-            "amount_range_unsupported",
-            "transaction_type_unsupported"
+            "amount_range_unsupported"
           ],
           "row_number": 1257,
           "status": "quarantined"
@@ -83824,8 +83524,7 @@
           "extraction_id": "oge-278t:578aa4710263648fdf3d8d39",
           "reasons": [
             "amount_range_unsupported",
-            "ocr_row_confidence_below_threshold",
-            "transaction_type_unsupported"
+            "ocr_row_confidence_below_threshold"
           ],
           "row_number": 1313,
           "status": "quarantined"
@@ -84530,8 +84229,7 @@
           "extraction_id": "oge-278t:7b7c9fcbb88fa2cb95f370bd",
           "reasons": [
             "amount_range_unsupported",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 13,
           "status": "quarantined"
@@ -85595,7 +85293,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6440de6bec22c60b455568d3",
           "reasons": [
-            "amount_range_unsupported",
             "transaction_type_unsupported"
           ],
           "row_number": 125,
@@ -86303,8 +86000,7 @@
           "reasons": [
             "amount_range_unsupported",
             "no_eligible_transaction_rows",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 13,
           "status": "quarantined"
@@ -86348,8 +86044,7 @@
           "reasons": [
             "amount_range_unsupported",
             "no_eligible_transaction_rows",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 17,
           "status": "quarantined"
@@ -86360,8 +86055,7 @@
           "reasons": [
             "amount_range_unsupported",
             "no_eligible_transaction_rows",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 18,
           "status": "quarantined"
@@ -86463,8 +86157,7 @@
           "reasons": [
             "amount_range_unsupported",
             "no_eligible_transaction_rows",
-            "transaction_date_invalid",
-            "transaction_type_unsupported"
+            "transaction_date_invalid"
           ],
           "row_number": 27,
           "status": "quarantined"
@@ -110831,6 +110524,7 @@
     }
   ],
   "review_input_sha256": {
+    "fixed_option_rules_version": "oge-278t-fixed-options/v1",
     "native_endnote_classification_dependency_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "native_endnote_classification_policy_version": "whitehouse-native-endnote-classification/v1",
     "native_source_partition_dependencies_sha256": "ef3fb2f31bf8a9667392427a931c52d9517cf1ac64147043e0e92c9f87875f12",
@@ -110846,7 +110540,8 @@
     "whitehouse_directory_sha256": "9acdb2097f7256bd9a5af339f5ddad05230c74d6e8effcc2c109a88f94dbd63d",
     "whitehouse_extraction_failure_set_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "whitehouse_extraction_set_sha256": "c5ad27271609294ced96ac613f567bad98507bd5c784a9e54be67245bcdd44d9",
-    "whitehouse_extraction_status_sha256": "42501a319d8ecdbac6c07635c93a719bcb69256ab56676881c94197bbded7b76"
+    "whitehouse_extraction_status_sha256": "42501a319d8ecdbac6c07635c93a719bcb69256ab56676881c94197bbded7b76",
+    "whitehouse_fixed_option_projection_sha256": "284799fec17605ab1e26fa5dfb0203fa5234f69760d5d050aaa3c3f0ad3fa0de"
   },
   "schema_version": "whitehouse-278t-candidate-conservation/v1",
   "source_id": "oge",
