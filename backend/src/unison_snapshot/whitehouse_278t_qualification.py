@@ -698,6 +698,8 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                          "reasons": sorted(set(reasons + original_reasons))})
         reports.append({
             "document_id": report.get("document_id"),
+            **({'fixed_option_interpretation': report['fixed_option_interpretation']}
+               if 'fixed_option_interpretation' in report else {}),
             "source_url": report.get("source_url"),
             "source_sha256": report.get("source_sha256"),
             "filed_at": report.get("filed_at"),

@@ -32,6 +32,7 @@ from unison_snapshot.whitehouse_278t_candidate import (
 )
 from unison_snapshot.whitehouse_annual_candidate import annual_identity_people
 from unison_snapshot.reviewed_security_tickers import restore_pre_enrichment
+from unison_snapshot.oge_278t_fixed_options import RULES_VERSION as FIXED_OPTION_RULES, interpret_report
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER, GENERIC_PARSER_VERSIONS,
     SUPPORTED_PARSER_VERSIONS as TRADE_PARSERS,
@@ -187,9 +188,12 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None,
         correction = profile_for(extraction['document_id'], extraction['source_url'], extraction['source_sha256'])
         if correction is not None and extraction['parser_version'] == correction['parser_version']:
             validate_reusable_report(extraction, correction)
+            extraction = interpret_report(extraction)
         extractions.append(extraction)
         manifest.append(f"{relative} {raw_sha}")
     provenance = {
+        "fixed_option_rules_version": FIXED_OPTION_RULES,
+        "whitehouse_fixed_option_projection_sha256": hashlib.sha256(_json_bytes(extractions)).hexdigest(),
         "whitehouse_coverage_sha256": coverage_sha,
         "whitehouse_directory_sha256": directory_sha,
         "whitehouse_annual_identity_sha256": annual_identity_sha,
