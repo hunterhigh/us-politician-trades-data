@@ -295,12 +295,22 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
             # A split cell may resume before the first independently anchored
             # row of the adjacent page, including a value-only continuation.
             previous = extracted[-1] if extracted else None
+            # Keep the existing account-arrow/code-only continuation anchor:
+            # those already qualified rows retain their exact spelling and ID.
+            legacy_continuation = not anchors and previous is not None and (
+                previous["asset_raw"].rstrip().endswith("⇒") or
+                "⇒" in previous["asset_raw"] and any(re.fullmatch(
+                    r"(?:\([A-Z0-9][A-Z0-9.\-^/]{0,31}\)\s*)?\[[A-Z0-9]{2}\]",
+                    _clean(" ".join(str(w.get("text", "")) for w in tokens
+                        if float(asset_x)-4 <= float(w["x0"]) < float(owner_x)-2)))
+                    for t, tokens in lines if header_top+10 < t < header_top+80))
             resumes = (not anchors and previous is not None and page_index > 0 and
                 previous["evidence"]["page"] == page_index and
                 previous["evidence"]["top_points"] > float(pages[page_index-1]["height"]) - 160 and
                 top < header_top + 80 and
                 not any(float(owner_x)-4 <= float(w["x0"]) < float(value_x)-2 for w in line_words) and
-                ((previous["asset_type_code"] is None and bool(asset_words)) or
+                ((previous["asset_type_code"] is None and bool(asset_words) and
+                  not legacy_continuation) or
                  (previous["value_raw"].endswith("-") or re.fullmatch(r"(?:Spouse/DC\s+)?Over", previous["value_raw"], re.I))
                  and VALUE_EXACT_RE.fullmatch(value_text)))
             if resumes:

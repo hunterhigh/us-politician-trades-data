@@ -44,6 +44,16 @@ class WrappedCellsTests(unittest.TestCase):
         self.assertIsNone(rows[0]['value_high'])
         self.assertTrue(rows[0]['value_low_exclusive'])
 
+    def test_existing_account_code_continuation_keeps_qualified_spelling(self):
+        for name in ['Account ⇒', 'Account ⇒ Existing name']:
+            pages = [sheet([word(name, 25, 700), word('$1,001 - $15,000', 321, 700)]),
+                sheet([word('Additional printed context', 25, 105),
+                       word('(FUND)', 25, 116), word('[MF]', 80, 116)])]
+            row = self.rows(pages)[0]
+            self.assertEqual(row['asset_raw'], name + ' (FUND) [MF]')
+            self.assertEqual(row['evidence']['continuation']['top_points'], 116)
+            self.assertFalse(row['review_reasons'])
+
     def test_description_and_repeated_wrapped_code_do_not_create_holdings(self):
         p = sheet([word('Fund [MF]', 25, 130), word('$1,001 - $15,000', 321, 130),
             word('[MF]', 25, 141), word('D: Description [ST]', 25, 155),
