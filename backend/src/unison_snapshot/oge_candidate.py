@@ -440,6 +440,12 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                             row["reasons"] = sorted(set(row.get("reasons", []) + ["legacy_formal_reference_unbound"]))
         reasons = []
         reviewed_source = _reviewed_source(extraction, record)
+        if reviewed_source:
+            # The complete source-bound base has passed its existing assertions.
+            # Interpret only its unresolved fixed-option cells; legacy caches
+            # without that proof keep their current eligibility barriers.
+            from .oge_278t_fixed_options import interpret_report
+            extraction = interpret_report(extraction)
         supported_parser = (
             observed or visible or extraction.get("parser_version") in {PARSER_VERSION, GENERIC_PARSER_VERSION}
             or (extraction.get("parser_version") in parser_versions()
@@ -856,6 +862,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                if "manual_filing_date_evidence" in extraction else {}),
             **({"filing_date_evidence": extraction['filing_date_evidence']}
                if reviewed_source else {}),
+            **({"fixed_option_interpretation": extraction['fixed_option_interpretation']}
+               if 'fixed_option_interpretation' in extraction else {}),
             **({"deferred_cross_source_formal_ids":deferred} if deferred else {}),
             "promoted_count": report_promoted-len(deferred),
             "quarantined_count": len(row_quarantines),
