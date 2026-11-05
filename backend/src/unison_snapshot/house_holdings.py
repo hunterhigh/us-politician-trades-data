@@ -17,7 +17,7 @@ from .house_ptr import DETERMINISTIC_IDENTITY_BASES, OWNER_CODES
 
 EXTRACTION_SCHEMA = "house-holding-extraction/v1"
 QUALIFICATION_SCHEMA = "house-holding-qualification/v1"
-PARSER_VERSION = "house-annual-holdings-2026-04"
+PARSER_VERSION = "house-annual-holdings-2026-05"
 SUPPORTED_REPORT_TYPES = {"O": "Annual Report"}
 ASSET_RE = re.compile(
     r"^(.*?)\s*(?:\(([A-Z][A-Z0-9.\-^/]{0,31})\))?\s*\[([A-Z0-9]{2})\]\s*$")
@@ -267,6 +267,7 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
             if float(word["top"]) > header_top + 10 and
             "asset-type-codes.aspx" in _clean(word.get("text"))), default=height))
         anchors: list[tuple[float, list[dict]]] = []
+        repeated_code_tops: set[float] = set()
         previous_value = ""
         previous_top = -100.0
         for top, line_words in lines:
@@ -274,15 +275,51 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
                 continue
             if is_account_heading(line_words, float(asset_x), float(owner_x)):
                 continue
+            note = bool(re.match(r"^(?:D|L):\s*", _clean(" ".join(str(w.get("text", "")) for w in line_words))))
             asset_words = [word for word in line_words if float(asset_x) - 4 <= float(word["x0"]) < float(owner_x) - 2]
             value_words = [word for word in line_words if float(value_x) - 4 <= float(word["x0"]) < float(income_x) - 2]
             value_text = _clean(" ".join(str(word.get("text", "")) for word in value_words))
+            if note:
+                asset_words = []
             has_code = any(re.fullmatch(r"\[[A-Z0-9]{2}\]", _clean(word.get("text")))
                            for word in asset_words)
             prior_asset = _clean(" ".join(str(word.get("text", ""))
                 for candidate_top, tokens in lines if anchors and anchors[-1][0] <= candidate_top < top
                 for word in tokens if float(asset_x) - 4 <= float(word["x0"]) < float(owner_x) - 2))
             prior_closed = not anchors or _asset_code_close(prior_asset) is not None
+            close = _asset_code_close(prior_asset)
+            if (anchors and close and _clean(" ".join(str(w.get("text", "")) for w in line_words)) == close.group()
+                    and top - previous_top < 16):
+                repeated_code_tops.add(top)
+                continue
+            # A split cell may resume before the first independently anchored
+            # row of the adjacent page, including a value-only continuation.
+            previous = extracted[-1] if extracted else None
+            # Keep the existing account-arrow/code-only continuation anchor:
+            # those already qualified rows retain their exact spelling and ID.
+            legacy_continuation = not anchors and previous is not None and (
+                previous["asset_raw"].rstrip().endswith("⇒") or
+                "⇒" in previous["asset_raw"] and any(re.fullmatch(
+                    r"(?:\([A-Z0-9][A-Z0-9.\-^/]{0,31}\)\s*)?\[[A-Z0-9]{2}\]",
+                    _clean(" ".join(str(w.get("text", "")) for w in tokens
+                        if float(asset_x)-4 <= float(w["x0"]) < float(owner_x)-2)))
+                    for t, tokens in lines if header_top+10 < t < header_top+80))
+            resumes = (not anchors and previous is not None and page_index > 0 and
+                previous["evidence"]["page"] == page_index and
+                previous["evidence"]["top_points"] > float(pages[page_index-1]["height"]) - 160 and
+                top < header_top + 80 and
+                not any(float(owner_x)-4 <= float(w["x0"]) < float(value_x)-2 for w in line_words) and
+                ((previous["asset_type_code"] is None and bool(asset_words) and
+                  not legacy_continuation) or
+                 (previous["value_raw"].endswith("-") or re.fullmatch(r"(?:Spouse/DC\s+)?Over", previous["value_raw"], re.I))
+                 and VALUE_EXACT_RE.fullmatch(value_text)))
+            if resumes:
+                anchors.append((top, line_words))
+                if value_text:
+                    previous_value, previous_top = value_text, top
+                continue
+            if note:
+                continue
             if asset_words and (value_text.startswith("$") or value_text in {"None", "Undetermined"}
                                 or re.match(r"^(?:Spouse/DC\s+)?Over\b", value_text, re.I)
                                 or (has_code and prior_closed)):
@@ -311,11 +348,17 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
             asset_words = [word for word in words if top - 1 <= float(word["top"]) < end
                            and float(asset_x) - 4 <= float(word["x0"]) < float(owner_x) - 2
                            and float(word.get("size") or base_size) >= base_size - 0.2]
+            note_tops = {t for t, tokens in lines if re.match(r"^(?:D|L):\s*", _clean(
+                " ".join(str(w.get("text", "")) for w in tokens)))}
+            asset_words = [w for w in asset_words if not any(abs(float(w["top"])-t) <= 2.5
+                for t in note_tops | repeated_code_tops)]
             owner_words = [word for word in line_words
                            if float(owner_x) - 4 <= float(word["x0"]) < float(value_x) - 2]
             value_lines = []
             for value_top, candidate_words in lines:
                 if not top - 1 <= value_top < end:
+                    continue
+                if value_top in note_tops and value_top != top:
                     continue
                 cells = [word for word in candidate_words
                          if float(value_x) - 4 <= float(word["x0"]) < float(income_x) - 2
@@ -384,11 +427,11 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
         first_on_page.add(number)
         previous = merged[-1] if merged else None
         if (previous and first and previous["evidence"]["page"] == number - 1 and
-                previous["asset_type_code"] is None and
-                (previous["asset_raw"].rstrip().endswith("⇒") or
-                 "⇒" in previous["asset_raw"] and re.fullmatch(
-                     r"(?:\([A-Z0-9][A-Z0-9.\-^/]{0,31}\)\s*)?\[[A-Z0-9]{2}\]", row["asset_raw"])) and
-                row["asset_type_code"] is not None and row["owner_code"] is None and
+                previous["evidence"]["top_points"] > float(pages[number-2]["height"]) - 160 and
+                row["evidence"]["top_points"] < 180 and
+                ((previous["asset_type_code"] is None and row["asset_type_code"] is not None) or
+                 previous["asset_type_code"] is not None and not row["asset_raw"]) and
+                row["owner_code"] is None and
                 (not row["value_raw"] or
                  (previous["value_raw"].endswith("-") or re.fullmatch(
                      r"(?:Spouse/DC\s+)?Over", previous["value_raw"], re.I))
