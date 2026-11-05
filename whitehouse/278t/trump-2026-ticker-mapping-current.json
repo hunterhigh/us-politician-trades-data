@@ -50,9 +50,9 @@
       "record_id": "oge-278t:dee002ed6a980788267295a2"
     }
   ],
-  "asset_master_sha256": "54ef47be80aa4de26a435aa0641d624d1cc62b524ad2dea103f42d63912b7355",
-  "candidate_before_sha256": "b4c2d7ed048aec734e336078d50db7ef43b3cad0b0ed6407bd3779ef13446ee9",
-  "checked_at": "2026-11-05T09:37:13Z",
+  "asset_master_sha256": "c7d3b821cad9afaee1ffd016d76b0d646787207a4509f2fc2fbc63d82e2d0b5c",
+  "candidate_before_sha256": "8555900d19588856a2928b8accb2b0d357aa444ede0988e880d5686a92718323",
+  "checked_at": "2026-11-05T13:14:28Z",
   "correction_count": 3,
   "correction_ids": [
     "oge-278t:6edb6800bfd420ed027f7f1c",
@@ -8961,8 +8961,8 @@
       "ticker": "GEHC"
     }
   ],
-  "new_mapping_count": 62,
-  "retained_mapping_count": 924,
+  "new_mapping_count": 0,
+  "retained_mapping_count": 986,
   "retained_ticker_conflict_count": 0,
   "retained_ticker_conflicts": [],
   "schema_version": "whitehouse-trump-2026-278t-ticker-mapping/v1",
