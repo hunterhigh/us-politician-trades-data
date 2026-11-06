@@ -7,7 +7,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from unison_snapshot.builder import build, normalize
 from unison_snapshot.disclosure_amounts import summarize_amounts, validate_amount
-from unison_snapshot.legacy import load, processor_version_for, PROCESSOR_V3_SHA256
+from unison_snapshot.legacy import load, processor_version_for, PROCESSOR_V2_SHA256
 from unison_snapshot.oge_candidate import build_oge_candidate
 from test_oge_candidate import catalog, extraction, base
 from test_public_repo import FakeTransport
@@ -55,80 +55,72 @@ class DisclosureAmountTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 validate_amount(invalid)
 
-    def test_finite_consumer_unchanged(self):
-        data = fixture()
-        data['transactions'].pop()
-        data['reported_holdings'].pop()
-        self.assertEqual(load('process_snapshot', version='v2').build_snapshot(data),
-                         load('process_snapshot', version='v3').build_snapshot(data))
-        self.assertEqual(processor_version_for(data), 'v2')
+    def test_publication_excludes_open_values_without_mutating_review(self):
+        data = fixture(); before = deepcopy(data)
+        bundle = build(data, generated_at='2025-06-04T00:00:00Z', allow_production=True)
+        board = json.loads(bundle.files['board/'+bundle.manifest['board']+'.json'])
+        self.assertEqual(data, before)
+        self.assertEqual(board['transactions'], [data['transactions'][0]])
+        self.assertEqual(board['reported_holdings'], [data['reported_holdings'][0]])
+        self.assertEqual(bundle.manifest['processor_sha256'], PROCESSOR_V2_SHA256)
+        gaps = bundle.manifest['known_gaps']['excluded_open_amounts']
+        self.assertEqual(gaps['transactions'][0]['record_ids'], ['open-transaction'])
+        self.assertEqual(gaps['transactions'][0]['threshold'], 'Over $50,000,000')
+        self.assertEqual(gaps['reported_holdings'][0]['record_ids'], ['open-holding'])
+        self.assertEqual(gaps['reported_holdings'][0]['threshold'], 'Over $1,000,000')
 
-    def test_consumer_counts_all_separates_transaction_and_holding_values(self):
-        result = load('process_snapshot', version='v3').build_snapshot(fixture())
-        self.assertEqual(len(result['transactions']), 2)
-        self.assertEqual(result['summary']['amount_low_30d'], 1000001)
-        self.assertEqual(result['summary']['amount_high_30d'], 5000000)
-        self.assertIsNone(next(r for r in result['transactions'] if r['id']=='open-transaction')['amount_high'])
-        person = result['priority_people'][0]
-        self.assertEqual(person['reported_holding_count'], 2)
-        self.assertEqual(person['reported_value_high'], 15000)
-        self.assertEqual(person['reported_value_open_count'], 1)
-        self.assertEqual([r['id'] for r in person['top_holdings']], ['bounded-holding'])
-        self.assertEqual([r['id'] for r in person['open_holdings']], ['open-holding'])
-
-    def test_missing_upper_bound_is_not_legal_open_and_duplicates_still_fail(self):
-        processor = load('process_snapshot', version='v3')
-        for kind, prefix in [('transactions', 'amount'), ('reported_holdings', 'value')]:
-            data = fixture()
-            del data[kind][1][prefix + '_low_exclusive']
-            with self.subTest(kind=kind), self.assertRaises(processor.ProcessingError):
-                processor.build_snapshot(data)
-            with self.assertRaises(ValueError):
-                normalize(data, allow_production=True)
-        data = fixture()
-        data['transactions'][1]['id'] = data['transactions'][0]['id']
-        with self.assertRaises(processor.ProcessingError):
-            processor.build_snapshot(data)
-
-    def test_actual_final_builder_routes_open_holdings_and_transactions(self):
-        for only_holdings in (False, True):
-            data = fixture()
-            if only_holdings:
-                data['transactions'].pop()
-            bundle = build(data, generated_at='2025-06-04T00:00:00Z', allow_production=True)
-            self.assertEqual(bundle.manifest['processor_sha256'], PROCESSOR_V3_SHA256)
-            self.assertEqual(bundle.manifest['amount_policy'], 'bounded-and-open-separate/v1')
-            self.assertTrue(any(b'"value_high":null' in raw for raw in bundle.files.values()))
-
-    def test_renderer_uses_unchanged_highest_html_with_explicit_approved_patch(self):
-        renderer = load('render_dashboard', version='v3')
-        html = renderer.render_html(load('process_snapshot', version='v3').build_snapshot(fixture()))
-        self.assertIn('data.openHoldingsPanel', html.replace('dataset.openHoldingsPanel', 'data.openHoldingsPanel'))
-        self.assertIn('upper limit not disclosed', html)
-        self.assertIn('function renderApprovedBase()', html)
-        self.assertNotIn('__LATEST_HTML_DATA_JSON__', html)
-
-    def test_existing_public_reader_all_modes_preserve_open_semantics(self):
+    def test_existing_public_reader_all_modes_and_existing_renderer(self):
         data = fixture()
         bundle = build(data, generated_at='2025-06-04T00:00:00Z', allow_production=True)
         repository = PublicSnapshotRepository('example', 'data', transport=FakeTransport(bundle.files))
-        for mode, key in [('dashboard', None), ('search', None),
-                          ('person', data['people'][0]['id']), ('ticker', 'EXM')]:
-            with self.subTest(mode=mode):
-                snapshot = repository.fetch(mode, key).snapshot
-                self.assertEqual(processor_version_for(snapshot), 'v3')
-                processed = load('process_snapshot', version='v3').build_snapshot(snapshot)
-                self.assertEqual(len(processed['transactions']), 2)
-                self.assertEqual(len(processed['reported_holdings']), 2)
-                self.assertEqual(processed['summary']['amount_high_30d'], 5000000)
+        for mode, key in [('dashboard', None), ('person', data['people'][0]['id']), ('ticker', 'EXM')]:
+            snapshot = repository.fetch(mode, key).snapshot
+            self.assertEqual(processor_version_for(snapshot), 'v2')
+            processed = load('process_snapshot', version='v2').build_snapshot(snapshot)
+            self.assertEqual(len(processed['transactions']), 1)
+            self.assertEqual(len(processed['reported_holdings']), 1)
+            html = load('render_dashboard', version='v2').render_html(processed)
+            self.assertIn('Over $50,000,000', html)
+            self.assertNotIn('approvedIsOpen', html)
+
+    def test_unknown_upper_bound_is_not_silently_removed(self):
+        from unison_snapshot.publication_amounts import assert_bounded
+        for kind, prefix in [('transactions','amount'),('reported_holdings','value')]:
+            data=fixture(); del data[kind][1][prefix+'_low_exclusive']
+            with self.assertRaises(ValueError):
+                build(data, generated_at='2025-06-04T00:00:00Z',allow_production=True)
+        with self.assertRaises(ValueError): assert_bounded(fixture())
+
+    def test_exclusion_receipts_reject_changed_counts_thresholds_and_ids(self):
+        from unison_snapshot.publication_amounts import project
+        from unison_snapshot.known_gaps import validate
+        gaps=project(fixture())['meta']['known_gaps']
+        for field, value in [('count',99),('minimum',10),('threshold','Over $0'),('record_ids',['x','x'])]:
+            changed=deepcopy(gaps); changed['excluded_open_amounts']['transactions'][0][field]=value
+            with self.subTest(field=field), self.assertRaises(ValueError):validate(changed)
 
     def test_open_input_order_does_not_change_built_files(self):
-        data = fixture()
-        first = build(data, generated_at='2025-06-04T00:00:00Z', allow_production=True)
-        data['transactions'].reverse()
-        data['reported_holdings'].reverse()
+        data = fixture(); first = build(data, generated_at='2025-06-04T00:00:00Z', allow_production=True)
+        data['transactions'].reverse(); data['reported_holdings'].reverse()
         second = build(data, generated_at='2025-06-04T00:00:00Z', allow_production=True)
         self.assertEqual(first.files, second.files)
+
+    def test_public_reader_rejects_unbounded_arrays_and_changed_exclusion_identity(self):
+        from unison_snapshot.codec import encode, digest
+        from unison_snapshot.public_repo import PublicSnapshotError
+        bundle = build(fixture(), generated_at='2025-06-04T00:00:00Z', allow_production=True)
+        for change in ['array', 'receipt']:
+            files = dict(bundle.files); manifest = deepcopy(bundle.manifest)
+            if change == 'array':
+                board = json.loads(files['board/'+manifest['board']+'.json'])
+                board['transactions'][0].update(amount_high=None, amount_low_exclusive=True)
+                raw = encode(board); manifest['board'] = digest(raw)
+                files['board/'+manifest['board']+'.json'] = raw
+            else:
+                manifest['known_gaps']['excluded_open_amounts']['transactions'][0]['record_ids'] = ['another-unpublished-id']
+            files['manifest.json'] = encode(manifest)
+            with self.subTest(change=change), self.assertRaises(PublicSnapshotError):
+                PublicSnapshotRepository('example','data', transport=FakeTransport(files)).fetch()
 
 
 if __name__ == '__main__':

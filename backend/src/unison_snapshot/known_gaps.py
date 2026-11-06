@@ -107,6 +107,36 @@ def validate(value):
     fields = {'schema_version','scope','sources'}
     if version == SCHEMA:
         fields.add('person_unparsed_report_counts')
+    if 'excluded_open_amounts' in value:
+        fields.add('excluded_open_amounts')
+        groups = value['excluded_open_amounts']
+        if not isinstance(groups, dict) or set(groups) != {'transactions', 'reported_holdings'}:
+            raise ValueError('Excluded open amount groups are invalid')
+        for kind, rows in groups.items():
+            seen = set()
+            if not isinstance(rows, list):
+                raise ValueError('Excluded open amounts must be an array')
+            for row in rows:
+                expected = {'source_id','person_id','person_name','filing_id','source_url','count',
+                            'minimum','minimum_exclusive','threshold','record_ids','filed_date_range'}
+                if (not isinstance(row, dict) or set(row) != expected or
+                        row['source_id'] not in {'house_clerk','senate_efd','oge'} or
+                        any(not isinstance(row[k], str) or not row[k] for k in ('person_id','person_name','filing_id','source_url')) or
+                        not row['source_url'].startswith('https://') or
+                        type(row['minimum']) is not int or row['minimum'] < 0 or
+                        type(row['minimum_exclusive']) is not bool or
+                        row['threshold'] != ('Over ' if row['minimum_exclusive'] else 'At least ') + f'${row["minimum"]:,}' or
+                        not isinstance(row['record_ids'], list) or not row['record_ids'] or
+                        any(not isinstance(i, str) or not i or i in seen for i in row['record_ids']) or
+                        row['record_ids'] != sorted(set(row['record_ids'])) or
+                        type(row['count']) is not int or row['count'] != len(row['record_ids']) or
+                        not isinstance(row['filed_date_range'], list) or len(row['filed_date_range']) != 2):
+                    raise ValueError('Excluded open amount receipt is invalid')
+                from datetime import date
+                dates = row['filed_date_range']
+                if any(date.fromisoformat(d).isoformat() != d for d in dates) or dates != sorted(dates):
+                    raise ValueError('Excluded open amount dates are invalid')
+                seen.update(row['record_ids'])
     if (set(value) != fields or version not in {SCHEMA,LEGACY_SCHEMA} or value['scope'] != 'source_inventory' or
             not isinstance(value['sources'], list) or len(value['sources']) > 16):
         raise ValueError('Known data gaps schema is invalid')

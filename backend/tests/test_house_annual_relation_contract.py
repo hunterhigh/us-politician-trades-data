@@ -11,7 +11,7 @@ from test_public_repo import FakeTransport
 from unison_snapshot.builder import build, normalize
 from unison_snapshot.house_candidate import build_house_candidate
 from unison_snapshot.disclosure_candidate import build_disclosure_candidate
-from unison_snapshot.legacy import load, processor_version_for, PROCESSOR_V3_SHA256
+from unison_snapshot.legacy import load, processor_version_for, PROCESSOR_V2_SHA256
 from unison_snapshot.public_repo import PublicSnapshotRepository
 
 
@@ -43,19 +43,19 @@ def fixture():
 
 class HouseAnnualRelationContractTests(unittest.TestCase):
     def test_pinned_processor_uses_repository_lf_bytes(self):
-        path = Path(__file__).resolve().parents[2] / 'frontend-contract-v3/scripts/process_snapshot.py'
+        path = Path(__file__).resolve().parents[2] / 'frontend-contract-v2/scripts/process_snapshot.py'
         raw = path.read_bytes()
         self.assertNotIn(b'\r\n', raw)
-        self.assertEqual(hashlib.sha256(raw).hexdigest(), PROCESSOR_V3_SHA256)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), PROCESSOR_V2_SHA256)
 
     def test_house_locator_is_not_a_senate_printed_row(self):
         data = fixture()
         normalized = normalize(data, allow_production=True)
         self.assertEqual(len(normalized['transactions']), 2)
-        self.assertEqual(processor_version_for(data), 'v3')
+        self.assertEqual(processor_version_for(data), 'v2')
         relation = normalized['meta']['transaction_disclosure_relations'][0]
         self.assertNotIn('printed_row_number', relation)
-        processed = load('process_snapshot', version='v3').build_snapshot(normalized)
+        processed = load('process_snapshot', version='v2').build_snapshot(normalized)
         self.assertEqual(processed['meta']['transaction_disclosure_relations'], [relation])
 
     def test_invalid_source_locators_and_cross_source_ptr_are_rejected(self):
@@ -71,7 +71,7 @@ class HouseAnnualRelationContractTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     normalize(data, allow_production=True)
                 with self.assertRaises(ValueError):
-                    load('process_snapshot', version='v3').build_snapshot(data)
+                    load('process_snapshot', version='v2').build_snapshot(data)
 
     def test_missing_or_duplicate_annotations_cannot_hide_house_annual_facts(self):
         for mode in ('missing', 'empty', 'duplicate'):
@@ -83,11 +83,11 @@ class HouseAnnualRelationContractTests(unittest.TestCase):
                     data['meta']['transaction_disclosure_relations'] = []
                 else:
                     data['meta']['transaction_disclosure_relations'] *= 2
-                self.assertEqual(processor_version_for(data), 'v3')
+                self.assertEqual(processor_version_for(data), 'v2')
                 with self.assertRaises(ValueError):
                     normalize(data, allow_production=True)
                 with self.assertRaises(ValueError):
-                    load('process_snapshot', version='v3').build_snapshot(data)
+                    load('process_snapshot', version='v2').build_snapshot(data)
 
     def test_existing_shards_restore_only_loaded_house_relations(self):
         data = fixture()
@@ -103,7 +103,7 @@ class HouseAnnualRelationContractTests(unittest.TestCase):
                 selected = repo.fetch(mode, key).snapshot
                 expected_count = 0 if key == 'XYZ' else 1
                 self.assertEqual(len(selected['meta']['transaction_disclosure_relations']), expected_count)
-                processed = load('process_snapshot', version='v3').build_snapshot(selected)
+                processed = load('process_snapshot', version='v2').build_snapshot(selected)
                 self.assertEqual(len(processed['meta']['transaction_disclosure_relations']), expected_count)
                 if key == 'ABC':
                     self.assertEqual(len(selected['transactions']), 1)
@@ -130,7 +130,7 @@ class HouseAnnualRelationContractTests(unittest.TestCase):
         bundle = build(merged, generated_at=mixed_case.CUTOFF, allow_production=True)
         repo = PublicSnapshotRepository('example', 'data', transport=FakeTransport(bundle.files))
         selected = repo.fetch().snapshot
-        processed = load('process_snapshot', version='v3').build_snapshot(selected)
+        processed = load('process_snapshot', version='v2').build_snapshot(selected)
         self.assertEqual({r['source_id'] for r in processed['meta']['transaction_disclosure_relations']},
                          {'house_clerk', 'senate_efd'})
 

@@ -329,7 +329,15 @@ def attach_disclosure_status(bundle: Bundle, scopes: list[dict], *, transactions
     files[f"status/{sha}.json"] = content
     manifest["disclosure_status"] = {"schema_version": SCHEMA, "sha256": sha, "byte_length": len(content)}
     from .known_gaps import attach, from_scopes
-    attach(manifest, files, from_scopes(scopes, board))
+    gaps = from_scopes(scopes, board)
+    exclusions = bundle.manifest.get('known_gaps', {})
+    if exclusions.get('schema_version') == 'known-gaps-reference/v1':
+        exclusions = json.loads(bundle.files['status/' + exclusions['sha256'] + '.json'])
+    exclusions = exclusions.get('excluded_open_amounts')
+    if exclusions is not None:
+        from .publication_amounts import merge_gaps
+        gaps = merge_gaps(gaps, exclusions)
+    attach(manifest, files, gaps)
     files["manifest.json"] = encode(manifest)
     if len(files["manifest.json"]) > 16 * 1024:
         raise ValueError("Manifest with disclosure status exceeds its size budget")

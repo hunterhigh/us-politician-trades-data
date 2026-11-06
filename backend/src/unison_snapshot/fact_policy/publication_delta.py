@@ -111,6 +111,15 @@ def _decision(item, entity, old, current, *, repo, evidence_commit, verified_rep
 def build_publication_delta(*, previous_board, unified, prepared, sources,
                             transitions=None, main_commit=None, review_commit=None,
                             repo=None, evidence_commit=None):
+    from ..publication_amounts import project, excluded_rows, assert_bounded, POLICY
+    raw_unified = unified
+    exclusions = excluded_rows(raw_unified)
+    unified = project(unified)
+    assert_bounded(prepared)
+    expected_gaps = unified.get('meta', {}).get('known_gaps', {}).get('excluded_open_amounts')
+    actual_gaps = prepared.get('meta', {}).get('known_gaps', {}).get('excluded_open_amounts')
+    if actual_gaps != expected_gaps:
+        raise InventoryError('Prepared open amount exclusions differ from qualified review')
     if (unified.get("meta", {}).get("is_demo") is not False or
             prepared.get("meta", {}).get("is_demo") is not False or
             set(sources) != set(SOURCES) or
@@ -141,8 +150,10 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
                      for name, value in sources.items()}
         if entity != 'people' and any(row.get('source_id') == 'senate_efd' and
                 row.get('stale') is True for row in unified.get('source_health', [])):
+            display_excluded = {row['id'] for row in exclusions.get(entity, [])}
             for identifier, row in old.items():
-                if row.get('source_id') == 'senate_efd' and current.get(identifier) != row:
+                if (row.get('source_id') == 'senate_efd' and current.get(identifier) != row and
+                        identifier not in display_excluded):
                     raise InventoryError('Stale Senate publication must retain every previous fact exactly')
         if proposed.keys() != current.keys():
             raise InventoryError(f"prepared {entity} IDs differ from review")
@@ -303,9 +314,23 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
                 changes.append(item)
                 verified_amendments += 1
             selected = selected + automatic
+        raw_review = _index(raw_unified.get(entity), f'original review {entity}')
+        for row in exclusions.get(entity, []):
+            key = row['id']
+            if key not in old:
+                continue
+            if key in current or old[key] != raw_review.get(key) or old[key] != by_source[_source_id(row, entity)].get(key):
+                raise InventoryError('Open amount exclusion must preserve the complete qualified review observation')
+            prefix = 'amount' if entity == 'transactions' else 'value'
+            item = {'entity': entity, 'kind': 'publication_excluded', 'old_id': key,
+                    'source_id': _source_id(row, entity), 'reason': POLICY,
+                    'minimum': row[prefix + '_low'], 'minimum_exclusive': row[prefix + '_low_exclusive'],
+                    'evidence_url': row['source_url']}
+            selected.append(item)
+            changes.append(item)
         missing = old.keys() - current.keys()
         changed = {key for key in old.keys() & current.keys() if old[key] != current[key]}
-        if (missing != {item["old_id"] for item in selected if item["kind"] in {"rekey", "withdrawn", "superseded", "duplicate"}} or
+        if (missing != {item["old_id"] for item in selected if item["kind"] in {"rekey", "withdrawn", "superseded", "duplicate", "publication_excluded"}} or
                 changed != {item["old_id"] for item in selected if item["kind"] == "corrected"}):
             raise InventoryError(f"{entity} has an unexplained removal or field change")
         added = current.keys() - old.keys() - new_seen

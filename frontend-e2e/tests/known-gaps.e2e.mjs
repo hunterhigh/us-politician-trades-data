@@ -23,8 +23,8 @@ from unison_snapshot.public_repo import PublicSnapshotRepository
 from unison_snapshot.legacy import load
 _,_,bundle=fixture()
 snapshot=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch().snapshot
-data=load('process_snapshot',version='v3').build_snapshot(snapshot)
-Path(sys.argv[2]).write_text(load('render_dashboard',version='v3').render_html(data),encoding='utf-8')`;
+data=load('process_snapshot',version='v2').build_snapshot(snapshot)
+Path(sys.argv[2]).write_text(load('render_dashboard',version='v2').render_html(data),encoding='utf-8')`;
   const html = join(temporary, 'report.html');
   const generated = spawnSync(python, [...(python === 'py' ? ['-3'] : []), '-X','utf8','-c',code,root,html], {cwd:root,encoding:'utf8'});
   assert.equal(generated.status,0,generated.stdout+generated.stderr);

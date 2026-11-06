@@ -84,7 +84,7 @@ class PartialHoldingTests(unittest.TestCase):
                 self.assertNotIn('holding_coverage',q)
                 self.assertEqual(q['holdings'],[])
 
-    def test_actual_candidate_reader_v3_and_builder_do_not_mix_old_year(self):
+    def test_actual_candidate_reader_v2_and_builder_do_not_mix_old_year(self):
         with tempfile.TemporaryDirectory() as d:
             c,q,_,_=candidate_fixture(Path(d),older=True)
             self.assertEqual(c['transactions'],[TRANSACTION])
@@ -95,11 +95,11 @@ class PartialHoldingTests(unittest.TestCase):
             repo=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files))
             for mode,key in [('dashboard',None),('search',None),('person',IDENTITY['person_id']),('ticker','EXM')]:
                 snapshot=repo.fetch(mode,key).snapshot
-                self.assertEqual(processor_version_for(snapshot),'v3')
-                processed=load('process_snapshot',version='v3').build_snapshot(snapshot)
+                self.assertEqual(processor_version_for(snapshot),'v2')
+                processed=load('process_snapshot',version='v2').build_snapshot(snapshot)
                 expected=[] if mode=='ticker' else [q['holding_coverage']]
                 self.assertEqual(processed['meta']['holding_report_coverage'],expected)
-            html=load('render_dashboard',version='v3').render_html(processed)
+            html=load('render_dashboard',version='v2').render_html(processed)
             self.assertIn('data',html)
 
     def test_candidate_recomputes_partial_from_saved_pages_not_labels(self):
@@ -128,7 +128,7 @@ class PartialHoldingTests(unittest.TestCase):
                 if mutation=='literal':coverage['unresolved_rows'][0]['value_raw']='Unknown'
                 if mutation=='count':coverage['observed_row_count']=999
                 with self.subTest(mutation=mutation),self.assertRaises(ValueError):
-                    load('process_snapshot',version='v3').build_snapshot(changed)
+                    load('process_snapshot',version='v2').build_snapshot(changed)
 
     def test_four_reader_modes_keep_complete_context_and_validate_filtered_loaded_rows(self):
         with tempfile.TemporaryDirectory() as d:
@@ -142,7 +142,7 @@ class PartialHoldingTests(unittest.TestCase):
             repo=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files))
             for mode,key in [('dashboard',None),('search',None),('person',IDENTITY['person_id']),('ticker','EXM')]:
                 snapshot=repo.fetch(mode,key).snapshot
-                processor=load('process_snapshot',version='v3')
+                processor=load('process_snapshot',version='v2')
                 processed=processor.build_snapshot(snapshot)
                 self.assertEqual(len(processed['reported_holdings']),1 if mode=='ticker' else 2)
                 self.assertEqual(len(processed['meta']['holding_report_coverage']),0 if mode=='ticker' else 1)
@@ -150,7 +150,7 @@ class PartialHoldingTests(unittest.TestCase):
                 changed['reported_holdings'][0]['report_period_end']='2024-12-31'
                 with self.subTest(mode=mode),self.assertRaises(ValueError):processor.build_snapshot(changed)
 
-    def test_existing_fetch_command_selects_v3_for_partial_metadata(self):
+    def test_existing_fetch_command_selects_v2_for_partial_metadata(self):
         with tempfile.TemporaryDirectory() as d:
             c,q,_,_=candidate_fixture(Path(d))
             bundle=build(c,generated_at='2026-09-18T12:00:00Z',allow_production=True)
@@ -175,7 +175,7 @@ class PartialHoldingTests(unittest.TestCase):
             self.assertEqual(combined['meta']['holding_report_coverage'],[q['holding_coverage']])
             bundle=build(combined,generated_at='2026-09-18T12:00:00Z',allow_production=True)
             snapshot=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch('person',IDENTITY['person_id']).snapshot
-            self.assertEqual(load('process_snapshot',version='v3').build_snapshot(snapshot)['meta']['holding_report_coverage'],[q['holding_coverage']])
+            self.assertEqual(load('process_snapshot',version='v2').build_snapshot(snapshot)['meta']['holding_report_coverage'],[q['holding_coverage']])
             c['meta']['holding_report_coverage'][0]['published_holding_ids']=[]
             with self.assertRaises(DisclosureCandidateError):build_disclosure_candidate(deepcopy(BASE),{'house_clerk':c})
 

@@ -451,6 +451,20 @@ class PublicSnapshotRepository:
         meta.update(snapshot_commit=commit, selection_scope={"mode": mode, "key": key,
                     "universe_complete": manifest.get("coverage", {}).get("universe_complete", False)})
         snapshot = {"meta": meta, **board, "source_health": manifest.get("source_health", [])}
+        from .publication_amounts import POLICY, assert_bounded
+        if meta.get('amount_policy') == POLICY:
+            try:
+                assert_bounded(snapshot)
+                from .codec import encode, digest
+                receipt = meta.get('known_gaps', {}).get('excluded_open_amounts')
+                if receipt is None or digest(encode(receipt)) != meta.get('excluded_open_amounts_sha256'):
+                    raise ValueError('Published open amount exclusions do not match their snapshot identity')
+                for kind in ('transactions', 'reported_holdings'):
+                    excluded_ids = {i for group in receipt[kind] for i in group['record_ids']}
+                    if any(row['id'] in excluded_ids for row in board[kind]):
+                        raise ValueError('Excluded open amount record still appears in a published array')
+            except ValueError as error:
+                raise PublicSnapshotError(str(error)) from error
         if meta.get('source_cutoff_policy') == 'per_source/v1':
             cutoffs = {row['source_id']:row.get('data_cutoff_at') for row in snapshot['source_health']}
             try:

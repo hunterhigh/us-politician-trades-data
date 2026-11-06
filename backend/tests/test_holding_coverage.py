@@ -38,7 +38,7 @@ class HoldingCoverageTests(unittest.TestCase):
         for mode,key in [('dashboard',None),('person',candidate['people'][0]['id']),('ticker','EXM')]:
             snapshot=repo.fetch(mode,key).snapshot
             self.assertEqual(snapshot['meta']['holding_report_coverage'],candidate['meta']['holding_report_coverage'])
-            load('process_snapshot',version='v3').build_snapshot(snapshot)
+            load('process_snapshot',version='v2').build_snapshot(snapshot)
         store=SimpleNamespace(read=lambda commit,path: bundle.files[path])
         local=assemble(store,COMMIT)
         self.assertEqual(local['meta']['holding_report_coverage'],candidate['meta']['holding_report_coverage'])
