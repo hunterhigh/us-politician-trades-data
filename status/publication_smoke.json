@@ -1,32 +1,32 @@
 {
-  "checked_at": "2026-11-05T23:57:44.485578+00:00",
+  "checked_at": "2026-11-06T04:07:46.951604+00:00",
   "checks": [
     {
-      "commit": "e7c19ecc9091c64409ce18600ecbb198f9296cbe",
+      "commit": "bd246a2d041c14e37e1cab3c34fe569369cb0846",
       "mode": "dashboard",
       "person_id": null,
-      "snapshot_id": "ac68261df969dfc5c9e8b5b1ab8088ae29b690f185783914ab04b93666c81c50",
+      "snapshot_id": "addc4c165ad3e08aa6ea2249dde9c4c3ff27fe19d50e731a6eaad753fa359956",
       "status": "passed"
     },
     {
-      "commit": "e7c19ecc9091c64409ce18600ecbb198f9296cbe",
+      "commit": "bd246a2d041c14e37e1cab3c34fe569369cb0846",
       "mode": "person",
       "person_id": "house:M001157",
-      "snapshot_id": "ac68261df969dfc5c9e8b5b1ab8088ae29b690f185783914ab04b93666c81c50",
+      "snapshot_id": "addc4c165ad3e08aa6ea2249dde9c4c3ff27fe19d50e731a6eaad753fa359956",
       "status": "passed"
     },
     {
-      "commit": "e7c19ecc9091c64409ce18600ecbb198f9296cbe",
+      "commit": "bd246a2d041c14e37e1cab3c34fe569369cb0846",
       "mode": "person",
       "person_id": "senate:W000805",
-      "snapshot_id": "ac68261df969dfc5c9e8b5b1ab8088ae29b690f185783914ab04b93666c81c50",
+      "snapshot_id": "addc4c165ad3e08aa6ea2249dde9c4c3ff27fe19d50e731a6eaad753fa359956",
       "status": "passed"
     },
     {
-      "commit": "e7c19ecc9091c64409ce18600ecbb198f9296cbe",
+      "commit": "bd246a2d041c14e37e1cab3c34fe569369cb0846",
       "mode": "person",
       "person_id": "oge:076544f8ba0638cf",
-      "snapshot_id": "ac68261df969dfc5c9e8b5b1ab8088ae29b690f185783914ab04b93666c81c50",
+      "snapshot_id": "addc4c165ad3e08aa6ea2249dde9c4c3ff27fe19d50e731a6eaad753fa359956",
       "status": "passed"
     },
     {
@@ -35,15 +35,15 @@
     }
   ],
   "client_sha256": "150ba8aa222442caa849b10109ff1fe20f2b4a2c21e72c4ea51a3dfa97660b7b",
-  "commit": "e7c19ecc9091c64409ce18600ecbb198f9296cbe",
+  "commit": "bd246a2d041c14e37e1cab3c34fe569369cb0846",
   "failed_snapshots": {},
-  "last_good_commit": "e7c19ecc9091c64409ce18600ecbb198f9296cbe",
+  "last_good_commit": "bd246a2d041c14e37e1cab3c34fe569369cb0846",
   "recovery": {
     "action": "none",
     "reason": "passed"
   },
   "rollback_requested_for": null,
   "schema_version": "publication-smoke/v1",
-  "snapshot_id": "ac68261df969dfc5c9e8b5b1ab8088ae29b690f185783914ab04b93666c81c50",
+  "snapshot_id": "addc4c165ad3e08aa6ea2249dde9c4c3ff27fe19d50e731a6eaad753fa359956",
   "status": "passed"
 }
