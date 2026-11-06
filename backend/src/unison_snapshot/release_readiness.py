@@ -34,7 +34,8 @@ def _zero(value: dict, keys: tuple[str, ...], label: str) -> None:
         raise ReleaseReadinessError(f"{label} still has inconsistent source state: {nonzero}")
 
 
-def validate_publication(review_root: Path, candidate_path: Path) -> dict:
+def validate_publication(review_root: Path, candidate_path: Path, *,
+                         cutoff_audit_path: Path | None = None) -> dict:
     """Validate source accounting without requiring quarantines and declared queues to vanish."""
     review_root = review_root.resolve()
     candidate_path = candidate_path.resolve()
@@ -106,7 +107,8 @@ def validate_publication(review_root: Path, candidate_path: Path) -> dict:
         if key in senate:
             _count(senate, key, "Senate status")
 
-    cutoff = _read(review_root / "status" / "disclosure_cutoff.json",
+    cutoff = _read(cutoff_audit_path if cutoff_audit_path is not None else
+                   review_root / "status" / "disclosure_cutoff.json",
                    "unified cutoff audit")
     if cutoff.get("schema_version") not in {"disclosure-cutoff-audit/v1", "disclosure-cutoff-audit/v2"} \
             or set((cutoff.get("sources") or {})) != {"house_clerk", "oge", "senate_efd"}:
