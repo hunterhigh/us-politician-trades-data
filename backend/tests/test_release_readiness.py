@@ -142,6 +142,30 @@ class ReleaseReadinessTests(unittest.TestCase):
         with self.assertRaisesRegex(ReleaseReadinessError, "does not match its cutoff audit"):
             validate_publication(self.root, self.candidate_path)
 
+    def test_rebuilt_candidate_uses_its_own_audit_without_weakening_bindings(self):
+        # A producer policy change changes the snapshot identity even when
+        # source facts are unchanged. Review's older assembly audit stays frozen.
+        old_audit = (self.root / 'status/disclosure_cutoff.json').read_bytes()
+        self.candidate['meta']['snapshot_id'] = 'new-publication-policy'
+        self._write('candidates/disclosure-current.json', self.candidate)
+        with self.assertRaisesRegex(ReleaseReadinessError, 'does not match its cutoff audit'):
+            validate_publication(self.root, self.candidate_path)
+        audit = json.loads(old_audit)
+        audit['candidate_sha256'] = digest(encode(self.candidate))
+        self._write('governed-cutoff.json', audit)
+        audit_path = self.root / 'governed-cutoff.json'
+        self.assertEqual(validate_publication(self.root, self.candidate_path,
+                         cutoff_audit_path=audit_path)['transaction_count'], 3)
+        self.assertEqual((self.root / 'status/disclosure_cutoff.json').read_bytes(), old_audit)
+        self.sources['house_clerk']['transactions'][0]['id'] = 'changed-source'
+        self._write('candidates/sources/house_clerk-current.json', self.sources['house_clerk'])
+        with self.assertRaisesRegex(ReleaseReadinessError, 'source candidate does not match cutoff audit'):
+            validate_publication(self.root, self.candidate_path, cutoff_audit_path=audit_path)
+        self.candidate['transactions'].pop()
+        self._write('candidates/disclosure-current.json', self.candidate)
+        with self.assertRaisesRegex(ReleaseReadinessError, 'does not match its cutoff audit'):
+            validate_publication(self.root, self.candidate_path, cutoff_audit_path=audit_path)
+
     def test_staged_source_cannot_publish_against_old_unified_audit(self):
         source = json.loads((self.root / "candidates/sources/senate_efd-current.json")
                             .read_text(encoding="utf-8"))

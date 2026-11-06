@@ -206,6 +206,7 @@ jobs:
           python -m unison_snapshot verify-publication-readiness \
             --review-root "$REVIEW_ROOT" \
             --input "$RUNNER_TEMP/governed-disclosure.json" \
+            --cutoff-audit "$RUNNER_TEMP/governed-cutoff.json" \
             --output "$RUNNER_TEMP/release-readiness.json"
       - name: Reconcile canonical publication changes
         env:

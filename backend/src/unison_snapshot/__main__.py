@@ -145,6 +145,8 @@ def main() -> None:
         help="Fail closed unless every in-scope disclosure source is fully accounted for")
     readiness.add_argument("--review-root", type=Path, required=True)
     readiness.add_argument("--input", type=Path, required=True)
+    readiness.add_argument("--cutoff-audit", type=Path,
+                           help="Audit produced with this exact disclosure candidate")
     readiness.add_argument("--output", type=Path)
     house = sub.add_parser("discover-house-index")
     house.add_argument("--year", type=int, required=True)
@@ -506,7 +508,8 @@ def main() -> None:
             print(json.dumps({"commit": args.commit, "provided": status is not None,
                               "output": str(args.output.resolve())}))
         elif args.command == "verify-publication-readiness":
-            result = validate_publication(args.review_root, args.input)
+            result = validate_publication(args.review_root, args.input,
+                                          cutoff_audit_path=args.cutoff_audit)
             if args.output:
                 _write_atomic(args.output, result)
             print(json.dumps({**result, "status": "ready",
