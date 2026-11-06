@@ -65,7 +65,7 @@ class IndependentAnnualTests(unittest.TestCase):
             self.assertEqual(merged['meta']['transaction_disclosure_relations'],candidate['meta']['transaction_disclosure_relations'])
             bundle=build(merged,generated_at=cutoff,allow_production=True)
             snapshot=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch().snapshot
-            processed=load('process_snapshot',version='v3').build_snapshot(snapshot)
+            processed=load('process_snapshot',version='v2').build_snapshot(snapshot)
             self.assertEqual(processed['meta']['holding_report_coverage'],[q['holding_coverage']])
             self.assertEqual(processed['meta']['transaction_disclosure_relations'],candidate['meta']['transaction_disclosure_relations'])
 
@@ -154,7 +154,7 @@ class IndependentAnnualTests(unittest.TestCase):
             data=json.loads(p.read_bytes());data['rows'][0]['asset_name_raw']='Forged';p.write_bytes(_json(data))
             with self.assertRaises(SenateEfdError):overlay(base(),e,r,roster)
 
-    def test_board_person_ticker_reader_carries_only_loaded_relations_and_uses_v3(self):
+    def test_board_person_ticker_reader_carries_only_loaded_relations_and_uses_v2(self):
         with tempfile.TemporaryDirectory() as d:
             raw=original().replace(b'<td>--</td><td>Example Fund',b'<td>ABC</td><td>Example Fund')
             e,r,roster=setup(Path(d),[(0,raw)]);candidate,_=overlay(base(),e,r,roster)
@@ -169,7 +169,7 @@ class IndependentAnnualTests(unittest.TestCase):
                 transport=FakeTransport(bundle.files);repo=PublicSnapshotRepository('example','data',transport=transport)
                 selected=repo.fetch(mode,key).snapshot
                 self.assertEqual(len(selected['meta']['transaction_disclosure_relations']),1)
-                processed=load('process_snapshot',version='v3').build_snapshot(selected)
+                processed=load('process_snapshot',version='v2').build_snapshot(selected)
                 self.assertEqual(processed['meta']['transaction_disclosure_relations'][0]['possible_ptr_transaction_ids'],[ptr['id']])
                 if mode=='ticker':self.assertFalse(any('people/' in call[0] for call in transport.calls))
             for field,value in [('source_sha256','e'*64),('filing_id','other'),('possible_ptr_transaction_ids',['senate-ptr:'+'d'*24])]:
@@ -181,6 +181,6 @@ class IndependentAnnualTests(unittest.TestCase):
                 else:changed['meta']['transaction_disclosure_relations']=missing
                 with self.assertRaises(ValueError):normalize(changed,allow_production=True)
                 changed['meta'].update(snapshot_id='test',generated_at=changed['meta']['data_cutoff_at'])
-                with self.assertRaises(ValueError):load('process_snapshot',version='v3').build_snapshot(changed)
+                with self.assertRaises(ValueError):load('process_snapshot',version='v2').build_snapshot(changed)
 
 if __name__=='__main__':unittest.main()

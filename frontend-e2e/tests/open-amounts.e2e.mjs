@@ -25,8 +25,8 @@ sys.path.insert(0,str(root/'backend/tests'))
 sys.path.insert(0,str(root/'backend/src'))
 from test_disclosure_amounts import fixture
 from unison_snapshot.legacy import load
-processor=load('process_snapshot',version='v3')
-renderer=load('render_dashboard',version='v3')
+processor=load('process_snapshot',version='v2')
+renderer=load('render_dashboard',version='v2')
 Path(sys.argv[2]).write_text(renderer.render_html(processor.build_snapshot(fixture())),encoding='utf-8')`;
     const generated = spawnSync(python, [...(python === 'py' ? ['-3'] : []), '-X', 'utf8', '-c', code, root, input], {cwd: root, encoding: 'utf8'});
     assert.equal(generated.status, 0, `Approved fixture failed: ${generated.stdout}\n${generated.stderr}`);
@@ -42,29 +42,26 @@ Path(sys.argv[2]).write_text(renderer.render_html(processor.build_snapshot(fixtu
   page.on('pageerror', error => errors.push(error.message));
   await page.route(/^https?:/, route => route.abort());
   await page.goto(pathToFileURL(resolve(input)).href, { waitUntil: 'domcontentloaded' });
-  const checks = await page.evaluate(() => {
-    const summary = windowSummary(DATA.transactions);
-    const personId = DATA.people[0].id;
-    const opened = DATA.transactions.find(approvedIsOpen);
-    const ranked = securitiesByAmount([...DATA.transactions, { ...opened, id: 'rank-only-check', ticker: 'OPENONLY' }], personId, 'purchase');
-    return { count: summary.buys + summary.sells, low: summary.low, high: summary.high,
-      openCount: summary.openRows.length, ranked: ranked.map(r => r.ticker),
-      upper: opened.amount_high, returnValue: opened.underlying_return_since_trade,
-      panels: [...document.querySelectorAll('[data-open-amount-panel]')].map(e => e.dataset.openAmountPanel) };
-  });
-  assert.deepEqual(checks, { count: 2, low: 1000001, high: 5000000, openCount: 1,
-    ranked: ['EXM'], upper: null, returnValue: null, panels: ['window-30', 'window-90'] });
-  await page.evaluate(() => openPerson(DATA.people[0].id));
-  assert.match(await page.locator('[data-open-holdings-panel]').innerText(), /2 holdings.*1 bounded values total \$1,001–\$15,000/s);
-  assert.match(await page.locator('[data-open-holdings-panel]').innerText(), /Spouse · Over \$1,000,000 · upper limit not disclosed/);
-  await page.locator('[data-open-holdings-panel] summary').click();
-  assert.equal(await page.locator('[data-open-holdings-panel] [data-holding-id]').count(), 2);
-  await page.evaluate(() => openTicker('EXM'));
-  assert.match(await page.locator('[data-open-amount-panel="stock"]').innerText(), /Over \$50,000,000/);
-  await page.evaluate(() => openTransaction('open-transaction'));
-  assert.match(await page.locator('#drawer').innerText(), /Over \$50,000,000 · upper limit not disclosed/);
+  const checks = await page.evaluate(() => ({
+    transactions: DATA.transactions.length,
+    holdings: DATA.reported_holdings.length,
+    unboundedTransactions: DATA.transactions.some(r => r.amount_high == null),
+    unboundedHoldings: DATA.reported_holdings.some(r => r.value_high == null),
+    exclusions: DATA.meta.known_gaps.excluded_open_amounts,
+    text: document.querySelector('[data-known-gaps="report"]').textContent,
+    openPanels: document.querySelectorAll('[data-open-amount-panel], [data-open-holdings-panel]').length
+  }));
+  assert.equal(checks.transactions, 1);
+  assert.equal(checks.holdings, 1);
+  assert.equal(checks.unboundedTransactions, false);
+  assert.equal(checks.unboundedHoldings, false);
+  assert.equal(checks.openPanels, 0);
+  assert.deepEqual(checks.exclusions.transactions[0].record_ids, ['open-transaction']);
+  assert.deepEqual(checks.exclusions.reported_holdings[0].record_ids, ['open-holding']);
+  assert.match(checks.text, /Over \$50,000,000/);
+  assert.match(checks.text, /Over \$1,000,000/);
   assert.deepEqual(errors, []);
-  console.log('Approved open transaction/holding amounts: counts, separate sums, rankings, person, security, drawer and null returns passed.');
+  console.log('Finite publication arrays and separate original-threshold known gaps passed in unchanged Skill.');
 } finally {
   await browser?.close();
   if (temporary) rmSync(temporary, {recursive: true, force: true});

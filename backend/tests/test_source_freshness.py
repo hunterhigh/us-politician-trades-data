@@ -108,8 +108,8 @@ class SourceFreshnessTests(unittest.TestCase):
             payload,bundle=freshness_fixture(stale)
             repository=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files))
             snapshot=repository.fetch().snapshot
-            processed=load('process_snapshot',version='v3').build_snapshot(snapshot)
-            html=load('render_dashboard',version='v3').render_html(processed)
+            processed=load('process_snapshot',version='v2').build_snapshot(snapshot)
+            html=load('render_dashboard',version='v2').render_html(processed)
             self.assertEqual('const PUBLISHED_SENATE_FRESHNESS' in html,stale)
             self.assertEqual(snapshot['transactions'],payload['transactions'])
             results.append(processed)

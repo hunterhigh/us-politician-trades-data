@@ -39,7 +39,7 @@ from .congress_members import (
     CongressMemberClient, CongressMemberError, DEFAULT_CONGRESS,
     discover_congress_senate_members,
 )
-from .legacy import load, processor_version_for, PROCESSOR_V2_SHA256, PROCESSOR_V3_SHA256
+from .legacy import load, processor_version_for, PROCESSOR_V2_SHA256
 from .senate import SenateEfdError, SenateHttpError, SenateTransportError, collection_gate_status, discover_ptrs, parse_search_page, \
     source_config_from_environment
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
@@ -444,7 +444,7 @@ def main() -> None:
             if args.consumer_validation_file:
                 receipt = json.loads(args.consumer_validation_file.read_bytes())
                 if receipt != {"input_sha256": digest(input_bytes),
-                               "processor_sha256": PROCESSOR_V3_SHA256 if processor_version_for(payload) == "v3" else PROCESSOR_V2_SHA256}:
+                               "processor_sha256": PROCESSOR_V2_SHA256}:
                     raise ValueError("Consumer validation receipt does not match the input and processor")
             if payload.get("meta", {}).get("is_demo") is not False:
                 raise ValueError("Public production publication requires is_demo=false")
@@ -634,7 +634,7 @@ def main() -> None:
             if annual_audit is not None:
                 _write_atomic(args.annual_transaction_audit_out, annual_audit)
             if args.html_output:
-                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
+                renderer = load("render_dashboard", version="v2")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
@@ -656,7 +656,7 @@ def main() -> None:
             _write_atomic(args.output, result)
             _write_atomic(args.audit_output, audit)
             if args.html_output:
-                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
+                renderer = load("render_dashboard", version="v2")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
@@ -745,7 +745,7 @@ def main() -> None:
                 cutoff_audit["candidate_sha256"] = digest(encode(result))
                 _write_atomic(args.audit_output, cutoff_audit)
             if args.html_output:
-                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
+                renderer = load("render_dashboard", version="v2")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
@@ -787,7 +787,7 @@ def main() -> None:
                                                    previous_market=previous_market)
             result["meta"].update(generated_at=checked_at,
                                   snapshot_id="prepublication-validation")
-            version = ("v3" if processor_version_for(result) == "v3" else "v2" if audit["accepted_count"] else "v1")
+            version = ("v2")
             processor = load("process_snapshot", version=version)
             identity = dict(result, meta={key: value for key, value in result["meta"].items()
                                           if key != "snapshot_id"})
@@ -835,7 +835,7 @@ def main() -> None:
             result = validation.snapshot
             result["meta"]["generated_at"] = checked_at
             result["meta"]["snapshot_id"] = "prepublication-validation"
-            processor = load("process_snapshot", version="v3" if processor_version_for(result) == "v3" else "v1")
+            processor = load("process_snapshot", version="v2")
             identity = dict(result, meta={key: value for key, value in result["meta"].items()
                                           if key != "snapshot_id"})
             result["meta"]["snapshot_id"] = digest(encode(identity))
@@ -847,7 +847,7 @@ def main() -> None:
             if args.processed_output:
                 _write_atomic(args.processed_output, processed)
             if args.html_output:
-                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
+                renderer = load("render_dashboard", version="v2")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")

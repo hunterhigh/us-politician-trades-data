@@ -52,8 +52,8 @@ class KnownGapsTests(unittest.TestCase):
                           ('ticker', payload['transactions'][0]['ticker'])]:
             snapshot = reader.fetch(mode, key).snapshot
             self.assertEqual(snapshot['meta']['known_gaps'], gaps)
-            html = load('render_dashboard', version='v3').render_html(
-                load('process_snapshot', version='v3').build_snapshot(snapshot))
+            html = load('render_dashboard', version='v2').render_html(
+                load('process_snapshot', version='v2').build_snapshot(snapshot))
             self.assertIn('const PUBLISHED_KNOWN_GAPS = ', html)
             self.assertIn('Full source inventory limitation ', html)
 
@@ -88,9 +88,9 @@ class KnownGapsTests(unittest.TestCase):
             self.assertEqual(source['request_required_report_count'],1)
             self.assertTrue(source['affected_person_ids'])
             self.assertEqual(source['unidentified_affected_report_count'], 1)
-            processed = load('process_snapshot',version='v3').build_snapshot(snapshot)
+            processed = load('process_snapshot',version='v2').build_snapshot(snapshot)
             self.assertEqual(processed['meta']['known_gaps'], gaps)
-            html = load('render_dashboard',version='v3').render_html(processed)
+            html = load('render_dashboard',version='v2').render_html(processed)
             self.assertIn('const PUBLISHED_KNOWN_GAPS = ', html)
             self.assertIn('Known data gaps', html)
             self.assertIn('personPanel()', html)

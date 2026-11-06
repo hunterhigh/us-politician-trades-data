@@ -18,7 +18,7 @@ from test_source_freshness import freshness_fixture
 from test_public_repo import FakeTransport
 from unison_snapshot.public_repo import PublicSnapshotRepository
 from unison_snapshot.legacy import load
-for version in ('v2','v3'):
+for version in ('v2',):
  for stale in (True,False):
   _,bundle=freshness_fixture(stale)
   snapshot=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch().snapshot
@@ -34,7 +34,7 @@ for version in ('v2','v3'):
   const page=await browser.newPage();const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.route(/^https?:/,route=>route.abort());
-  for (const version of ['v2','v3']) {
+  for (const version of ['v2']) {
   await page.goto(pathToFileURL(join(temporary,version+'-True.html')).href,{waitUntil:'domcontentloaded'});
   const footer=page.locator('footer [data-source-freshness="report"]');
   assert.equal(await footer.count(),1);
@@ -54,5 +54,5 @@ for version in ('v2','v3'):
   }
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({source_freshness:'passed',footer:true,senate_person:true,
-    house_person_unchanged:true,windows:[30,90],automatic_recovery:true,frontends:['v2','v3']}));
+    house_person_unchanged:true,windows:[30,90],automatic_recovery:true,frontends:['v2']}));
 } finally {if(browser)await browser.close();rmSync(temporary,{recursive:true,force:true});}

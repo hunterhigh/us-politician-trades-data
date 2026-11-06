@@ -40,7 +40,7 @@ class SenateSavedWorkflowTests(unittest.TestCase):
         cls.code = Path(cls.code_temporary.name)
         # Real modules and pinned public processors/renderers run in a short
         # workspace, never overwriting the checkout's backend/data/empty-disclosure.json.
-        for relative in ('backend/src', 'frontend-contract-v2', 'frontend-contract-v3',
+        for relative in ('backend/src', 'frontend-contract-v2',
                          'review-input/us-politician-trades-watch/scripts'):
             shutil.copytree(ROOT/relative, cls.code/relative, ignore=shutil.ignore_patterns('__pycache__'))
         target = cls.code/'backend/src/unison_snapshot/commands/prepare_senate_paper_runtime.py'

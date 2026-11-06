@@ -44,6 +44,28 @@ class PublicationDeltaTests(unittest.TestCase):
         self.assertEqual(report["counts"]["reported_holdings"]["unchanged"], 1)
         self.assertEqual(report["transition_verification_level"], "not_applicable_no_rekeys")
 
+    def test_open_exclusion_retains_review_and_requires_complete_gap_receipt(self):
+        from unison_snapshot.publication_amounts import project
+        values = self.fixture()
+        for payload in [values[0], values[1], values[2], values[3]['oge']]:
+            payload['reported_holdings'][0].update(value_low=1000000, value_high=None,
+                                                 value_low_exclusive=True)
+        values = list(values)
+        values[2] = project(values[2])
+        frozen = deepcopy(values)
+        result = self.run_gate(values)
+        self.assertEqual(values, frozen)
+        self.assertEqual(result['counts']['reported_holdings']['publication_excluded'], 1)
+        self.assertEqual(result['changes'][0]['minimum'], 1000000)
+        self.assertEqual(result['changes'][0]['kind'], 'publication_excluded')
+        for change in ['missing_receipt', 'review_value', 'source_value']:
+            damaged = deepcopy(values)
+            if change == 'missing_receipt': damaged[2]['meta'].pop('known_gaps')
+            elif change == 'review_value': damaged[1]['reported_holdings'][0]['value_low'] += 1
+            else: damaged[3]['oge']['reported_holdings'][0]['value_low'] += 1
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                self.run_gate(damaged)
+
     def test_stale_senate_facts_cannot_change_even_for_market_enrichment(self):
         values=self.fixture()
         for value in values:

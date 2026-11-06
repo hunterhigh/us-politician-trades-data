@@ -50,9 +50,7 @@ def main() -> int:
             expected_commit=args.expected_commit,
             transport=HTTPTransport(os.environ.get("GITHUB_TOKEN"), timeout=args.timeout, retries=3))
         selected = repository.fetch(args.mode, args.value)
-        processor = (load("process_snapshot", version="v3")
-                     if processor_version_for(selected.snapshot) == "v3" else load("process_snapshot", version=("v2" if selected.snapshot["meta"].get("processor_sha256")
-                         == PROCESSOR_V2_SHA256 else "v1")))
+        processor = load("process_snapshot", version="v2")
         processed = processor.build_snapshot(selected.snapshot)
         processed["meta"]["snapshot_commit"] = selected.commit
         write_atomic(args.output, processed)

@@ -18,7 +18,7 @@ BACKEND = Path(__file__).resolve().parents[1]
 
 
 class CliTests(unittest.TestCase):
-    def test_market_commands_keep_v3_relations_and_renderer_with_one_processing_pass(self):
+    def test_market_commands_keep_v2_relations_and_renderer_with_one_processing_pass(self):
         import unison_snapshot.__main__ as cli
         from test_oge_annual_approved_policy import complete_case
         from unison_snapshot.codec import digest, encode
@@ -30,7 +30,7 @@ class CliTests(unittest.TestCase):
                 source=folder/"input.json"; source.write_text(json.dumps(candidate), encoding="utf8")
                 output, audit, processed, html = [folder/name for name in
                     ("candidate.json", "audit.json", "processed.json", "dashboard.html")]
-                processor=actual_load("process_snapshot", version="v3")
+                processor=actual_load("process_snapshot", version="v2")
                 process=Mock(wraps=processor.build_snapshot)
                 def load(name, version="v1"):
                     calls.append((name,version))
@@ -48,11 +48,11 @@ class CliTests(unittest.TestCase):
                         patch.object(cli,"build_market_validation",return_value=SimpleNamespace(snapshot=result,audit=counts)), \
                         patch.object(cli,"supplement_twelve_data",return_value=(result,counts)), redirect_stdout(StringIO()):
                     cli.main()
-                self.assertEqual(calls,[("process_snapshot","v3"),("render_dashboard","v3")])
+                self.assertEqual(calls,[("process_snapshot","v2"),("render_dashboard","v2")])
                 self.assertEqual(process.call_count,1)
                 saved=json.loads(output.read_bytes())
                 # Compare against the previous two-pass CLI algorithm with the
-                # real v3 processor, not only a dispatch/version assertion.
+                # real v2 processor, not only a dispatch/version assertion.
                 previous=deepcopy(candidate)
                 previous["meta"].update(generated_at="2026-06-02T00:00:00Z",snapshot_id="prepublication-validation")
                 processor.build_snapshot(previous)

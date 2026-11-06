@@ -31,7 +31,7 @@ class CachedPublicationTests(unittest.TestCase):
         _, (annual, _) = complete_case()
         annual["transactions"].append(dict(annual["transactions"][0], id="new-cached-v3",
                                            ticker="NEWCO", asset_name="New company"))
-        for prepared, data, version in [(False, annual, "v3"), (True, annual, "v3"),
+        for prepared, data, version in [(False, annual, "v2"), (True, annual, "v2"),
                                         (False, production_candidate(), "v2")]:
             with self.subTest(prepared=prepared, version=version), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
@@ -95,10 +95,10 @@ class CachedPublicationTests(unittest.TestCase):
                                  {row["id"]: row for row in candidate["transactions"]})
                 for key in ("holding_report_coverage", "transaction_disclosure_relations"):
                     self.assertEqual(selected["meta"].get(key), candidate["meta"].get(key))
-                if version == "v3":
+                if any(row["id"] == "new-cached-v3" for row in candidate["transactions"]):
                     self.assertEqual(bundle.manifest["coverage"]["market_missing_ticker_count"], 1)
                     self.assertFalse(bundle.manifest["coverage"]["market_supported_complete"])
-                    processed = load("process_snapshot", version="v3").build_snapshot(selected)
+                    processed = load("process_snapshot", version="v2").build_snapshot(selected)
                     pending = next(row for row in processed["transactions"] if row["id"] == "new-cached-v3")
                     self.assertIsNone(pending["underlying_return_since_trade"])
                     self.assertEqual(pending["performance_ineligible_reason"], "missing_market_series")

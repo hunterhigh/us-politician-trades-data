@@ -10,8 +10,8 @@ from urllib.parse import urlsplit
 
 from .codec import bucket, digest, encode
 from .content_integrity import content_boundary
-from .legacy import PROCESSOR_V2_SHA256, PROCESSOR_V3_SHA256, load, processor_version_for
-from .disclosure_amounts import POLICY as AMOUNT_POLICY, is_open_amount, validate_amount
+from .legacy import PROCESSOR_V2_SHA256, load
+from .disclosure_amounts import validate_amount
 from .market_store import (MARKET_COVERAGE_SCHEMA, MIXED_MARKET_COVERAGE_SCHEMA,
                            SOURCE_ID as MARKET_SOURCE_ID, TWELVE_DATA_SOURCE_ID,
                            UNSUPPORTED_REASONS, MIXED_UNSUPPORTED_REASONS,
@@ -287,16 +287,15 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     data = normalize(payload, allow_production=allow_production,
                      allow_empty_production=allow_empty_production,
                      allow_market=allow_market)
+    from .publication_amounts import project, assert_bounded
+    data = project(data)
+    assert_bounded(data)
     market_sources = {row["source_id"] for row in data["security_market_data"]}
     mixed_market = TWELVE_DATA_SOURCE_ID in market_sources
     # The v2 consumer carries current price-history semantics for every
     # snapshot, including Alpaca-only production data. Keep processor routing
     # independent from coverage validation, which still reflects market rows.
-    processor_version = processor_version_for(data)
-    processor_sha = PROCESSOR_V3_SHA256 if processor_version == "v3" else PROCESSOR_V2_SHA256
-    has_open = any(is_open_amount(row, prefix)
-                   for kind, prefix in (("transactions", "amount"), ("reported_holdings", "value"))
-                   for row in data[kind])
+    processor_sha = PROCESSOR_V2_SHA256
     if allow_market:
         if not re.fullmatch(r"[0-9a-f]{40}", str(market_commit or "")):
             raise ValueError("Licensed market publication requires a frozen market commit")
@@ -359,7 +358,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     if validate_consumer:
         candidate = dict(data, meta=dict(data["meta"], snapshot_id="prepublication-validation",
                                          generated_at=generated_at))
-        load("process_snapshot", version=processor_version).build_snapshot(candidate)
+        load("process_snapshot", version="v2").build_snapshot(candidate)
     if timestamp(generated_at) < timestamp(data["meta"]["data_cutoff_at"]):
         raise ValueError("Generation precedes data cutoff")
     files: dict[str, bytes] = {}
@@ -422,6 +421,10 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     # Include business time and presentation configuration: both affect processor output.
     settings = {key: data["meta"][key] for key in ("title", "subtitle", "timezone", "default_window_days", "holding_report_coverage", "source_cutoff_policy")
                 if key in data["meta"]}
+    exclusions = data['meta'].get('known_gaps', {}).get('excluded_open_amounts')
+    if exclusions:
+        from .publication_amounts import POLICY
+        settings.update(amount_policy=POLICY, excluded_open_amounts_sha256=digest(encode(exclusions)))
     if relations is not None:settings['transaction_disclosure_relation_policy']=TRANSACTION_RELATION_POLICY
     coverage = {"scope": "all_input_records", "universe_complete": False,
                 "people_count": len(data["people"]), "market_enabled": allow_market,
@@ -444,13 +447,14 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                 "source_health": data["source_health"], "status_revision": digest(encode(data["source_health"])),
                 "is_demo": data["meta"]["is_demo"], "processor_sha256": processor_sha,
                 "coverage": coverage, **settings}
-    if has_open:
-        manifest["amount_policy"] = AMOUNT_POLICY
     if market_commit is not None:
         manifest["market_commit"] = market_commit
         manifest["market_pages"] = list(market_pages or [])
     from .holding_coverage import attach as attach_holding_coverage
     attach_holding_coverage(manifest, files)
+    if data['meta'].get('known_gaps') is not None:
+        from .known_gaps import attach
+        attach(manifest, files, data['meta']['known_gaps'])
     files["manifest.json"] = encode(manifest)
     if len(files["manifest.json"]) > 16 * 1024:
         raise ValueError("Manifest exceeds the public snapshot size budget")

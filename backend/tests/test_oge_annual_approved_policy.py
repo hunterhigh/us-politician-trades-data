@@ -62,7 +62,7 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
         person = candidate['people'][0]['id']
         for mode, key in [('dashboard', None), ('search', None), ('person', person)]:
             selected = PublicSnapshotRepository('example', 'data', transport=FakeTransport(bundle.files)).fetch(mode, key).snapshot
-            processed = load('process_snapshot', version='v3').build_snapshot(selected)
+            processed = load('process_snapshot', version='v2').build_snapshot(selected)
             self.assertEqual(len(processed['transactions']), 1)
             self.assertEqual(len(processed['meta']['transaction_disclosure_relations']), 1)
             self.assertEqual(len(processed['meta']['holding_report_coverage']), 1)
@@ -108,7 +108,7 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
         self.assertNotIn(old['id'],coverage['published_holding_ids'])
         bundle=build(selected,generated_at=selected['meta']['data_cutoff_at'],allow_production=True)
         read=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch('dashboard').snapshot
-        processed=load('process_snapshot',version='v3').build_snapshot(read)
+        processed=load('process_snapshot',version='v2').build_snapshot(read)
         self.assertEqual(processed['meta']['holding_report_coverage'][0],coverage)
 
     def test_missing_date_and_unknown_owner_remain_real_blockers(self):
@@ -171,7 +171,7 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
         self.assertEqual(again,candidate)
         bundle=build(candidate,generated_at=candidate['meta']['data_cutoff_at'],allow_production=True)
         selected=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch('person',old['person_id']).snapshot
-        processed=load('process_snapshot',version='v3').build_snapshot(selected)
+        processed=load('process_snapshot',version='v2').build_snapshot(selected)
         self.assertEqual(len(processed['reported_holdings']),1)
         self.assertEqual({key:processed['reported_holdings'][0].get(key) for key in old},old)
 
@@ -200,7 +200,7 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
         self.assertEqual(audit['added_holding_count'],2)
         bundle=build(current,generated_at=current['meta']['data_cutoff_at'],allow_production=True)
         selected=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch('person',previous['people'][0]['id']).snapshot
-        processed=load('process_snapshot',version='v3').build_snapshot(selected)
+        processed=load('process_snapshot',version='v2').build_snapshot(selected)
         self.assertNotIn('holding_report_coverage',processed['meta'])
         self.assertEqual(len(processed['reported_holdings']),4)
         repeated,_=overlay_oge_annual_candidate(current,inputs(source()))
@@ -226,7 +226,7 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
         selected = PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch('ticker','ABC').snapshot
         self.assertEqual(len(selected['transactions']), 1)
         self.assertFalse(selected['meta']['transaction_disclosure_relations'])
-        load('process_snapshot',version='v3').build_snapshot(selected)
+        load('process_snapshot',version='v2').build_snapshot(selected)
 
     def test_relationship_missing_or_tampered_rejected_and_original_source_identity_kept(self):
         extraction, (candidate, _) = complete_case()
@@ -245,7 +245,7 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
             elif mutation=='printed':changed['meta']['transaction_disclosure_relations'][0]['printed_row_number']='22'
             elif mutation=='period':changed['meta']['transaction_disclosure_relations'][0]['report_period_end']='2024-12-31'
             else:changed['meta']['holding_report_coverage'][0]['unresolved_rows'][0]['value_raw']='unreadable'
-            self.assertEqual(processor_version_for(changed),'v3')
+            self.assertEqual(processor_version_for(changed),'v2')
             with self.subTest(mutation=mutation), self.assertRaises(ValueError):
                 build(changed,generated_at=changed['meta']['data_cutoff_at'],allow_production=True)
 

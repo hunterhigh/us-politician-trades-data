@@ -69,18 +69,8 @@ const html = path.join(work, 'dashboard.html');
 // Keep the producer's exact serialized bytes (including its escaping) when
 // exercising the designated page code. Parsing above is only for assertions.
 const hasOpen = data.transactions.some(row => openAmount(row)) || data.reported_holdings.some(row => openAmount(row, 'value'));
-if (hasOpen) assert.equal(data.meta.amount_policy, 'bounded-and-open-separate/v1');
-const approvedAmounts = data.meta.amount_policy === 'bounded-and-open-separate/v1' || Array.isArray(data.meta.holding_report_coverage) || Array.isArray(data.meta.transaction_disclosure_relations);
+assert.equal(hasOpen, false, 'Published financial arrays must have finite upper bounds');
 let selectedTemplate = templateText;
-if (approvedAmounts) {
-  // Reconstruct the explicit approved patch from repository code; do not trust
-  // arbitrary HTML around the producer's serialized DATA assignment.
-  const renderer = path.resolve(root, '../../frontend-contract-v3/scripts/render_dashboard.py');
-  selectedTemplate = execFileSync(process.env.PYTHON || 'python', ['-X', 'utf8', '-c',
-    'import runpy,sys;from pathlib import Path;sys.path.insert(0,str(Path(sys.argv[1]).resolve().parents[2]/"review-input/us-politician-trades-watch/scripts"));m=runpy.run_path(sys.argv[1]);print(m["approved_template"](),end="")', renderer],
-    { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
-  assert.equal(selectedTemplate.split(PLACEHOLDER).length, 2);
-}
 if (data.source_health.some(row => row.source_id === 'senate_efd' && row.stale)) {
   selectedTemplate = execFileSync(process.env.PYTHON || 'python', ['-X', 'utf8', '-c',
     'import json,sys;sys.path.insert(0,sys.argv[1]);from unison_snapshot.source_freshness import render;print(render(sys.stdin.read(),{"source_health":json.loads(sys.argv[2])}),end="")',
@@ -312,7 +302,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ status: 'passed', template_sha256: TEMPLATE_SHA256,
-    amount_policy: approvedAmounts ? data.meta.amount_policy : 'original-bounded',
+    amount_policy: data.meta.amount_policy || 'bounded-only',
     cutoff: data.meta.data_cutoff_at, transactions: data.transactions.length,
     new_transactions_checked: newTransactions.length, previous_board_compared: Boolean(previousRoot) }));
 } finally {
