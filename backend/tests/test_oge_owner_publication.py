@@ -41,7 +41,7 @@ def dispatch_fixture():
     old, current, prepared, _ = PublicationDeltaTests().fixture()
     common = {'source_id': 'oge', 'verification_status': 'official_matched',
               'owner': 'Self', 'person_id': 'person', 'asset_name': 'Example',
-              'instrument_type': 'Stock'}
+              'instrument_type': 'Stock', 'amount_low': 1001, 'amount_high': 15000}
     old['transactions'] = [
         {**common, 'id': 'direct', 'filing_id': '1' * 32,
          'source_url': 'https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/'
