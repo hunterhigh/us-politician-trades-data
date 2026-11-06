@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-06T01:06:26.711950+00:00",
+  "checked_at": "2026-11-06T02:55:14.967910+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -245,16 +245,16 @@
       "workflow_run_url": null
     },
     "oge": {
-      "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
+      "detail": "OGE collection pending.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-05T22:33:52.928308+00:00",
+      "last_attempt_at": "2026-11-06T02:51:47.704398+00:00",
       "last_successful_collection_at": "2026-11-05T22:21:04.311165+00:00",
       "qualified_cutoff_at": "2026-11-05T22:21:04.311165+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42120409985"
+      "workflow_run_url": null
     },
     "senate_efd": {
       "detail": "Senate catalog collection failed; prior source data is retained.",
