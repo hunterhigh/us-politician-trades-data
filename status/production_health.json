@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-07T21:37:28.240423+00:00",
+  "checked_at": "2026-11-07T22:20:47.002724+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -166,9 +166,9 @@
       "number": 311
     }
   ],
-  "last_successful_publication_check_at": "2026-11-07T21:34:43Z",
+  "last_successful_publication_check_at": "2026-11-07T22:17:44Z",
   "publication": "sources_recovered",
-  "published_at": "2026-11-07T20:27:41Z",
+  "published_at": "2026-11-07T21:37:19Z",
   "quality_complete": false,
   "quality_observed_scopes": [
     "quality:house_clerk:house_ptr",
@@ -178,37 +178,37 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "4f3044d5732dab5f7f0f12d4f30a2986ebacee62",
+  "quality_review_commit": "1f89c8a25cbae246bf00c2c47555358066aa3a48",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-07T21:37:27.933261+00:00",
+    "checked_at": "2026-11-07T22:20:46.741409+00:00",
     "checks": [
       {
-        "commit": "27bc1694048ffedc7f2b4da1081cf2298cae9b6f",
+        "commit": "4299dc8683787e8c6440ad2dc7e9334c60daa8f3",
         "mode": "dashboard",
         "person_id": null,
-        "snapshot_id": "a23792bf0657607791c6fbda56f21d945af3058d4fe21c6f1c2a8f07ada36f46",
+        "snapshot_id": "89597c940f61b34841ed49eb827c0d52e325807d676e6e1e79d92bd75544f1bf",
         "status": "passed"
       },
       {
-        "commit": "27bc1694048ffedc7f2b4da1081cf2298cae9b6f",
+        "commit": "4299dc8683787e8c6440ad2dc7e9334c60daa8f3",
         "mode": "person",
         "person_id": "house:M001157",
-        "snapshot_id": "a23792bf0657607791c6fbda56f21d945af3058d4fe21c6f1c2a8f07ada36f46",
+        "snapshot_id": "89597c940f61b34841ed49eb827c0d52e325807d676e6e1e79d92bd75544f1bf",
         "status": "passed"
       },
       {
-        "commit": "27bc1694048ffedc7f2b4da1081cf2298cae9b6f",
+        "commit": "4299dc8683787e8c6440ad2dc7e9334c60daa8f3",
         "mode": "person",
         "person_id": "senate:W000805",
-        "snapshot_id": "a23792bf0657607791c6fbda56f21d945af3058d4fe21c6f1c2a8f07ada36f46",
+        "snapshot_id": "89597c940f61b34841ed49eb827c0d52e325807d676e6e1e79d92bd75544f1bf",
         "status": "passed"
       },
       {
-        "commit": "27bc1694048ffedc7f2b4da1081cf2298cae9b6f",
+        "commit": "4299dc8683787e8c6440ad2dc7e9334c60daa8f3",
         "mode": "person",
         "person_id": "oge:076544f8ba0638cf",
-        "snapshot_id": "a23792bf0657607791c6fbda56f21d945af3058d4fe21c6f1c2a8f07ada36f46",
+        "snapshot_id": "89597c940f61b34841ed49eb827c0d52e325807d676e6e1e79d92bd75544f1bf",
         "status": "passed"
       },
       {
@@ -217,27 +217,27 @@
       }
     ],
     "client_sha256": "00aad03c557342376a1c988b47ca2c858caeb85f3a4200f10d4298990819f2de",
-    "commit": "27bc1694048ffedc7f2b4da1081cf2298cae9b6f",
+    "commit": "4299dc8683787e8c6440ad2dc7e9334c60daa8f3",
     "failed_snapshots": {},
-    "last_good_commit": "27bc1694048ffedc7f2b4da1081cf2298cae9b6f",
+    "last_good_commit": "4299dc8683787e8c6440ad2dc7e9334c60daa8f3",
     "recovery": {
       "action": "none",
       "reason": "passed"
     },
     "rollback_requested_for": null,
     "schema_version": "publication-smoke/v1",
-    "snapshot_id": "a23792bf0657607791c6fbda56f21d945af3058d4fe21c6f1c2a8f07ada36f46",
+    "snapshot_id": "89597c940f61b34841ed49eb827c0d52e325807d676e6e1e79d92bd75544f1bf",
     "status": "passed"
   },
-  "snapshot_changed": false,
-  "snapshot_id": "a23792bf0657607791c6fbda56f21d945af3058d4fe21c6f1c2a8f07ada36f46",
+  "snapshot_changed": true,
+  "snapshot_id": "89597c940f61b34841ed49eb827c0d52e325807d676e6e1e79d92bd75544f1bf",
   "sources": {
     "house_clerk": {
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-07T13:01:55+00:00",
-      "last_successful_collection_at": "2026-11-07T13:01:55+00:00",
+      "last_attempt_at": "2026-11-07T21:52:05+00:00",
+      "last_successful_collection_at": "2026-11-07T21:52:05+00:00",
       "qualified_cutoff_at": "2026-11-07T13:01:55+00:00",
       "stale": false,
       "status": "ok",
