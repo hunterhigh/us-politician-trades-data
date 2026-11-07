@@ -1,10 +1,10 @@
 {
   "meta": {
-    "data_cutoff_at": "2026-11-07T02:25:27.679590+00:00",
+    "data_cutoff_at": "2026-11-07T11:23:00.692867+00:00",
     "default_window_days": 30,
-    "generated_at": "2026-11-07T02:25:27.679590+00:00",
+    "generated_at": "2026-11-07T11:23:00.692867+00:00",
     "is_demo": false,
-    "snapshot_id": "69cc9aa2741d1b57718cc3c7dd22bddb9d348b98f77789dc136aa1d62c5ce375",
+    "snapshot_id": "208cad1b441bdbe6f3eeffb662340fd31eb261005ec65a8d6cb572e3758dfa79",
     "subtitle": "OGE 真实 278-T 候选数据；申请型文件和异常记录保持隔离",
     "timezone": "America/New_York",
     "title": "美国政客交易披露"
@@ -17286,10 +17286,10 @@
       "status": "pending_review"
     },
     {
-      "data_cutoff_at": "2026-11-07T02:25:27.679590+00:00",
-      "detail": "Prior direct OGE status: 339 direct 278-T documents; 24 PDFs extracted; 997 transactions currently qualified; 5693 published facts preserved; 4758 request-required catalog entries were not automated; 11 direct documents were retained from archived catalog history. 315 reports await extraction; 4696 exact prior published facts retained.; White House public 278-T: 81 PDFs audited, 1703 transactions qualified, 8222 rows quarantined; 7396 total OGE candidate transactions.; White House annual: 27 complete and 29 partial filer-reported reports, 818 holdings and 6759 transactions",
-      "last_checked_at": "2026-11-07T02:25:27.679590+00:00",
-      "last_successful_sync_at": "2026-11-07T02:25:27.679590+00:00",
+      "data_cutoff_at": "2026-11-07T11:23:00.692867+00:00",
+      "detail": "Prior direct OGE status: 339 direct 278-T documents; 24 PDFs extracted; 997 transactions currently qualified; 5693 published facts preserved; 4756 request-required catalog entries were not automated; 11 direct documents were retained from archived catalog history. 315 reports await extraction; 4696 exact prior published facts retained.; White House public 278-T: 81 PDFs audited, 1703 transactions qualified, 8222 rows quarantined; 7396 total OGE candidate transactions.; White House annual: 27 complete and 29 partial filer-reported reports, 818 holdings and 6759 transactions",
+      "last_checked_at": "2026-11-07T11:23:00.692867+00:00",
+      "last_successful_sync_at": "2026-11-07T11:23:00.692867+00:00",
       "source": "U.S. Office of Government Ethics",
       "source_id": "oge",
       "source_type": "official_disclosure",
