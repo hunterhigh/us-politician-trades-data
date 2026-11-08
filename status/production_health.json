@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-08T12:45:10.521507+00:00",
+  "checked_at": "2026-11-08T13:58:35.471768+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -166,9 +166,9 @@
       "number": 311
     }
   ],
-  "last_successful_publication_check_at": "2026-11-08T12:41:14Z",
+  "last_successful_publication_check_at": "2026-11-08T13:55:58Z",
   "publication": "sources_recovered",
-  "published_at": "2026-11-08T11:29:41Z",
+  "published_at": "2026-11-08T12:44:20Z",
   "quality_complete": false,
   "quality_observed_scopes": [
     "quality:house_clerk:house_ptr",
@@ -181,34 +181,34 @@
   "quality_review_commit": "db9a55cefd8a55a17db70fde019a3f7962336952",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-08T12:45:10.001345+00:00",
+    "checked_at": "2026-11-08T13:58:35.214325+00:00",
     "checks": [
       {
-        "commit": "e42f1edef661bad7dc6466ee7e5680e2a37401f0",
+        "commit": "1478298a45a6f8f07a49ca0dbfc4067ba6cf62b1",
         "mode": "dashboard",
         "person_id": null,
-        "snapshot_id": "b604143d8263d3e17f67e4572405c6b35cf17bc3b320305a8eabca2b7ba16dc4",
+        "snapshot_id": "3dfabb7748f5ad206c1cec833b0fcb6798f5e8b39124147a565b5c162b3dc5c0",
         "status": "passed"
       },
       {
-        "commit": "e42f1edef661bad7dc6466ee7e5680e2a37401f0",
+        "commit": "1478298a45a6f8f07a49ca0dbfc4067ba6cf62b1",
         "mode": "person",
         "person_id": "house:M001157",
-        "snapshot_id": "b604143d8263d3e17f67e4572405c6b35cf17bc3b320305a8eabca2b7ba16dc4",
+        "snapshot_id": "3dfabb7748f5ad206c1cec833b0fcb6798f5e8b39124147a565b5c162b3dc5c0",
         "status": "passed"
       },
       {
-        "commit": "e42f1edef661bad7dc6466ee7e5680e2a37401f0",
+        "commit": "1478298a45a6f8f07a49ca0dbfc4067ba6cf62b1",
         "mode": "person",
         "person_id": "senate:W000805",
-        "snapshot_id": "b604143d8263d3e17f67e4572405c6b35cf17bc3b320305a8eabca2b7ba16dc4",
+        "snapshot_id": "3dfabb7748f5ad206c1cec833b0fcb6798f5e8b39124147a565b5c162b3dc5c0",
         "status": "passed"
       },
       {
-        "commit": "e42f1edef661bad7dc6466ee7e5680e2a37401f0",
+        "commit": "1478298a45a6f8f07a49ca0dbfc4067ba6cf62b1",
         "mode": "person",
         "person_id": "oge:076544f8ba0638cf",
-        "snapshot_id": "b604143d8263d3e17f67e4572405c6b35cf17bc3b320305a8eabca2b7ba16dc4",
+        "snapshot_id": "3dfabb7748f5ad206c1cec833b0fcb6798f5e8b39124147a565b5c162b3dc5c0",
         "status": "passed"
       },
       {
@@ -217,27 +217,27 @@
       }
     ],
     "client_sha256": "00aad03c557342376a1c988b47ca2c858caeb85f3a4200f10d4298990819f2de",
-    "commit": "e42f1edef661bad7dc6466ee7e5680e2a37401f0",
+    "commit": "1478298a45a6f8f07a49ca0dbfc4067ba6cf62b1",
     "failed_snapshots": {},
-    "last_good_commit": "e42f1edef661bad7dc6466ee7e5680e2a37401f0",
+    "last_good_commit": "1478298a45a6f8f07a49ca0dbfc4067ba6cf62b1",
     "recovery": {
       "action": "none",
       "reason": "passed"
     },
     "rollback_requested_for": null,
     "schema_version": "publication-smoke/v1",
-    "snapshot_id": "b604143d8263d3e17f67e4572405c6b35cf17bc3b320305a8eabca2b7ba16dc4",
+    "snapshot_id": "3dfabb7748f5ad206c1cec833b0fcb6798f5e8b39124147a565b5c162b3dc5c0",
     "status": "passed"
   },
-  "snapshot_changed": false,
-  "snapshot_id": "b604143d8263d3e17f67e4572405c6b35cf17bc3b320305a8eabca2b7ba16dc4",
+  "snapshot_changed": true,
+  "snapshot_id": "3dfabb7748f5ad206c1cec833b0fcb6798f5e8b39124147a565b5c162b3dc5c0",
   "sources": {
     "house_clerk": {
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-08T06:01:55+00:00",
-      "last_successful_collection_at": "2026-11-08T06:01:55+00:00",
+      "last_attempt_at": "2026-11-08T13:26:28+00:00",
+      "last_successful_collection_at": "2026-11-08T13:26:28+00:00",
       "qualified_cutoff_at": "2026-11-08T06:01:55+00:00",
       "stale": false,
       "status": "ok",
