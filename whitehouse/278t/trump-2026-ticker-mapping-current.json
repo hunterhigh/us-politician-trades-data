@@ -51,8 +51,8 @@
     }
   ],
   "asset_master_sha256": "4be8fcd62527f90012bdc0c863266a4ef191b6c818bcbde3c2981b5e8cd0ced3",
-  "candidate_before_sha256": "e00930bc764cbaabde2f1d39c2fb53719af0fb2e77c6f25d5c6f50ba9660713e",
-  "checked_at": "2026-11-07T21:06:07Z",
+  "candidate_before_sha256": "a010dd262385de49c4a98b521eb6ab73ee5045d9b39163128d4d74b5a752c6d5",
+  "checked_at": "2026-11-08T02:16:03Z",
   "correction_count": 3,
   "correction_ids": [
     "oge-278t:6edb6800bfd420ed027f7f1c",
