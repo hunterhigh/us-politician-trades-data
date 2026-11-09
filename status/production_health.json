@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-09T12:06:52.693282+00:00",
+  "checked_at": "2026-11-09T13:26:21.455949+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -248,13 +248,13 @@
       "detail": "Collection did not complete; prior successful waterlines retained.",
       "failed_step": "collect_archive_parse",
       "http_status": null,
-      "last_attempt_at": "2026-11-09T10:39:41.389604+00:00",
+      "last_attempt_at": "2026-11-09T13:25:20.160874+00:00",
       "last_successful_collection_at": "2026-11-09T09:12:46.970614+00:00",
       "qualified_cutoff_at": "2026-11-09T02:01:42.093242+00:00",
       "stale": false,
       "status": "retry_pending",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42602307345"
+      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42625118309"
     },
     "senate_efd": {
       "detail": "Senate catalog collection failed; prior source data is retained.",
