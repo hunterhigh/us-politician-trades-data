@@ -399,9 +399,13 @@ def enrich_reviewed_tickers(candidate: dict, assets: object, *,
             if (asset is None or active_registry.get(old["ticker"]) != asset or
                     row.get("transaction_date") != old["source_transaction_date"] or
                     old["provider_asset_id"] != asset["id"] or
-                    old["provider_asset_name"] != asset["name"] or
                     old["provider_exchange"] != asset["exchange"]):
-                raise ValueError("A sticky source-directory security is no longer active SIP")
+                identity = ({key: asset[key] for key in ('id', 'name', 'exchange')}
+                            if asset is not None else None)
+                raise ValueError("A sticky source-directory security is no longer active SIP: "
+                    f"record_id={record_id}, ticker={old['ticker']}, "
+                    f"expected_id={old['provider_asset_id']}, "
+                    f"expected_exchange={old['provider_exchange']}, current={identity}")
         current_mapping = proposed_by_id.get(record_id)
         if current_mapping is not None:
             changed_keys = [key for key in (

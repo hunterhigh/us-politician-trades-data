@@ -117,6 +117,30 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         self.assertEqual(repeated["transactions"], enriched["transactions"])
         self.assertEqual(repeated_audit["mappings"], audit["mappings"])
 
+    def test_sticky_directory_name_changes_preserve_facts_and_identity_guards(self):
+        record_id = "oge-278t:bbaeac29d4e0be338447c0c3"
+        candidate = {"meta": {"is_demo": False}, "transactions": [self.target(
+            record_id, "ACCENTIJRE PLC", "2026-07-23")], "reported_holdings": []}
+        result, audit = enrich_reviewed_tickers(candidate,
+            [self.asset("ACN", "Accenture plc")], checked_at="2026-09-28T00:00:00Z")
+        restored = restore_pre_enrichment(result, audit)
+        repeated, repeated_audit = enrich_reviewed_tickers(restored,
+            [self.asset("ACN", "Accenture plc Class A")],
+            checked_at="2026-11-09T00:00:00Z", previous=audit)
+        self.assertEqual(repeated, result)
+        self.assertEqual(repeated_audit["mappings"], audit["mappings"])
+        for assets in (
+            [self.asset("ACN", "Accenture plc Class A", asset_id="different-security")],
+            [self.asset("ACN", "Accenture plc", status="inactive")],
+            [self.asset("ACN", "Accenture plc", exchange="OTC")],
+            [self.asset("ACN", "Accenture plc"),
+             self.asset("ACN", "Accenture plc", asset_id="second-security")],
+        ):
+            with self.subTest(assets=assets):
+                with self.assertRaisesRegex(ValueError, "no longer active SIP.*ticker=ACN"):
+                    enrich_reviewed_tickers(restored, assets,
+                        checked_at="2026-11-09T00:00:00Z", previous=audit)
+
     def test_current_name_ticker_proposal_is_quarantined_without_rewriting_history(self):
         record_id = 'oge-278t:' + 'a' * 24
         original = {'meta': {'is_demo': False},

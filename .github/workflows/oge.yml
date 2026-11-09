@@ -115,6 +115,30 @@ jobs:
       - name: Reject a partially authorized collection gate
         if: vars.OGE_COLLECTION_ENABLED == 'true' && vars.OGE_TERMS_ACKNOWLEDGED != 'true'
         run: echo 'OGE collection requires the existing terms acknowledgement' >&2; exit 2
+      - name: Validate existing ticker identities before replaying originals
+        if: steps.gate.outputs.status == 'enabled'
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from unison_snapshot.alpaca_market import AlpacaMarketClient
+          from unison_snapshot.reviewed_security_tickers import enrich_reviewed_tickers, restore_pre_enrichment
+          root = Path(os.environ['REVIEW_ROOT'])
+          candidate = root / 'candidates/sources/oge-current.json'
+          mapping = root / 'whitehouse/278t/trump-2026-ticker-mapping-current.json'
+          if candidate.is_file() and mapping.is_file():
+              prior = json.loads(mapping.read_bytes())
+              value = restore_pre_enrichment(json.loads(candidate.read_bytes()), prior)
+              assets = AlpacaMarketClient(os.environ['ALPACA_API_KEY_ID'], os.environ['ALPACA_API_SECRET_KEY'],
+                  assets_url=os.environ.get('ALPACA_ASSETS_URL') or 'https://paper-api.alpaca.markets/v2/assets').assets()
+              enrich_reviewed_tickers(value, assets, checked_at=prior['checked_at'], previous=prior)
+              print(json.dumps({'validated_existing_ticker_mappings': len(prior['mappings'])}))
+          PY
       - name: Discover, archive and parse direct PDFs
         id: collect
         if: steps.gate.outputs.status == 'enabled'
