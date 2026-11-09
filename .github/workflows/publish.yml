@@ -134,14 +134,6 @@ jobs:
           CACHE_MAIN_OVERRIDE: ''
           CACHE_MARKET_OVERRIDE: ''
         run: bash .github/scripts/prepare-publication-trees.sh
-      - name: Recheck held sources against the fixed publication inputs
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >-
-          python -m unison_snapshot publication-gate --repo . --repository "$GITHUB_REPOSITORY"
-          --review-commit "${{ steps.trees.outputs.review_commit }}"
-          --state-commit "${{ steps.trees.outputs.state_commit }}"
-          --output "$RUNNER_TEMP/publication-source-gate.json" --require-preparation-ready
       - name: Freeze prior board for HTML browser checks
         env:
           MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
@@ -152,18 +144,13 @@ jobs:
           board_sha="$(python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["board"])' "$previous/manifest.json")"
           cp "$MAIN_ROOT/board/$board_sha.json" "$previous/board/$board_sha.json"
       - name: Build canonical disclosure projection from qualified sources
+        uses: ./.github/actions/build-disclosure-candidate
         env:
-          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
-          PYTHONPATH: backend/src
-        run: |
-          python -m unison_snapshot build-disclosure-candidate \
-            --base backend/data/empty-disclosure.json \
-            --source-gate-file "$RUNNER_TEMP/publication-source-gate.json" \
-            --source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
-            --source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json" \
-            --source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
-            --output "$RUNNER_TEMP/governed-disclosure.json" \
-            --audit-output "$RUNNER_TEMP/governed-cutoff.json"
+          GH_TOKEN: ${{ github.token }}
+        with:
+          review-root: ${{ steps.trees.outputs.review_root }}
+          review-commit: ${{ steps.trees.outputs.review_commit }}
+          state-commit: ${{ steps.trees.outputs.state_commit }}
       - name: Receive independently prepared prices
         if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Prepare licensed market data'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4

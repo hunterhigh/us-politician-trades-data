@@ -334,6 +334,29 @@ class AlpacaMarketTests(unittest.TestCase):
                 snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
                 distribution_authorized=True)
 
+    def test_isolated_retry_recovers_missing_or_stale_batch_symbol_without_changing_facts(self):
+        snapshot = production_candidate()
+        snapshot['transactions'][1]['ticker'] = 'MISSING'
+        fresh = [{'t': '2026-09-18T04:00:00Z', 'c': 110}]
+        for batch_bars in ([], [{'t': '2026-08-01T04:00:00Z', 'c': 90}]):
+            with self.subTest(batch_bars=batch_bars):
+                class BatchGap(FakeMarketClient):
+                    def daily_bars(self, symbols, *, start, end, asof=None):
+                        result = super().daily_bars(symbols, start=start, end=end, asof=asof)
+                        if len(symbols) > 1:
+                            result['MISSING'] = batch_bars
+                        return result
+                client = BatchGap({'ZZDEMO': fresh, 'MISSING': fresh},
+                                  assets=[asset('ZZDEMO'), asset('MISSING')])
+                result = build_market_validation(snapshot, client=client,
+                    checked_at='2026-09-20T21:00:00Z', distribution_authorized=True)
+                self.assertEqual(result.audit['isolated_retry_count'], 1)
+                self.assertEqual(result.audit['missing_ticker_count'], 0)
+                self.assertEqual(result.audit['covered_tickers'], ['MISSING', 'ZZDEMO'])
+                self.assertEqual(client.calls[-1][0], ['MISSING'])
+                for kind in ('transactions', 'reported_holdings'):
+                    self.assertEqual(result.snapshot[kind], snapshot[kind])
+
     def test_production_accounts_for_inactive_asset_without_available_bars(self):
         snapshot = production_candidate()
         snapshot["transactions"][1]["ticker"] = "INACTIVE"

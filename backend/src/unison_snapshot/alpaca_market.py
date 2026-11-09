@@ -780,6 +780,7 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
     full_current_entries = [entry for entry in current_entries
                             if entry["ticker"] not in cached_tickers]
     split_refresh_count = 0
+    isolated_retry_count = 0
     rejected_historical_symbols: list[str] = []
     if historical_entries:
         # A 400 here means the query format itself is rejected, not a bad filing
@@ -817,6 +818,19 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                                                  entry["provider_symbol"], [])
                 else:
                     bars = combined
+            # A batch response can omit a current symbol or return only an
+            # old prefix. Retry that symbol alone over the full window before
+            # rejecting the refresh; keep the same feed and freshness checks.
+            market_row = (_market_row(ticker, names[ticker], bars, start_day,
+                                      requested_as_of) if bars else None)
+            if entry['asset_status'] == 'active' and (market_row is None or
+                    date.fromisoformat(market_row['price_history'][-1]['date'])
+                    < requested_as_of - timedelta(days=MAX_ACTIVE_STALENESS_DAYS)):
+                isolated_retry_count += 1
+                bars = client.daily_bars([entry['provider_symbol']], start=start,
+                                         end=end).get(entry['provider_symbol'], [])
+                market_row = (_market_row(ticker, names[ticker], bars, start_day,
+                                          requested_as_of) if bars else None)
             if not bars:
                 if entry["asset_status"] == "not_listed":
                     unsupported.append({"ticker": ticker, "reason": "outside_sip_not_listed"})
@@ -831,7 +845,6 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                                 "asset_status": entry["asset_status"],
                                 "exchange": entry["exchange"], "reason": "no_bars_returned"})
                 continue
-            market_row = _market_row(ticker, names[ticker], bars, start_day, requested_as_of)
             if entry["asset_status"] == "not_listed" and not _historical_bar_matches_disclosure(
                     market_row["price_history"], contexts[ticker]):
                 unsupported.append({"ticker": ticker, "reason": "outside_sip_not_listed"})
@@ -850,7 +863,8 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
     if distribution_authorized and missing:
         raise AlpacaMarketError(
             "Production market coverage is incomplete for supported tickers: "
-            + ", ".join(row["ticker"] for row in missing))
+            + ", ".join(row["ticker"] for row in missing)
+            + "; details=" + json.dumps(missing, sort_keys=True))
     if not rows:
         raise AlpacaMarketError("Alpaca returned no usable market rows")
 
@@ -921,6 +935,7 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
         "full_refresh_ticker_count": (len(full_current_entries)
                                       + len(historical_entries) + split_refresh_count),
         "split_refresh_ticker_count": split_refresh_count,
+        "isolated_retry_count": isolated_retry_count,
         "full_history_verified_at": (
             (previous_market.full_refresh_date
              or previous_market.requested_as_of_date).isoformat()
