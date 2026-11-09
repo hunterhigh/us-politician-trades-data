@@ -157,6 +157,42 @@ class CachedPublicationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Market changed during refresh"):
                 prepared_prices(root, "b" * 40)
 
+    def test_prepared_and_published_prices_keep_unprocessed_symbols_pending(self):
+        prices = self.prices()
+        prices['security_market_data'][1].update(source_id='twelve_data_split_adjusted_eod',
+            feed='twelve_data', source_url='https://twelvedata.com/docs')
+        prices['meta']['market_coverage']['unsupported_tickers'] = [
+            {'ticker': 'NEWCO', 'reason': 'outside_sip_fund'},
+            {'ticker': 'BOND', 'reason': 'non_equity_debt'}]
+        state = {'entries': {'OLDSYMBOL': {'status': 'accepted'},
+                             'BOND': {'status': 'not_market_security'}}}
+        data = production_candidate()
+        for ticker in ('NEWCO', 'BOND'):
+            data['transactions'].append(dict(data['transactions'][0], id=ticker,
+                                             ticker=ticker, asset_name=ticker))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'market-base.txt').write_text('a' * 40)
+            (root / 'prices.json.gz').write_bytes(gzip.compress(encode(prices)))
+            with self.assertRaises(OSError):
+                prepared_prices(root, 'a' * 40)
+            (root / 'twelve-audit.json').write_bytes(encode({'state': state}))
+            prepared = prepared_prices(root, 'a' * 40)
+            (root / 'market-pages').mkdir(); (root / 'market').mkdir()
+            raw = encode({'security_market_data': prices['security_market_data']}); sha = digest(raw)
+            (root / 'market-pages' / (sha + '.json')).write_bytes(raw)
+            (root / 'market/twelve-data-state.json').write_bytes(encode(state))
+            (root / 'manifest.json').write_bytes(encode({'is_demo': False,
+                'market_commit': 'a' * 40, 'market_pages': [sha],
+                'coverage': {'market_ticker_count': 2}, 'source_health': prices['source_health']}))
+            cached = published_prices(root, root, 'a' * 40)
+            a, audit = join_disclosures(data, prepared, generated_at='2026-09-20T23:59:59Z')
+            b, _ = join_disclosures(data, cached, generated_at='2026-09-20T23:59:59Z')
+            self.assertEqual(a, b)
+            self.assertIn('NEWCO', audit['pending_tickers'])
+            self.assertEqual(a['meta']['market_coverage']['unsupported_tickers'],
+                             [{'ticker': 'BOND', 'reason': 'not_market_security'}])
+
     def test_pending_cannot_hide_overlap_or_masquerade_as_complete_live_coverage(self):
         data = production_candidate()
         data["meta"]["data_cutoff_at"] = "2026-09-20T23:59:59Z"

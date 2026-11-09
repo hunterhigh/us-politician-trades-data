@@ -15,7 +15,24 @@ from .market_store import (MIXED_MARKET_COVERAGE_SCHEMA, MARKET_COVERAGE_SCHEMA,
 def prepared_prices(root: Path, market_commit: str) -> dict:
     if (root / "market-base.txt").read_text().strip() != market_commit:
         raise ValueError("Market changed during refresh; discard this stale price candidate and rerun refresh")
-    return json.loads(gzip.decompress((root / "prices.json.gz").read_bytes()))
+    prices = json.loads(gzip.decompress((root / "prices.json.gz").read_bytes()))
+    if any(row['source_id'] == TWELVE_DATA_SOURCE_ID for row in prices['security_market_data']):
+        audit = json.loads((root / 'twelve-audit.json').read_bytes())
+        state = audit.get('state')
+        if not isinstance(state, dict) or not isinstance(state.get('entries'), dict):
+            raise ValueError('Prepared prices require their Twelve Data coverage state')
+        # Outside SIP is not the same as unavailable from both licensed sources.
+        # Deferred symbols stay pending, exactly as on a later cached publish.
+        prices['meta']['market_coverage']['unsupported_tickers'] = _verified_unsupported(state)
+    return prices
+
+
+def _verified_unsupported(state: dict) -> list[dict]:
+    return [{'ticker': ticker, 'reason': ('twelve_data_unavailable'
+            if entry['status'] == 'no_current_series' else entry['status'])}
+            for ticker, entry in sorted(state.get('entries', {}).items())
+            if entry.get('status') in {'not_market_security', 'identity_unresolved',
+                                       'twelve_data_unavailable', 'no_current_series'}]
 
 
 def published_prices(main_root: Path, market_root: Path, market_commit: str) -> dict:
@@ -32,13 +49,7 @@ def published_prices(main_root: Path, market_root: Path, market_commit: str) -> 
         raise ValueError("Cached price count differs from the published manifest")
     state_path = market_root / TWELVE_STATE
     state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
-    unsupported = []
-    for ticker, entry in state.get("entries", {}).items():
-        status = entry.get("status")
-        if status in {"not_market_security", "identity_unresolved", "twelve_data_unavailable",
-                      "no_current_series"}:
-            unsupported.append({"ticker": ticker, "reason": (
-                "twelve_data_unavailable" if status == "no_current_series" else status)})
+    unsupported = _verified_unsupported(state)
     return {"security_market_data": rows, "source_health": manifest["source_health"],
             "meta": {"market_coverage": {"unsupported_tickers": unsupported}}}
 

@@ -5,12 +5,44 @@ import subprocess
 import textwrap
 import tomllib
 import unittest
+import gzip
+import json
+import sys
+import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class PublishWorkflowTests(unittest.TestCase):
+
+    def test_market_handoff_stages_all_four_files_outside_the_runner_temp_mapping(self):
+        market = (ROOT / '.github/workflows/market.yml').read_text()
+        publish = (ROOT / '.github/workflows/publish.yml').read_text()
+        step = market.split('      - name: Save price-only handoff\n', 1)[1].split('      - uses:', 1)[0]
+        script = textwrap.dedent(step.split("python - <<'PY'\n", 1)[1].rsplit('          PY', 1)[0])
+        with tempfile.TemporaryDirectory() as temporary:
+            work = Path(temporary)
+            container_temp = work / 'different-container-temp'; container_temp.mkdir()
+            candidate = {'meta': {}, 'security_market_data': [], 'source_health': [],
+                         'transactions': [{'id': 'not-in-price-handoff'}]}
+            (container_temp / 'complete-candidate.json').write_text(json.dumps(candidate))
+            for name in ('market-audit.json', 'twelve-audit.json'):
+                (container_temp / name).write_text(json.dumps({'audit': name}))
+            subprocess.run([sys.executable, '-c', script], cwd=work, check=True,
+                env={**os.environ, 'RUNNER_TEMP': str(container_temp), 'MARKET_BASE': 'a' * 40})
+            handoff = work / '.local/prepared-prices'
+            self.assertEqual({p.name for p in handoff.iterdir()},
+                {'prices.json.gz', 'market-base.txt', 'market-audit.json', 'twelve-audit.json'})
+            self.assertEqual((handoff / 'market-base.txt').read_text(), 'a' * 40)
+            prices = json.loads(gzip.decompress((handoff / 'prices.json.gz').read_bytes()))
+            self.assertEqual(set(prices), {'meta', 'security_market_data', 'source_health'})
+            for name in ('market-audit.json', 'twelve-audit.json'):
+                self.assertEqual((handoff / name).read_bytes(), (container_temp / name).read_bytes())
+        self.assertIn('path: .local/prepared-prices/', market)
+        self.assertIn('include-hidden-files: true', market)
+        self.assertIn('path: .local/prepared-prices', publish)
+        self.assertIn('prepared_args=(--prepared ".local/prepared-prices")', publish)
 
     def test_market_and_publish_share_the_governed_candidate_and_source_gate(self):
         action = (ROOT / '.github/actions/build-disclosure-candidate/action.yml').read_text()

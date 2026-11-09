@@ -183,17 +183,18 @@ jobs:
           root = Path(os.environ['RUNNER_TEMP'])
           value = json.loads((root / 'complete-candidate.json').read_text())
           prices = {key: value[key] for key in ('meta', 'security_market_data', 'source_health')}
-          (root / 'prices.json.gz').write_bytes(gzip.compress(json.dumps(prices, separators=(',', ':')).encode(), compresslevel=1))
-          (root / 'market-base.txt').write_text(os.environ['MARKET_BASE'])
+          handoff = Path('.local/prepared-prices')
+          handoff.mkdir(parents=True, exist_ok=True)
+          (handoff / 'prices.json.gz').write_bytes(gzip.compress(json.dumps(prices, separators=(',', ':')).encode(), compresslevel=1))
+          (handoff / 'market-base.txt').write_text(os.environ['MARKET_BASE'])
+          for name in ('market-audit.json', 'twelve-audit.json'):
+              (handoff / name).write_bytes((root / name).read_bytes())
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: prepared-prices-${{ github.run_id }}
-          path: |
-            ${{ runner.temp }}/prices.json.gz
-            ${{ runner.temp }}/market-base.txt
-            ${{ runner.temp }}/market-audit.json
-            ${{ runner.temp }}/twelve-audit.json
+          path: .local/prepared-prices/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 3
           compression-level: 0
