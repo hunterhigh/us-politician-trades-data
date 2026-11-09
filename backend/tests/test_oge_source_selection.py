@@ -40,7 +40,7 @@ def add_source_version(data, document, original_sha):
     with patch('unison_snapshot.ocr_geometry.ocr_pdf_pages', side_effect=AssertionError('No OCR in source-selection tests')):
         for generic in (False, True):
             value = parse_archived_pdf(evidence, path.with_suffix('.json'), generic=generic)
-            expected = 'oge-278t-pdf/v7' if generic else 'oge-278t-pdf/v2'
+            expected = 'oge-278t-pdf/v7' if generic else 'oge-278t-pdf/v8'
             if value['parser_version'] != expected:
                 raise AssertionError('The source selection control requires an ordinary native v2/v7 pair')
             target = data['extractions_root'] / document / sha / (expected.replace('/', '-') + '.json')
@@ -64,7 +64,7 @@ class OgeSourceSelectionTests(unittest.TestCase):
         self.data = make_versioned_inputs(self.root)
         self.output, self.audit = self.root / 'candidate.json', self.root / 'audit.json'
 
-    def cache(self, doc, sha, version='v2'):
+    def cache(self, doc, sha, version='v8'):
         return self.data['extractions_root'] / doc / sha / f'oge-278t-pdf-{version}.json'
 
     def flags(self, sha):
@@ -111,7 +111,7 @@ class OgeSourceSelectionTests(unittest.TestCase):
                 binding = report['source_interpretation_binding']
                 raw = json.loads(self.cache(self.data['a'], selected).read_bytes())
                 self.assertEqual(binding['source_sha256'], selected)
-                self.assertEqual(binding['parser_version'], 'oge-278t-pdf/v2')
+                self.assertEqual(binding['parser_version'], 'oge-278t-pdf/v8')
                 self.assertEqual(binding['extraction_canonical_sha256'], hashlib.sha256(encode(raw)).hexdigest())
                 self.assertEqual(candidate['people'], json.loads(original_base)['people'])
                 first = self.output.read_bytes(), self.audit.read_bytes()

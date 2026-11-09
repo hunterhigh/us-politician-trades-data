@@ -38,7 +38,7 @@ def classification_candidate_inputs(root, *, owner=None, prior_owner=None, unkno
     root = Path(root); evidence_root, review_root = root/'evidence', root/'review'
     write_files(evidence_root, evidence); write_files(review_root, review)
     catalog = json.loads(next(raw for path, raw in evidence.items() if '/catalog/normalized/' in path))
-    legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('v2.json')))
+    legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('v8.json')))
     native = json.loads(next(raw for path, raw in review.items() if path.endswith('v7.json')))
     if owner in {'Spouse', 'Dependent Child'}:
         old = _historical_projection(native, native['transactions'][0], old['person_id'])
@@ -196,7 +196,7 @@ class ClassificationCandidateTests(unittest.TestCase):
             extra_rows=[['2', 'New Stock See Endnote (NEW)', 'Purchase', '06/02/2026', 'No', '$15,001-$50,000']])
         root = self.root/'fresh'; write_files(root, evidence)
         catalog = json.loads(next(raw for path, raw in evidence.items() if '/catalog/normalized/' in path))
-        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('v2.json')))
+        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('v8.json')))
         with patch('unison_snapshot.oge_native_classification.NativeClassification._authenticate',
                    side_effect=AssertionError('A fresh row is not an old classification migration')):
             candidate, audit = build_oge_candidate(catalog, [legacy], base,

@@ -33,7 +33,7 @@ def cross_fixture(root):
     d['src']['agency']='White House Office';d['new']['agency']='White House Office'
     source_path=d['evidence']/'oge/reports'/DOCUMENT_ID/(d['new']['source_sha256']+'.json')
     source_meta=json.loads(source_path.read_text());source_meta['agency']='White House Office';write(source_path,source_meta)
-    write(d['review']/'oge/extractions'/DOCUMENT_ID/d['new']['source_sha256']/'oge-278t-pdf-v2.json',d['new'])
+    write(d['review']/'oge/extractions'/DOCUMENT_ID/d['new']['source_sha256']/'oge-278t-pdf-v8.json',d['new'])
     report.update(document_id=WH_DOC,source_url=WH_URL,source_sha256=old['source_sha256'],
         filed_at=old['filed_at'],filer_name='Example, Ada',pdf_filer_name='Ada Example',
         pdf_position_title='Director',pdf_agency_label='White House',filer_signature_name='Ada Example',
@@ -195,7 +195,7 @@ class CrossSourceReplacementTests(unittest.TestCase):
                 d=cross_fixture(Path(folder))
                 if kind=='source_date':
                     d['new']['filed_at']=None
-                    write(d['review']/'oge/extractions'/DOCUMENT_ID/d['new']['source_sha256']/'oge-278t-pdf-v2.json',d['new'])
+                    write(d['review']/'oge/extractions'/DOCUMENT_ID/d['new']['source_sha256']/'oge-278t-pdf-v8.json',d['new'])
                     d['inputs']['source_extraction_canonical_sha256']=_canonical(d['new'])
                 elif kind=='target_date':d['wh']['filed_at']=None;self.save_wh(d)
                 else:d['wh']['document_reasons']=['source_read_failure'];self.save_wh(d)

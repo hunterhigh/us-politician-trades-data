@@ -42,7 +42,7 @@ class OwnerScopeCliTests(unittest.TestCase):
             observation = {'schema_version': 'oge-manual-cover-date/v1',
                 'status': 'observation_only', 'qualification_effect': 'none',
                 'document_id': raw['document_id'], 'source_sha256': raw['source_sha256'],
-                'source_url': raw['source_url'], 'extraction_parser_version': 'oge-278t-pdf/v2',
+                'source_url': raw['source_url'], 'extraction_parser_version': 'oge-278t-pdf/v8',
                 'page_number': 1, 'recognition_method': 'human_visual_reading_of_pdf_cover',
                 'field_role': 'filer_signature_date', 'raw_reading': '6/3/25',
                 'observed_date': '2025-06-03', 'filed_at': '2025-06-03'}

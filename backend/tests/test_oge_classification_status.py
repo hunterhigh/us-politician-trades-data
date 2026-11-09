@@ -54,7 +54,7 @@ class ClassificationStatusTests(unittest.TestCase):
                 self.assertEqual(record['native_classification']['current_ids'], [identifier])
                 self.assertEqual(record['native_classification']['qualified_ids'], [identifier])
                 self.assertEqual(record['source_interpretation_binding']['parser_version'],
-                                 'oge-278t-pdf/v7' if generic else 'oge-278t-pdf/v2')
+                                 'oge-278t-pdf/v7' if generic else 'oge-278t-pdf/v8')
                 next_candidate, _ = self.build(data, generic=generic, base=candidate)
                 self.assertEqual(next_candidate['transactions'], candidate['transactions'])
                 self.assertEqual(self.record(data, next_candidate)['qualified_transaction_count'], 1)

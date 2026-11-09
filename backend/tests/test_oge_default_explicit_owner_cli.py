@@ -69,7 +69,7 @@ class DefaultExplicitOwnerCliTests(unittest.TestCase):
                 self.assertEqual(candidate['transactions'], previous['transactions'])
                 self.assertEqual(candidate['people'], previous['people'])
                 report = audit['reports'][0]
-                self.assertEqual(report['source_interpretation_binding']['parser_version'], 'oge-278t-pdf/v2')
+                self.assertEqual(report['source_interpretation_binding']['parser_version'], 'oge-278t-pdf/v8')
                 self.assertEqual(report['default_owner_conservation']['current_ids'], [prior['id']])
                 self.assertEqual(audit['current_qualified_transaction_count'], 1)
                 first = output.read_bytes(), audit_path.read_bytes()

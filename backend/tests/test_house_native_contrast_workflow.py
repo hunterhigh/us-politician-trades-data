@@ -61,7 +61,7 @@ class HouseContrastWorkflowTests(unittest.TestCase):
         failure=review/'house_clerk/failures'/relative;failure.parent.mkdir(parents=True)
         failure.write_text(json.dumps({'parser_version':'house-parser-suite-2026-12-image-paint-order'}),encoding='utf-8')
         self.assertEqual(selected(),[str(metadata)])
-        failure.write_text(json.dumps({'parser_version':PARSER_RETRY_VERSION}),encoding='utf-8')
+        failure.write_text(json.dumps({'parser_version':PARSER_RETRY_VERSION, 'source_sha256':legacy['source_sha256']}),encoding='utf-8')
         self.assertEqual(selected(),[])
         # An unreadable source is queued for normal failure accounting; it
         # cannot make an old successful extraction an absence proof.

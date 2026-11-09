@@ -362,7 +362,9 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
             metadata, metadata_sha = _read_object(metadata_path)
             plan = plan_whitehouse_278t_archive(metadata, evidence_root,
                 generic=version in {GENERIC_PARSER_VERSION, *NATIVE_VISIBLE_GENERIC_VERSIONS})
-            if plan['parser_version'] != version:
+            from unison_snapshot.parser_replay import ParserTarget
+            if not ParserTarget(plan['parser_version'], {'source_sha256': metadata['sha256'],
+                    'source_url': metadata.get('document_url')}).accepts(report):
                 raise ValueError('White House cached native version differs from current original source plan')
             partition_dependencies.append({'document_id': report['document_id'],
                 'metadata_sha256': metadata_sha, 'source_plan': plan})

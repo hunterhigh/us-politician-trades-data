@@ -16,6 +16,7 @@ from test_oge_owner_correction import fixture, write_files, encoded, DOCUMENT
 from test_oge_saved_observation_writer import directory_alias
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_ptr_runtime import prepare_oge_ptr_generic
+from unison_snapshot.oge_reports import PARSER_VERSION, GENERIC_PARSER_VERSION
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -40,8 +41,8 @@ class OgePtrRuntimeTests(unittest.TestCase):
         catalog = next(self.evidence.glob('oge/catalog/normalized/*.json'))
         self.catalog = self.root/'catalog.json'
         self.catalog.write_bytes(catalog.read_bytes())
-        self.targets = [self.review/f'oge/extractions/{DOCUMENT}/{self.sha}/oge-278t-pdf-v{v}.json'
-                        for v in (2, 7)]
+        self.targets = [self.review/f'oge/extractions/{DOCUMENT}/{self.sha}'/(v.replace('/', '-')+'.json')
+                        for v in (PARSER_VERSION, GENERIC_PARSER_VERSION)]
 
     def prepare(self, **kwargs):
         return prepare_oge_ptr_generic(document_id=DOCUMENT, evidence_root=self.evidence,
@@ -63,7 +64,7 @@ class OgePtrRuntimeTests(unittest.TestCase):
             path.unlink()
         source = self.pdf.read_bytes()
         receipt = self.prepare()
-        self.assertEqual(receipt['parser_versions'], ['oge-278t-pdf/v2', 'oge-278t-pdf/v7'])
+        self.assertEqual(receipt['parser_versions'], ['oge-278t-pdf/v8', 'oge-278t-pdf/v7'])
         self.assertEqual(len(receipt['created_paths']), 2)
         self.assertEqual([json.loads(path.read_text()) for path in self.targets], expected)
         self.assertEqual(receipt['source_sha256'], hashlib.sha256(source).hexdigest())
@@ -142,7 +143,7 @@ class OgePtrRuntimeTests(unittest.TestCase):
         self.rejected_unchanged()
         self.targets[0].unlink()
         self.targets[0].write_bytes(encoded(json.loads(self.data[2][
-            next(key for key in self.data[2] if key.endswith('pdf-v2.json'))])))
+            next(key for key in self.data[2] if key.endswith('pdf-v8.json'))])))
         os.link(self.targets[0], self.targets[1])
         self.rejected_unchanged()
 
@@ -270,7 +271,7 @@ class OgePtrRuntimeTests(unittest.TestCase):
         pdf.write_bytes(raw)
         self.prepare(source_sha256=sha)
         selected = self.review / f'oge/extractions/{DOCUMENT}/{sha}'
-        default = selected / 'oge-278t-pdf-v2.json'
+        default = selected / 'oge-278t-pdf-v8.json'
         generic = selected / 'oge-278t-pdf-v7.json'
         default.unlink()
         value = json.loads(generic.read_bytes()); value['transactions'][0]['asset_name'] = 'Altered cache'

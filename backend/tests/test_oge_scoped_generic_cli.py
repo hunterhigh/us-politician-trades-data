@@ -104,10 +104,10 @@ class ScopedGenericCliTests(unittest.TestCase):
 
     def test_old_default_global_and_new_scoped_modes_bind_the_actual_selected_raw_cache(self):
         a, b = self.data['a'], self.data['b']
-        for flags, versions, owners in [([], ['v2', 'v2'], ['Self', 'Self']),
+        for flags, versions, owners in [([], ['v8', 'v8'], ['Self', 'Self']),
                 (['--generic', '--legacy-extractions-dir', str(self.data['extractions_root'])],
                  ['v7', 'v7'], ['Undisclosed', 'Undisclosed']),
-                (['--generic-document-id', a], ['v7', 'v2'], ['Undisclosed', 'Self'])]:
+                (['--generic-document-id', a], ['v7', 'v8'], ['Undisclosed', 'Self'])]:
             with self.subTest(flags=flags):
                 self.run_cli(flags)
                 candidate, audit = self.read()
@@ -158,13 +158,13 @@ class ScopedGenericCliTests(unittest.TestCase):
 
     def test_canonical_same_sha_legacy_pair_is_required_and_cannot_self_sign_other_source_or_reading(self):
         a, sha = self.data['a'], self.data['sha_a']
-        source = self.cache(a, sha, 'oge-278t-pdf/v2')
+        source = self.cache(a, sha, 'oge-278t-pdf/v8')
         original = source.read_bytes()
         source.unlink()
         self.assert_rejected_without_writes(['--generic-document-id', a])
         source.write_bytes(original)
         external = self.root/'explicit-legacy'
-        target = external/a/sha/'oge-278t-pdf-v2.json'
+        target = external/a/sha/'oge-278t-pdf-v8.json'
         target.parent.mkdir(parents=True)
         for field, value in [('source_sha256', self.data['sha_b']), ('document_id', self.data['b']),
                              ('owner_scope_complete', True)]:

@@ -85,7 +85,7 @@ def make_exact_duplicate_inputs(root, *, include_unrelated=False, identical_rows
     direct = []
     for generic in (False, True):
         parsed = parse_archived_pdf(evidence, source.with_suffix('.json'), generic=generic)
-        expected = 'oge-278t-pdf/v7' if generic else 'oge-278t-pdf/v2'
+        expected = 'oge-278t-pdf/v7' if generic else 'oge-278t-pdf/v8'
         if parsed['parser_version'] != expected:
             raise AssertionError('The exact duplicate control requires the existing ordinary v2/v7 pair')
         save(review / f'oge/extractions/{document}/{sha}/{expected.replace("/", "-")}.json', parsed)

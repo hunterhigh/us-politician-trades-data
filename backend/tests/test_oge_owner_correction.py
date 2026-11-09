@@ -90,7 +90,7 @@ def fixture(*, asset='Example Common Stock (EXM)', heading=None, historical=True
                                        catalog, retrieved_at=CUTOFF)
         legacy = parse_archived_pdf(root, root / (pdfpath[:-4] + '.json'))
         native = parse_archived_pdf(root, root / (pdfpath[:-4] + '.json'), generic=True)
-        if (legacy['parser_version'], native['parser_version']) != ('oge-278t-pdf/v2', 'oge-278t-pdf/v7'):
+        if (legacy['parser_version'], native['parser_version']) != ('oge-278t-pdf/v8', 'oge-278t-pdf/v7'):
             raise AssertionError('Fixture must use actual ordinary native source selection')
         prior, _ = build_oge_candidate(catalog, [legacy], empty_base(),
             data_cutoff_at=CUTOFF, evidence_root=root)
@@ -111,7 +111,7 @@ def fixture(*, asset='Example Common Stock (EXM)', heading=None, historical=True
         evidence = {path.relative_to(root).as_posix(): path.read_bytes()
                     for path in root.rglob('*') if path.is_file()}
         folder = f'oge/extractions/{DOCUMENT}/{sha}'
-        review = {f'{folder}/oge-278t-pdf-v2.json': encoded(legacy),
+        review = {f'{folder}/oge-278t-pdf-v8.json': encoded(legacy),
             f'{folder}/oge-278t-pdf-v7.json': encoded(native),
             'status/oge.json': encoded({'catalog_sha256': catalog_meta['sha256']}),
             'oge/qualifications/current.json': encoded(audit)}
@@ -246,7 +246,7 @@ class OgeOwnerCorrectionTests(unittest.TestCase):
     def test_unrelated_bad_financial_amount_remains_quarantined_without_blocking_owner(self):
         data = fixture(extra_rows=[['2', 'Independent Company', 'Purchase', '06/02/2026',
                                      'No', 'unread amount']])
-        legacy = json.loads(next(raw for path, raw in data[2].items() if path.endswith('v2.json')))
+        legacy = json.loads(next(raw for path, raw in data[2].items() if path.endswith('v8.json')))
         native = json.loads(next(raw for path, raw in data[2].items() if path.endswith('v7.json')))
         self.assertEqual(len(legacy['quarantined']), 1)
         self.assertEqual(len(native['quarantined']), 1)

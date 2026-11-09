@@ -45,7 +45,7 @@ def fixture(root):
             'position_title':record['position_title'],'catalog_added_date':record['catalog_added_date'],
             'amended_label':record['amended_label'],'pending_final_oge_disposition':False}
         path.with_suffix('.json').write_text(json.dumps(meta),encoding='utf-8')
-        cache=review/'oge/extractions'/x['document_id']/x['source_sha256']/'oge-278t-pdf-v2.json'
+        cache=review/'oge/extractions'/x['document_id']/x['source_sha256']/'oge-278t-pdf-v8.json'
         cache.parent.mkdir(parents=True);cache.write_text(json.dumps(x),encoding='utf-8')
     obs=observation(OLD_URL);obs['source_sha256']=source_sha
     obs['tables'][0][1][3]='07/11/2025'
@@ -71,7 +71,7 @@ def mocks(data):
     # These deliberately non-PDF bytes substitute the low-level parser and its
     # selector together. Real original/version binding has separate source tests.
     stack.enter_context(patch('unison_snapshot.oge_reports.selected_parser_version',
-        return_value='oge-278t-pdf/v2'))
+        return_value='oge-278t-pdf/v8'))
     return stack
 
 

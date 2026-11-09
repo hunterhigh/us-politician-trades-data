@@ -60,7 +60,7 @@ class ReviewedOgeExtractionTests(unittest.TestCase):
         from unison_snapshot.oge_native_owner_scope import source_interpretation_binding
         from unison_snapshot.oge_reports import parse_archived_pdf
         _, _, caches, evidence, _ = native_fixture()
-        native = json.loads(next(raw for path, raw in caches.items() if path.endswith('pdf-v2.json')))
+        native = json.loads(next(raw for path, raw in caches.items() if path.endswith('pdf-v8.json')))
         old = deepcopy(native); old.pop('source_rows')
         for row in old['transactions']: row.pop('cells')
         _, _, correction = fixture()
@@ -83,7 +83,7 @@ class ReviewedOgeExtractionTests(unittest.TestCase):
             root = Path(folder); archive = root/'evidence'; review = root/'review'; rules = root/'rules'
             write_files(archive, evidence); rules.mkdir()
             (rules/(old['document_id']+'.json')).write_bytes(encode(correction))
-            base = review/'oge/extractions'/old['document_id']/old['source_sha256']/'oge-278t-pdf-v2.json'
+            base = review/'oge/extractions'/old['document_id']/old['source_sha256']/'oge-278t-pdf-v8.json'
             base.parent.mkdir(parents=True); base.write_bytes(encode(old))
             (base.parent/(correction['parser_version'].replace('/', '-')+'.json')).write_bytes(encode(approved))
             metadata = archive/f"oge/reports/{old['document_id']}/{old['source_sha256']}.json"
@@ -154,7 +154,7 @@ class ReviewedOgeExtractionTests(unittest.TestCase):
                     data_cutoff_at='2025-06-04T00:00:00Z')
                 self.assertFalse(result['transactions'])
                 self.assertIn('extraction_contract_invalid', audit['reports'][0]['document_reasons'])
-                checkpoint = root/correction['document_id']/correction['source_sha256']/'oge-278t-pdf-v2.json'
+                checkpoint = root/correction['document_id']/correction['source_sha256']/'oge-278t-pdf-v8.json'
                 checkpoint.parent.mkdir(parents=True); checkpoint.write_bytes(encode(original))
                 self.assertEqual(reviewed.replay_base_checkpoint(root, correction), expected)
                 checkpoint.write_text('{}', encoding='utf-8')

@@ -20,7 +20,7 @@ from .reviewed_oge_extraction import (source_correction,correct_extraction,
 
 REPORT_ARCHIVE_SCHEMA = "oge-278t-archive/v1"
 EXTRACTION_SCHEMA = "oge-278t-extraction/v1"
-PARSER_VERSION = "oge-278t-pdf/v2"
+PARSER_VERSION = "oge-278t-pdf/v8"
 GENERIC_PARSER_VERSION = "oge-278t-pdf/v7"
 GENERIC_ROW_INTERPRETATION_MODE = "source_ordered_owner_account_scope/v1"
 MAX_PDF_BYTES = 50 * 1024 * 1024
@@ -403,7 +403,8 @@ def classify_table_structure(raw_cells: list) -> dict | None:
 
 def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
                      default_owner: str = "Self", allow_open_amounts: bool = False,
-                     account_title: str | None = None, allow_exchange: bool = False) -> tuple[list[dict], list[dict]]:
+                     account_title: str | None = None, allow_exchange: bool = False,
+                     allow_ira_owner_context: bool = False) -> tuple[list[dict], list[dict]]:
     """Parse extracted six-column table rows and preserve all rejected rows."""
 
     if not isinstance(rows, list) or not re.fullmatch(r"[0-9a-f]{64}", source_sha):
@@ -432,6 +433,16 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
                                 "reasons": ["unexpected_column_count"]})
             continue
         raw_number, description, raw_type, raw_date, late_notice, raw_amount = cells
+        if allow_ira_owner_context and not any((raw_type, raw_date, raw_amount)):
+            heading = re.fullmatch(
+                r"(?P<owner>spouse|filer|self|dependent child(?:ren)?|child(?:ren)?)(?:['’]s)?\s+"
+                r"IRA\s+(?:investment|retirement)\s+account\s*#[0-9]+", description, re.I)
+            if heading:
+                role = heading['owner'].casefold()
+                owner = ('Spouse' if role == 'spouse' else 'Self' if role in {'filer', 'self'}
+                         else 'Dependent Child')
+                # Keep the original empty financial row in quarantine. This
+                # establishes explicit owner context, not an absence/skip proof.
         reasons = []
         if not _ROW_NUMBER.fullmatch(raw_number):
             reasons.append("row_number_invalid")
@@ -686,6 +697,24 @@ def selected_parser_version(metadata: dict, pdf_path: Path, source_sha: str, *, 
     return GENERIC_PARSER_VERSION if generic else correction['parser_version'] if correction else PARSER_VERSION
 
 
+def parser_target(metadata: dict, parser_version: str, *, observed: bool = False):
+    # An explicit, replayed observation ledger supplies its own physical proof;
+    # its normalized predecessor is reference-only. Version and source binding
+    # still apply. Ordinary checkpoint reuse always requires the full inventory.
+    from .parser_replay import ParserTarget
+    correction = source_correction(metadata, metadata['sha256'])
+    reviewed = correction is not None and parser_version == correction['parser_version']
+    return ParserTarget(parser_version, {
+        'schema_version': EXTRACTION_SCHEMA, 'source_id': 'oge',
+        'document_id': metadata['document_id'], 'source_sha256': metadata['sha256'],
+        'source_url': metadata.get('document_url'), 'catalog_filer_name': metadata.get('filer_name'),
+        'agency': metadata.get('agency'), 'position_title': metadata.get('position_title'),
+        'catalog_added_date': metadata.get('catalog_added_date')},
+        {'transactions': list, 'quarantined': list, 'document_reasons': list,
+         'evidence_complete': bool, **({'source_rows': list} if not (reviewed or observed) else {})},
+        {} if reviewed or observed else {'transactions': {'cells': list}})
+
+
 def load_reusable_extraction(root: Path, metadata_path: Path,
                              reuse_root: Path, *, generic: bool = False) -> dict | None:
     """Load a source- and parser-bound review result after re-hashing its PDF.
@@ -701,31 +730,8 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
     parser_version = selected_parser_version(metadata, pdf_path, source_sha, generic=generic)
     checkpoint = (reuse_root / metadata["document_id"] / source_sha /
                   f"{parser_version.replace('/', '-')}.json")
-    if not checkpoint.is_file():
-        return replay_base_checkpoint(reuse_root,correction) if correction else None
-    try:
-        value = json.loads(checkpoint.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        return None
-    expected = {
-        "schema_version": EXTRACTION_SCHEMA,
-        "parser_version": parser_version,
-        "source_id": "oge",
-        "document_id": metadata["document_id"],
-        "source_url": metadata.get("document_url"),
-        "source_sha256": source_sha,
-        "catalog_filer_name": metadata.get("filer_name"),
-        "agency": metadata.get("agency"),
-        "position_title": metadata.get("position_title"),
-        "catalog_added_date": metadata.get("catalog_added_date"),
-    }
-    if not isinstance(value, dict) or any(value.get(key) != expected_value
-                                          for key, expected_value in expected.items()):
-        return None
-    if (not isinstance(value.get("transactions"), list) or
-            not isinstance(value.get("quarantined"), list) or
-            not isinstance(value.get("document_reasons"), list) or
-            type(value.get("evidence_complete")) is not bool):
+    value = parser_target(metadata, parser_version).load(checkpoint)
+    if value is None:
         return None
     if correction:
         if not approved_extraction(value):return None
@@ -905,14 +911,16 @@ def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False
     if generic:
         transactions, quarantined, structural = parse_generic_table_rows(inventory, source_sha256=source_sha)
     else:
-        transactions, quarantined = parse_table_rows(rows, source_sha=source_sha)
+        transactions, quarantined = parse_table_rows(rows, source_sha=source_sha,
+            allow_ira_owner_context=correction is None)
     if not rows:
         filing_reasons.append("transaction_table_not_found")
     if not transactions and not quarantined:
         filing_reasons.append("no_transaction_rows_found")
     result = {
         "schema_version": EXTRACTION_SCHEMA,
-        "parser_version": GENERIC_PARSER_VERSION if generic else PARSER_VERSION,
+        "parser_version": (GENERIC_PARSER_VERSION if generic else
+                           correction['base_parser_version'] if correction else PARSER_VERSION),
         "source_id": "oge",
         "document_id": metadata["document_id"],
         "source_url": metadata["document_url"],

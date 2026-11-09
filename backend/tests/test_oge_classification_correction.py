@@ -36,7 +36,7 @@ def classification_fixture(*, generic=False, owner=None, prior_owner=None, unkno
     old,_,review,evidence,base = fixture(asset='Example Common Stock See Endnote (EXM)',
         heading=heading, pdf_mutator=mutate if unknown else None)
     catalog = json.loads(next(raw for path,raw in evidence.items() if '/catalog/normalized/' in path))
-    legacy = json.loads(next(raw for path,raw in review.items() if path.endswith('v2.json')))
+    legacy = json.loads(next(raw for path,raw in review.items() if path.endswith('v8.json')))
     native = json.loads(next(raw for path,raw in review.items() if path.endswith('v7.json')))
     if owner is not None:
         # v2 does not interpret all explicit owner headings. The supported
@@ -164,7 +164,7 @@ class OgeClassificationCorrectionTests(unittest.TestCase):
                     value = json.loads(evidence[path]); value['agency'] = 'Other Agency'
                     evidence[path] = encoded(value)
                 elif kind == 'cache':
-                    path = next(path for path in review if path.endswith('v2.json'))
+                    path = next(path for path in review if path.endswith('v8.json'))
                     value = json.loads(review[path]); value['transactions'][0]['asset_name'] = 'Fake Endnote'
                     review[path] = encoded(value)
                     from unison_snapshot.oge_native_owner_scope import source_interpretation_binding

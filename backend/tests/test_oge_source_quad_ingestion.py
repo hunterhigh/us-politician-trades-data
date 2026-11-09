@@ -71,7 +71,7 @@ def actual_source_quad_fixture(root:Path):
     (review/'status').mkdir(parents=True);(review/'status/oge.json').write_bytes(status_bytes)
     parsed=parse_archived_pdf(evidence,path.with_suffix('.json'))
     generic=parse_archived_pdf(evidence,path.with_suffix('.json'),generic=True)
-    assert parsed['parser_version']=='oge-278t-pdf/v2' and generic['parser_version']=='oge-278t-pdf/v7'
+    assert parsed['parser_version']=='oge-278t-pdf/v8' and generic['parser_version']=='oge-278t-pdf/v7'
     for value in [parsed,generic]:
         write(review/f'oge/extractions/{document}/{sha}/{value["parser_version"].replace("/","-")}.json',value)
     write(root/'primary.json',observation);write(root/'catalog.json',catalog)

@@ -125,7 +125,7 @@ class ScopedGenericWorkflowTests(unittest.TestCase):
         selected = {row['document_id']: row['source_interpretation_binding']['parser_version']
                     for row in audit['reports']}
         self.assertEqual(selected, {self.data['a']: 'oge-278t-pdf/v7',
-                                   self.data['b']: 'oge-278t-pdf/v2'})
+                                   self.data['b']: 'oge-278t-pdf/v8'})
         self.assertFalse((self.data['extractions_root']/self.data['b']/self.data['sha_b']/
                           'oge-278t-pdf-v7.json').exists())
         first = self.output.read_bytes(), self.audit.read_bytes()
@@ -165,7 +165,7 @@ class ScopedGenericWorkflowTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(self.output.read_bytes(), b'candidate sentinel')
                 self.assertEqual(self.audit.read_bytes(), b'audit sentinel')
-        cache = self.data['extractions_root']/self.data['a']/self.data['sha_a']/'oge-278t-pdf-v2.json'
+        cache = self.data['extractions_root']/self.data['a']/self.data['sha_a']/'oge-278t-pdf-v8.json'
         original = cache.read_bytes()
         wrong = json.loads(original); wrong['self_signed_selection'] = True
         cache.write_bytes(encode(wrong))

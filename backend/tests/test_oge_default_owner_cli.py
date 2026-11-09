@@ -40,7 +40,7 @@ class DefaultOwnerCliTests(unittest.TestCase):
         self.assertEqual(len(candidate['transactions']), 2)
         reports = {row['document_id']: row for row in audit['reports']}
         self.assertEqual({row['source_interpretation_binding']['parser_version']
-                          for row in reports.values()}, {'oge-278t-pdf/v2'})
+                          for row in reports.values()}, {'oge-278t-pdf/v8'})
         conserved = reports[p.data['a']]['default_owner_conservation']
         identifier = p.data['old_a']['id']
         self.assertEqual(conserved['retained_ids'], [identifier])
@@ -99,7 +99,7 @@ class DefaultOwnerCliTests(unittest.TestCase):
         self.corrected_base()
         originals = {path: path.read_bytes() for path in p.data['evidence_root'].rglob('*')
                      if path.is_file()}
-        cache = p.data['extractions_root']/p.data['a']/p.data['sha_a']/'oge-278t-pdf-v2.json'
+        cache = p.data['extractions_root']/p.data['a']/p.data['sha_a']/'oge-278t-pdf-v8.json'
         wrong = json.loads(cache.read_bytes()); wrong['self_signed_conservation'] = True
         p.write(cache, wrong)
         p.output.write_bytes(b'candidate sentinel'); p.audit.write_bytes(b'audit sentinel')

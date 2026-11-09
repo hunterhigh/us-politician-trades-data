@@ -164,17 +164,17 @@ class CliTests(unittest.TestCase):
             batch.write_text(json.dumps({"reports": [metadata]}), encoding="utf-8")
             cached = {
                 "schema_version": "oge-278t-extraction/v1",
-                "parser_version": "oge-278t-pdf/v2", "source_id": "oge",
+                "parser_version": "oge-278t-pdf/v8", "source_id": "oge",
                 "document_id": document_id, "source_url": metadata["document_url"],
                 "source_sha256": sha, "catalog_filer_name": "Example, Ada",
                 "agency": "Example Agency", "position_title": "Director",
                 "catalog_added_date": "2026-09-19", "filed_at": None,
                 "document_reasons": ["filer_signature_date_not_unique"],
-                "evidence_complete": False, "transactions": [], "quarantined": [],
+                "evidence_complete": False, "transactions": [], "quarantined": [], "source_rows": [],
             }
             reuse = folder / "review" / document_id / sha
             reuse.mkdir(parents=True)
-            (reuse / "oge-278t-pdf-v2.json").write_text(
+            (reuse / "oge-278t-pdf-v8.json").write_text(
                 json.dumps(cached), encoding="utf-8")
             summary = folder / "summary.json"
             output_dir = folder / "output"
@@ -189,6 +189,23 @@ class CliTests(unittest.TestCase):
                              (1, 1, 0, 0))
             self.assertEqual(json.loads((output_dir / f"{document_id}.json").read_text(
                 encoding="utf-8")), cached)
+            # An archived report outside today's collection batch must still
+            # participate in parser upgrades, including pre-inventory caches.
+            batch.write_text(json.dumps({'reports': []}), encoding='utf-8')
+            old = dict(cached, parser_version='oge-278t-pdf/v2')
+            old.pop('source_rows')
+            (reuse/'oge-278t-pdf-v2.json').write_text(json.dumps(old), encoding='utf-8')
+            (reuse/'oge-278t-pdf-v8.json').unlink()
+            result = self.invoke('extract-oge-direct-pdfs', '--batch', str(batch),
+                '--archive', str(archive), '--reuse-root', str(folder/'review'),
+                '--output-dir', str(output_dir), '--output', str(summary))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            value = json.loads(summary.read_bytes())
+            self.assertEqual((value['report_count'], value['parsed_extraction_count'],
+                              value['reused_extraction_count']), (1, 1, 0))
+            self.assertEqual(json.loads((output_dir/(document_id+'.json')).read_bytes())['parser_version'],
+                             'oge-278t-pdf/v8')
+            self.assertEqual(json.loads((reuse/'oge-278t-pdf-v2.json').read_bytes()), old)
 
     def test_real_input_fails_before_creating_repository(self):
         with tempfile.TemporaryDirectory() as temp:

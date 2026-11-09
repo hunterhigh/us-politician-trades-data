@@ -194,7 +194,8 @@ def _observed_reference_counts(record: dict, audit: dict, review: Path | None,
     if len(matched) != 1:
         raise ValueError("OGE observed counts have no unique saved legacy reference")
     old = matched[0]
-    if (old.get("schema_version") != "oge-278t-extraction/v1" or old.get("parser_version") != "oge-278t-pdf/v2" or
+    from .oge_reports import PARSER_VERSION
+    if (old.get("schema_version") != "oge-278t-extraction/v1" or old.get("parser_version") not in {"oge-278t-pdf/v2", PARSER_VERSION} or
             old.get("source_id") != "oge" or old.get("document_id") != record["report_id"] or
             old.get("source_sha256") != sha or old.get("source_url") != record["source_url"] or "source_rows" in old or
             len(_rows(old, "transactions")) != normalized or len(_rows(old, "quarantined")) != old_quarantine):
@@ -705,15 +706,16 @@ def _unbound_default_owner_hint(record, review, transactions, *, evidence=None, 
         return False
     undisclosed = {row['id'] for row in facts if row['owner'] == 'Undisclosed'}
     explicit = [row for row in facts if row['owner'] in {'Spouse', 'Dependent Child'}]
+    from .oge_reports import PARSER_VERSION
     for sha in record.get('source_versions', []):
-        path = review / 'oge/extractions' / record['report_id'] / sha / 'oge-278t-pdf-v2.json'
+        path = review / 'oge/extractions' / record['report_id'] / sha / (PARSER_VERSION.replace('/', '-') + '.json')
         if not path.exists():
             continue
         if (not path.resolve().is_relative_to(review.resolve()) or not path.is_file()
                 or path.stat().st_size > 16 * 1024 * 1024):
             raise ValueError('OGE unbound default cache is unavailable or exceeds budget')
         cached = _read(path)
-        if (cached.get('parser_version') != 'oge-278t-pdf/v2' or
+        if (cached.get('parser_version') != PARSER_VERSION or
                 cached.get('document_id') != record['report_id'] or
                 cached.get('source_sha256') != sha or cached.get('source_url') != record['source_url']):
             continue
@@ -743,8 +745,9 @@ def _unbound_native_classification_hint(record, review, transactions, catalog_re
     if not facts:
         return False
     from .oge_native_classification import _mechanism, _endnote, prepare_native_classification
+    from .oge_reports import PARSER_VERSION, GENERIC_PARSER_VERSION
     for sha in record.get('source_versions', []):
-        for version in ('oge-278t-pdf/v2', 'oge-278t-pdf/v7'):
+        for version in (PARSER_VERSION, GENERIC_PARSER_VERSION):
             path = review / 'oge/extractions' / record['report_id'] / sha / (version.replace('/', '-')+'.json')
             if not path.exists():
                 continue
@@ -763,7 +766,7 @@ def _unbound_native_classification_hint(record, review, transactions, catalog_re
                 # withholding. It also covers an old native-owner ID when
                 # only the other interpretation's physical ID remains.
                 hint = prepare_native_classification(raw, facts, catalog_record,
-                    legacy_extraction=raw if version == 'oge-278t-pdf/v2' else None)
+                    legacy_extraction=raw if version == PARSER_VERSION else None)
                 if hint.target_ids:
                     return True
     return False
@@ -970,7 +973,8 @@ def _native_classification_state(record, audit, raw, *, review, evidence,
     """Replay classification before intersecting independent owner masks."""
     stored = audit.get('native_classification')
     ordinary = _source_receiver_is_ordinary(audit)
-    if not ordinary or raw.get('parser_version') not in {'oge-278t-pdf/v2', 'oge-278t-pdf/v7'}:
+    from .oge_reports import PARSER_VERSION, GENERIC_PARSER_VERSION
+    if not ordinary or raw.get('parser_version') not in {PARSER_VERSION, GENERIC_PARSER_VERSION}:
         if stored is not None:
             raise ValueError('OGE classification requires its selected ordinary native receiver')
         return None
@@ -992,8 +996,8 @@ def _native_classification_state(record, audit, raw, *, review, evidence,
         if effective.get('manual_filing_date_evidence') != audit['manual_filing_date_evidence']:
             raise ValueError('OGE classification manual layer differs from bound raw input')
     legacy = None
-    if raw['parser_version'] == 'oge-278t-pdf/v7':
-        path = review/'oge/extractions'/record['report_id']/raw['source_sha256']/'oge-278t-pdf-v2.json'
+    if raw['parser_version'] == GENERIC_PARSER_VERSION:
+        path = review/'oge/extractions'/record['report_id']/raw['source_sha256']/(PARSER_VERSION.replace('/', '-') + '.json')
         if path.is_file():
             if not path.resolve().is_relative_to(review.resolve()) or path.stat().st_size > 16*1024*1024:
                 raise ValueError('OGE classification legacy input is unavailable or exceeds budget')

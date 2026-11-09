@@ -54,7 +54,7 @@ def legacy_disposition_reference(extraction: dict, catalog_record: dict) -> dict
     """Bind normalized old output without inventing a physical row inventory."""
     from .oge_reports import PARSER_VERSION, EXTRACTION_SCHEMA
     collapse_direct_catalog_records([catalog_record])
-    if (extraction.get("schema_version") != EXTRACTION_SCHEMA or extraction.get("parser_version") != PARSER_VERSION or
+    if (extraction.get("schema_version") != EXTRACTION_SCHEMA or extraction.get("parser_version") not in {PARSER_VERSION, 'oge-278t-pdf/v2'} or
             "source_rows" in extraction or extraction.get("source_id") != "oge" or
             not re.fullmatch(r"[0-9a-f]{64}", extraction.get("source_sha256") or "") or
             any(extraction.get(a) != catalog_record.get(b) for a, b in (

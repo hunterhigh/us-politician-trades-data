@@ -347,7 +347,7 @@ class GenericCandidateTests(unittest.TestCase):
         from unison_snapshot.oge_candidate import _inherit_generic_legacy
         old_fact, _, review, evidence, prior = fixture(historical=False)
         source = json.loads(next(raw for path, raw in review.items() if path.endswith('/oge-278t-pdf-v7.json')))
-        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('/oge-278t-pdf-v2.json')))
+        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('/oge-278t-pdf-v8.json')))
         catalog_sha = json.loads(review['status/oge.json'])['catalog_sha256']
         record = json.loads(evidence[f'oge/catalog/normalized/{catalog_sha}.json'])['transactions'][0]
         before = deepcopy(source)

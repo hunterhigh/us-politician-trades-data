@@ -53,7 +53,7 @@ class MissingRawFilingDateTests(unittest.TestCase):
             legacy = parse_archived_pdf(root, path)
             native = parse_archived_pdf(root, path, generic=True)
             self.assertEqual((legacy['parser_version'], native['parser_version']),
-                             ('oge-278t-pdf/v2', 'oge-278t-pdf/v7'))
+                             ('oge-278t-pdf/v8', 'oge-278t-pdf/v7'))
             self.assertIsNone(legacy['filed_at'])
             self.assertIsNone(native['filed_at'])
             # This date represents an already published fact. It is deliberately
@@ -86,7 +86,7 @@ class SourceMetadataIdentityTests(unittest.TestCase):
         _, _, review, evidence, previous = fixture(heading=' ')
         catalog = json.loads(next(raw for path, raw in evidence.items()
                                   if '/catalog/normalized/' in path))
-        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('v2.json')))
+        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('v8.json')))
         native = json.loads(next(raw for path, raw in review.items() if path.endswith('v7.json')))
         metadata_path = next(path for path in evidence if '/reports/' in path and path.endswith('.json'))
         for field, value in (('amended_label', 'Amended'), ('pending_final_oge_disposition', True)):

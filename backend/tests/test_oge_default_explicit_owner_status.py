@@ -63,7 +63,7 @@ def explicit_owner_inputs(root, *, owner='Spouse',unknown=False,new_row=False,ex
     review,evidence = deepcopy(_generated(owner,unknown,new_row,exchange))
     write_files(evidence_root,evidence); write_files(review_root,review)
     catalog = json.loads(next(raw for path,raw in evidence.items() if '/catalog/normalized/' in path))
-    legacy = json.loads(next(raw for path,raw in review.items() if path.endswith('v2.json')))
+    legacy = json.loads(next(raw for path,raw in review.items() if path.endswith('v8.json')))
     native = json.loads(next(raw for path,raw in review.items() if path.endswith('v7.json')))
     generic,_ = build_oge_candidate(catalog,[native],empty_base(),data_cutoff_at=CUTOFF,
         evidence_root=evidence_root,legacy_extractions_by_document={DOCUMENT:legacy})
@@ -101,7 +101,7 @@ class DefaultExplicitOwnerStatusTests(unittest.TestCase):
                 result,audit = self.default(data)
                 self.assertEqual(result['transactions'],data['generic']['transactions'])
                 record = self.status(data,result)
-                self.assertEqual(record['source_interpretation_binding']['parser_version'],'oge-278t-pdf/v2')
+                self.assertEqual(record['source_interpretation_binding']['parser_version'],'oge-278t-pdf/v8')
                 self.assertEqual(record['qualified_transaction_count'],1)
                 self.assertEqual(record['default_owner_conservation']['current_ids'],[data['prior']['id']])
                 repeated,_ = self.default(data,prior=result)

@@ -30,7 +30,7 @@ def source_case(owner='Spouse', *, unknown=False, endnote=False):
     _, _, review, evidence, _ = fixture(asset=asset, heading=heading,
         historical=False, pdf_mutator=mutate if unknown else None)
     catalog = json.loads(next(value for path,value in evidence.items() if '/catalog/normalized/' in path))
-    legacy = json.loads(next(value for path,value in review.items() if path.endswith('v2.json')))
+    legacy = json.loads(next(value for path,value in review.items() if path.endswith('v8.json')))
     native = json.loads(next(value for path,value in review.items() if path.endswith('v7.json')))
     with tempfile.TemporaryDirectory() as folder:
         root = Path(folder); write_files(root,evidence)
@@ -68,7 +68,7 @@ class DefaultExplicitOwnerSourceTests(unittest.TestCase):
                 self.assertEqual(selected,legacy['transactions'][0])
                 self.assertNotEqual(selected['extraction_id'],prior['id'])
                 self.assertEqual(selected['owner'],'Self')
-                self.assertEqual(context.binding['source']['parser_version'],'oge-278t-pdf/v2')
+                self.assertEqual(context.binding['source']['parser_version'],'oge-278t-pdf/v8')
                 self.assertEqual(context.binding['source']['extraction_canonical_sha256'],
                                  hashlib.sha256(encode(legacy)).hexdigest())
                 self.assertEqual(context.binding['auxiliary_owner_scope']['legacy'],context.binding['source'])

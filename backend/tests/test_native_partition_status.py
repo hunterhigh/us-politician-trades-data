@@ -101,7 +101,7 @@ class NativePartitionStatusTests(unittest.TestCase):
                 data=self.prepare(whitehouse=whitehouse,generic=True)
                 original=data['cache'].read_bytes();expected=self.status(data)
                 # Historical same-SHA versions cannot replace the chosen cache.
-                old='whitehouse-278t-native-roles-v5.json' if whitehouse else 'oge-278t-pdf-v2.json'
+                old='whitehouse-278t-native-roles-v5.json' if whitehouse else 'oge-278t-pdf-v8.json'
                 (data['cache'].parent/old).write_bytes(encoded({'historical_reference_only':True}))
                 self.assertEqual(self.status(data),expected)
                 report=json.loads(original)
