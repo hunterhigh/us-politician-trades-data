@@ -101,14 +101,14 @@ class FakeSession:
 
 
 class SenateReportsTest(unittest.TestCase):
-    def test_archived_inputs_outside_batch_reopen_on_version_change_and_reject_forged_cache(self):
+    def test_archived_replay_inputs_reopen_on_version_change_and_reject_forged_cache(self):
         from unison_snapshot import senate_reports as reports
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); review = root/'review'
             metadata = archive_report(root, discovery(), html(), {'Content-Type':'text/html'},
                                       '2026-09-20T00:00:00+00:00')
             batch = {'schema_version':reports.REPORT_BATCH_SCHEMA, 'source_id':'senate_efd',
-                     'catalog_sha256':'a'*64, 'archived':[], 'replay':[]}
+                     'catalog_sha256':'a'*64, 'archived':[], 'replay':[metadata]}
             before = extract_archived_report_batch(root, batch, review_root=review)
             self.assertEqual(before['extraction_count'], 1)
             result = before['extractions'][0]
@@ -126,6 +126,10 @@ class SenateReportsTest(unittest.TestCase):
             self.assertNotEqual(upgraded['extractions'][0]['parser_version'], result['parser_version'])
             self.assertEqual(upgraded['extractions'][0]['transactions'], result['transactions'])
             self.assertEqual(json.loads(checkpoint.read_bytes()), forged)
+            # An unselected archived report must not leak into a catalog's
+            # extraction count or bypass its separate official identity batch.
+            batch['replay'] = []
+            self.assertEqual(extract_archived_report_batch(root, batch, review_root=review)['extraction_count'], 0)
 
     def test_electronic_rows_have_source_bound_position_ledger(self):
         raw = html()

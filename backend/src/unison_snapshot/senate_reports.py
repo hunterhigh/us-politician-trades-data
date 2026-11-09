@@ -901,15 +901,9 @@ def extract_archived_report_batch(root: Path, batch: object, *, review_root: Pat
     failures = []
     seen: set[str] = set()
     replay = list(batch.get("replay", batch["archived"]))
-    if review_root is not None:
-        # Parser upgrades operate on archived bytes even when an old report
-        # has fallen outside the current collection/catalog window.
-        known = {(item.get('document_id'), item.get('sha256')) for item in replay}
-        for path in sorted((root / 'senate_efd/reports').glob('*/*.metadata.json')):
-            metadata = json.loads(path.read_text(encoding='utf-8'))
-            if (metadata['document_id'], metadata['sha256']) not in known:
-                replay.append(metadata)
-                known.add((metadata['document_id'], metadata['sha256']))
+    # The collector's replay list includes every archived input in the bound
+    # catalog, independent of today's download limit. Keep that identity scope:
+    # unrelated historical archives need their own bound catalog/identity input.
     for item in replay:
         if not isinstance(item, dict):
             raise SenateEfdError("Senate eFD report entrypoint batch contains an invalid item")
