@@ -51,7 +51,7 @@ class BichromeSafetyTests(unittest.TestCase):
             self.status_helper.status(data)
         ordinary=self.prepare(False,False,'control')
         raw=ordinary['cache'].read_bytes()
-        self.assertEqual(json.loads(raw)['parser_version'],'oge-278t-pdf/v2')
+        self.assertEqual(json.loads(raw)['parser_version'],'oge-278t-pdf/v8')
         ordinary['cache'].write_bytes(raw+b' '*(17*1024*1024-len(raw)))
         with self.assertRaisesRegex(ValueError,'selected source cache.*budget'):
             self.status_helper.status(ordinary)
@@ -131,7 +131,7 @@ class BichromeSafetyTests(unittest.TestCase):
                     self.assertIn('native-bichrome',report['parser_version'])
                     versions=(['whitehouse-278t-hybrid-geometry/v2','whitehouse-278t-native-roles/v5',
                                'whitehouse-278t-native-visible-default/v1','whitehouse-278t-native-visible-generic/v1']
-                              if whitehouse else ['oge-278t-pdf/v2','oge-278t-pdf/v7',
+                              if whitehouse else ['oge-278t-pdf/v8','oge-278t-pdf/v7',
                                'oge-278t-native-visible-default/v1','oge-278t-native-visible-generic/v1'])
                     for version in versions:
                         historical={**report,'parser_version':version,'transactions':report['transactions'],'quarantined':[]}

@@ -31,7 +31,7 @@ class DefaultOwnerSourceTests(unittest.TestCase):
 
     def inputs(self, data=None):
         old, expected, review, evidence, base = deepcopy(data or self.closed)
-        raw = json.loads(next(value for path, value in review.items() if path.endswith('/oge-278t-pdf-v2.json')))
+        raw = json.loads(next(value for path, value in review.items() if path.endswith('/oge-278t-pdf-v8.json')))
         catalog = json.loads(next(value for path, value in evidence.items() if '/catalog/normalized/' in path))
         return raw, [expected], catalog['transactions'][0], evidence
 
@@ -47,7 +47,7 @@ class DefaultOwnerSourceTests(unittest.TestCase):
             self.assertEqual(context.status, 'observed')
             self.assertIsNone(context.reason)
             self.assertEqual(context.source_current_ids(facts), {facts[0]['id']})
-            self.assertEqual(context.binding['source']['parser_version'], 'oge-278t-pdf/v2')
+            self.assertEqual(context.binding['source']['parser_version'], 'oge-278t-pdf/v8')
             self.assertEqual(context.binding['source']['extraction_canonical_sha256'],
                              hashlib.sha256(encode(raw)).hexdigest())
             auxiliary = context.binding['auxiliary_owner_scope']

@@ -151,7 +151,7 @@ class NativeOpacityConsumptionTests(unittest.TestCase):
         with patch.object(normal,'normal_pdf',return_value=source_pdf('unused')):
             root,metadata,_ = self.driver.oge_inputs('unused')
         path = root/metadata['archive_path']
-        self.assertEqual(selected_parser_version(metadata,path,metadata['sha256']), 'oge-278t-pdf/v2')
+        self.assertEqual(selected_parser_version(metadata,path,metadata['sha256']), 'oge-278t-pdf/v8')
         self.assertEqual(selected_parser_version(metadata,path,metadata['sha256'],generic=True), 'oge-278t-pdf/v7')
         self.assertEqual(plan_whitehouse_278t_source(path,source_url=metadata['document_url'],
             source_sha256=metadata['sha256'])['parser_version'], 'whitehouse-278t-hybrid-geometry/v2')

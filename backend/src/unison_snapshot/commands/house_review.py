@@ -25,72 +25,41 @@ def select(args):
         sha = metadata['sha256']
         extraction = review / 'house_clerk' / 'extractions' / year / document_id / f'{sha}.json'
         failure = review / 'house_clerk' / 'failures' / year / document_id / f'{sha}.json'
-        if extraction.is_file():
-            # A retained legacy failure is evidence, not a request to
-            # overwrite a successfully bound saved interpretation.
-            try:
-                value = json.loads(extraction.read_text(encoding='utf-8'))
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                value = {}
-            if value.get('extraction_method') == 'source_bound_paper_cells':
-                relative = Path(year) / document_id / f'{sha}.json'
-                qualification = review / 'house_clerk/qualifications' / relative
-                observation = review / 'house_clerk/paper_observations' / relative
-                if preserved_paper_materialization(metadata, value,
-                        json.loads(qualification.read_text(encoding='utf-8')),
-                        json.loads(observation.read_text(encoding='utf-8'))):
-                    continue
+        from unison_snapshot.parser_replay import ParserTarget, read_checkpoint
+        from unison_snapshot.house_ptr import PARSER_VERSION
         from unison_snapshot.house_native_contrast import plan_house_native_contrast, PARSER_VERSIONS as CONTRAST_VERSIONS
         from unison_snapshot.house import HouseIndexError
+        value, failed = read_checkpoint(extraction), read_checkpoint(failure)
+        dependencies = []
+        paper = value is not None and value.get('extraction_method') == 'source_bound_paper_cells'
+        if paper:
+            from unison_snapshot.house_ptr_paper_qualification import FACT_PARSER_VERSION
+            version = FACT_PARSER_VERSION
+            relative = Path(year) / document_id / f'{sha}.json'
+            qualification = read_checkpoint(review / 'house_clerk/qualifications' / relative)
+            observation = read_checkpoint(review / 'house_clerk/paper_observations' / relative)
+            dependencies.append(preserved_paper_materialization(metadata, value,
+                qualification or {}, observation or {}))
         try:
-            contrast_plan = plan_house_native_contrast(evidence, metadata_path)
+            plan = None if paper else plan_house_native_contrast(evidence, metadata_path)
+            version = version if paper else plan['parser_version'] or PARSER_VERSION
+            if version not in CONTRAST_VERSIONS and value is not None:
+                method = value.get('extraction_method')
+                if method == 'tesseract_legacy_checkbox':
+                    version = LEGACY_PARSER_VERSION
+            if version in CONTRAST_VERSIONS and value is not None:
+                from unison_snapshot.house_native_financial import requires_source_financial_upgrade
+                dependencies.append(not requires_source_financial_upgrade(evidence, metadata_path, value))
         except HouseIndexError:
-            # Unavailable source is a parse/retry disposition, never an
-            # absence proof allowing a retained success to skip policy.
-            if not extraction.is_file() and failure.is_file():
-                try:
-                    if json.loads(failure.read_text(encoding='utf-8')).get('parser_version') == PARSER_RETRY_VERSION:
-                        continue
-                except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                    pass
-            retries.append(metadata_path)
-            continue
-        if contrast_plan['parser_version'] in CONTRAST_VERSIONS and extraction.is_file():
-            from unison_snapshot.house_native_financial import requires_source_financial_upgrade
-            try:
-                selected = json.loads(extraction.read_text(encoding='utf-8'))
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                selected = {}
-            if selected.get('parser_version') != contrast_plan['parser_version']:
-                retries.append(metadata_path)
-                continue
-            if requires_source_financial_upgrade(evidence, metadata_path, selected):
-                retries.append(metadata_path)
-                continue
-        if extraction.is_file() and failure.is_file():
-            retries.append(metadata_path)
-            continue
-        if extraction.is_file():
-            try:
-                value = json.loads(extraction.read_text(encoding='utf-8'))
-                stale_legacy = (value.get('extraction_method') == 'tesseract_legacy_checkbox'
-                                and value.get('parser_version') != LEGACY_PARSER_VERSION)
-                if not stale_legacy:
-                    continue
-                retries.append(metadata_path)
-                continue
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                retries.append(metadata_path)
-                continue
-        if failure.is_file():
-            try:
-                if json.loads(failure.read_text(encoding='utf-8')).get('parser_version') == PARSER_RETRY_VERSION:
-                    continue
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                pass
-            retries.append(metadata_path)
-        else:
-            pending.append(metadata_path)
+            # Failure is terminal only for this retry suite. A previous success
+            # cannot conceal unavailable original bytes or a changed plan.
+            version = PARSER_VERSION
+            dependencies.append(False)
+        target = ParserTarget(version, {'source_sha256': sha})
+        disposition = target.select(value, failed, dependencies=dependencies,
+            failure_target=ParserTarget(PARSER_RETRY_VERSION, {'source_sha256': sha}))
+        if disposition == 'parse':
+            (retries if extraction.exists() or failure.exists() else pending).append(metadata_path)
     selected = (pending + retries)[:int(args.batch_size)]
     Path('.local').mkdir(exist_ok=True)
     Path('.local/parse-batch.txt').write_text(
@@ -217,18 +186,11 @@ def select_holdings(args):
         extraction=review/'house_clerk/holding_extractions'/relative
         qualification=review/'house_clerk/holding_qualifications'/relative
         failure=review/'house_clerk/holding_failures'/relative
-        if qualification.is_file() and extraction.is_file():
-            try:
-                if json.loads(extraction.read_text(encoding='utf-8')).get('parser_version') == parser_version:
-                    continue
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                pass
-        elif failure.is_file():
-            try:
-                if json.loads(failure.read_text(encoding='utf-8')).get('parser_version') == parser_version:
-                    continue
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                pass
+        from unison_snapshot.parser_replay import ParserTarget, read_checkpoint
+        target = ParserTarget(parser_version, {'source_sha256': value['sha256']})
+        if target.select(read_checkpoint(extraction), read_checkpoint(failure),
+                         dependencies=(qualification.is_file(),)) != 'parse':
+            continue
         pending.append((value.get('filed_date') or '', value['document_id'], path))
     pending.sort(reverse=True)
     Path(args.run_dir, 'holding-metadata.txt').write_text(

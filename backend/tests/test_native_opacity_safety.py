@@ -42,7 +42,7 @@ class NativeOpacitySafetyTests(unittest.TestCase):
                     versions = (['whitehouse-278t-hybrid-geometry/v2','whitehouse-278t-native-roles/v5',
                         'whitehouse-278t-native-visible-default/v1','whitehouse-278t-native-visible-generic/v1',
                         'whitehouse-278t-native-bichrome-default/v1','whitehouse-278t-native-bichrome-generic/v1']
-                        if whitehouse else ['oge-278t-pdf/v2','oge-278t-pdf/v7',
+                        if whitehouse else ['oge-278t-pdf/v8','oge-278t-pdf/v7',
                         'oge-278t-native-visible-default/v1','oge-278t-native-visible-generic/v1',
                         'oge-278t-native-bichrome-default/v1','oge-278t-native-bichrome-generic/v1'])
                     for version in versions:

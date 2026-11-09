@@ -41,7 +41,7 @@ class DefaultExplicitOwnerCandidateTests(unittest.TestCase):
                 self.assertNotIn(raw_id,{row['id'] for row in result['transactions']})
                 report = audit['reports'][0]
                 self.assertEqual(report['default_owner_conservation']['current_ids'],[data['prior']['id']])
-                self.assertEqual(report['source_interpretation_binding']['parser_version'],'oge-278t-pdf/v2')
+                self.assertEqual(report['source_interpretation_binding']['parser_version'],'oge-278t-pdf/v8')
                 self.assertEqual(report['source_interpretation_binding']['extraction_canonical_sha256'],hashlib.sha256(source_before).hexdigest())
                 repeated,repeated_audit = self.default(data,base=result)
                 self.assertEqual(encode(repeated),encode(result))

@@ -18,6 +18,7 @@ PROFILE = 'reviewed-cover-date/v1'
 
 
 def _registered(extraction):
+    from .oge_reports import PARSER_VERSION
     document = extraction.get('document_id')
     if (not isinstance(document, str) or len(document) != 32 or
             any(c not in '0123456789abcdef' for c in document)):
@@ -30,7 +31,7 @@ def _registered(extraction):
             value['document_id'] != document or
             value['source_sha256'] != extraction.get('source_sha256') or
             value['source_url'] != extraction.get('source_url') or
-            extraction.get('parser_version') != value['parser_version']):
+            extraction.get('parser_version') not in {value['parser_version'], PARSER_VERSION}):
         raise OgeCatalogError('OGE cover-date correction source binding changed')
     return value
 
@@ -57,7 +58,8 @@ def apply_manual_cover_dates(extractions: list[dict], root: Path) -> list[dict]:
         source_sha = extraction.get("source_sha256")
         if not isinstance(document_id, str) or not isinstance(source_sha, str):
             raise OgeCatalogError("OGE extraction lacks manual-date source identity")
-        if extraction.get('parser_version') not in {None, 'oge-278t-pdf/v2'}:
+        from .oge_reports import PARSER_VERSION
+        if extraction.get('parser_version') not in {None, 'oge-278t-pdf/v2', PARSER_VERSION}:
             selected.append(extraction)
             continue
         correction = _registered(extraction)
@@ -74,7 +76,7 @@ def apply_manual_cover_dates(extractions: list[dict], root: Path) -> list[dict]:
                 value.get("document_id") != document_id or
                 value.get("source_sha256") != source_sha or
                 value.get("source_url") != extraction.get("source_url") or
-                value.get("extraction_parser_version") != "oge-278t-pdf/v2" or
+                value.get("extraction_parser_version") not in {"oge-278t-pdf/v2", PARSER_VERSION} or
                 value.get("page_number") != 1 or
                 value.get("recognition_method") != "human_visual_reading_of_pdf_cover" or
                 not isinstance(value.get("raw_reading"), str) or

@@ -170,7 +170,7 @@ jobs:
           PYTHONPATH=backend/src python -m unison_snapshot extract-senate-report-entrypoints \
             --batch .local/senate-efd-report-batch.json \
             --archive "$EVIDENCE_ROOT" \
-            --output .local/senate-efd-extraction-batch.json
+            --review-root "$REVIEW_ROOT" --output .local/senate-efd-extraction-batch.json
       - name: Publish immutable catalog evidence
         if: ${{ steps.collect.outputs.source_status == 'ready' }}
         id: publish_evidence

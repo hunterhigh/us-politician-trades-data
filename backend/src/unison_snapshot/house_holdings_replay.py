@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .house_holdings import PARSER_VERSION, parse_archived_financial_report, qualify_financial_report
 from .house import HouseIndexError
+from .parser_replay import ParserTarget
 
 
 def read(path):
@@ -32,7 +33,8 @@ def pending(evidence, review):
             raise HouseIndexError("Saved annual extraction has an inconsistent source path")
         qualification = review / "house_clerk/holding_qualifications" / relative
         proof = review / "house_clerk/holding_source_observations" / relative
-        if extraction.get("parser_version") != PARSER_VERSION or not qualification.is_file() or not proof.is_file():
+        target = ParserTarget(PARSER_VERSION, {"source_sha256": extraction["source_sha256"], "source": source})
+        if target.select(extraction, dependencies=(qualification.is_file(), proof.is_file())) == "parse":
             result.append(relative)
     return result
 

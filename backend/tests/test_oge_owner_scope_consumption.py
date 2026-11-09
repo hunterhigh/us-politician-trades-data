@@ -39,7 +39,7 @@ class NativeOwnerScopeConsumptionTests(unittest.TestCase):
         actual = deepcopy(base['transactions'][0])
         catalog = json.loads(next(raw for path, raw in evidence.items()
                                   if '/catalog/normalized/' in path))
-        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('pdf-v2.json')))
+        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('pdf-v8.json')))
         native = json.loads(next(raw for path, raw in review.items() if path.endswith('pdf-v7.json')))
         if explicit_history:
             explicit = _historical_projection(legacy, legacy['transactions'][1], actual['person_id'])
@@ -60,7 +60,7 @@ class NativeOwnerScopeConsumptionTests(unittest.TestCase):
                 actual, result, report = self.consume(data, explicit_history=True)
                 independent = next(row for row in result['transactions'] if row['id'] != actual['id'])
                 legacy = json.loads(next(raw for path, raw in data[2].items()
-                                         if path.endswith('pdf-v2.json')))
+                                         if path.endswith('pdf-v8.json')))
                 prior = _historical_projection(legacy, legacy['transactions'][1], actual['person_id'])
                 expected = {**prior, 'instrument_type': 'Stock'} if data is self.closed else prior
                 self.assertEqual(independent, expected)

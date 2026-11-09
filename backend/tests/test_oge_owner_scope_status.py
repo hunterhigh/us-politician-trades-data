@@ -47,7 +47,7 @@ class OwnerScopeStatusTests(unittest.TestCase):
         write_files(self.evidence, evidence); write_files(self.review, review)
         catalog_path = next(path for path in evidence if '/catalog/normalized/' in path)
         catalog = json.loads(evidence[catalog_path])
-        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('pdf-v2.json')))
+        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('pdf-v8.json')))
         native = json.loads(next(raw for path, raw in review.items() if path.endswith('pdf-v7.json')))
         return old, previous, catalog, legacy, native
 
@@ -103,7 +103,7 @@ class OwnerScopeStatusTests(unittest.TestCase):
         values = self.inputs(unknown=True)
         result, audit = self.candidate(values, generic=False)
         record = self.status(result)
-        self.assertEqual(record['source_interpretation_binding']['parser_version'], 'oge-278t-pdf/v2')
+        self.assertEqual(record['source_interpretation_binding']['parser_version'], 'oge-278t-pdf/v8')
         self.assertEqual(record['qualified_transaction_count'], 2)
         self.assertEqual(record['qualification_state'], 'qualified')
         self.assertFalse(any('owner_scope' in reason for reason in record['reason_codes']))
@@ -223,7 +223,7 @@ class OwnerScopeStatusTests(unittest.TestCase):
         write_files(self.evidence, {relative:raw, relative[:-4]+'.json':encoded(metadata)})
         report = parse_archived_pdf(self.evidence, self.evidence/(relative[:-4]+'.json'))
         self.assertIsNone(report['filed_at'])
-        write_files(self.review, {f'oge/extractions/{DOCUMENT}/{sha}/oge-278t-pdf-v2.json':encoded(report)})
+        write_files(self.review, {f'oge/extractions/{DOCUMENT}/{sha}/oge-278t-pdf-v8.json':encoded(report)})
         sidecar = {'schema_version':'oge-manual-cover-date/v1', 'status':'observation_only',
             'qualification_effect':'none', 'document_id':DOCUMENT, 'source_sha256':sha,
             'source_url':report['source_url'], 'extraction_parser_version':report['parser_version'],

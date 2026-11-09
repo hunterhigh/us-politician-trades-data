@@ -45,7 +45,7 @@ def make_default_owner_inputs(root, *, unknown=False, new_row=True):
     write_files(evidence_root, evidence); write_files(review_root, review)
     prior = deepcopy(initial); prior['transactions'] = [deepcopy(target)]
     catalog = json.loads(next(raw for path, raw in evidence.items() if '/catalog/normalized/' in path))
-    legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('pdf-v2.json')))
+    legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('pdf-v8.json')))
     native = json.loads(next(raw for path, raw in review.items() if path.endswith('pdf-v7.json')))
     return {'evidence_root': evidence_root, 'review_root': review_root, 'catalog': catalog,
         'legacy': legacy, 'native': native, 'prior': prior, 'target': target,
@@ -69,9 +69,9 @@ class DefaultOwnerCandidateTests(unittest.TestCase):
         catalog = json.loads(data['catalog_path'].read_bytes())
         original = json.loads(data['base_path'].read_bytes())
         source = data['extractions_root']
-        a2 = json.loads((source/data['a']/data['sha_a']/'oge-278t-pdf-v2.json').read_bytes())
+        a2 = json.loads((source/data['a']/data['sha_a']/'oge-278t-pdf-v8.json').read_bytes())
         a7 = json.loads((source/data['a']/data['sha_a']/'oge-278t-pdf-v7.json').read_bytes())
-        b2 = json.loads((source/data['b']/data['sha_b']/'oge-278t-pdf-v2.json').read_bytes())
+        b2 = json.loads((source/data['b']/data['sha_b']/'oge-278t-pdf-v8.json').read_bytes())
         actual_output, _ = build_oge_candidate(catalog, [a7, b2], original,
             data_cutoff_at=data['cutoff'], evidence_root=data['evidence_root'],
             legacy_extractions_by_document={data['a']: a2})
@@ -81,7 +81,7 @@ class DefaultOwnerCandidateTests(unittest.TestCase):
         self.assertEqual(next(row for row in conserved['transactions'] if row['filing_id'] == data['b']), data['old_b'])
         a_report = next(row for row in audit['reports'] if row['document_id'] == data['a'])
         b_report = next(row for row in audit['reports'] if row['document_id'] == data['b'])
-        self.assertEqual(a_report['source_interpretation_binding']['parser_version'], 'oge-278t-pdf/v2')
+        self.assertEqual(a_report['source_interpretation_binding']['parser_version'], 'oge-278t-pdf/v8')
         self.assertEqual(a_report['default_owner_conservation']['current_ids'], [data['old_a']['id']])
         self.assertNotIn('default_owner_conservation', b_report)
         self.assertEqual(audit['current_qualified_transaction_count'], 2)
@@ -100,7 +100,7 @@ class DefaultOwnerCandidateTests(unittest.TestCase):
                 self.assertEqual(receipt['retained_ids'], [data['target']['id']])
                 self.assertEqual(receipt['current_ids'], [data['target']['id']] if count == 2 else [])
                 self.assertEqual(data['prior'], prior)
-                self.assertEqual(report['source_interpretation_binding']['parser_version'], 'oge-278t-pdf/v2')
+                self.assertEqual(report['source_interpretation_binding']['parser_version'], 'oge-278t-pdf/v8')
 
     def test_bad_row_and_document_blockers_preserve_old_without_current_credit(self):
         for whole_document in (False, True):

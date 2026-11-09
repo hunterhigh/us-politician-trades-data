@@ -29,7 +29,7 @@ class DefaultOwnerStatusTests(unittest.TestCase):
         old, _, review, evidence, prior = deepcopy(self.unknown if unknown else self.closed)
         write_files(self.evidence, evidence); write_files(self.review, review)
         catalog = json.loads(next(raw for name,raw in evidence.items() if '/catalog/normalized/' in name))
-        legacy = json.loads(next(raw for name,raw in review.items() if name.endswith('pdf-v2.json')))
+        legacy = json.loads(next(raw for name,raw in review.items() if name.endswith('pdf-v8.json')))
         native = json.loads(next(raw for name,raw in review.items() if name.endswith('pdf-v7.json')))
         return old, prior, catalog, legacy, native
 
@@ -56,7 +56,7 @@ class DefaultOwnerStatusTests(unittest.TestCase):
         result, audit = self.build(values, generic)
         self.assertEqual(result['transactions'],generic['transactions'])
         report = self.status(result)
-        self.assertEqual(report['source_interpretation_binding']['parser_version'],'oge-278t-pdf/v2')
+        self.assertEqual(report['source_interpretation_binding']['parser_version'],'oge-278t-pdf/v8')
         self.assertEqual(report['qualified_transaction_count'],2)
         self.assertEqual(report['qualification_state'],'qualified')
         self.assertEqual(report['default_owner_conservation']['current_ids'],[expected['id']])
@@ -145,7 +145,7 @@ class DefaultOwnerStatusTests(unittest.TestCase):
         _, _, review, evidence, prior = deepcopy(data)
         write_files(self.evidence,evidence); write_files(self.review,review)
         catalog = json.loads(next(raw for name,raw in evidence.items() if '/catalog/normalized/' in name))
-        legacy = json.loads(next(raw for name,raw in review.items() if name.endswith('pdf-v2.json')))
+        legacy = json.loads(next(raw for name,raw in review.items() if name.endswith('pdf-v8.json')))
         prior['transactions'][0]['owner'] = 'Undisclosed'
         result,audit = build_oge_candidate(catalog,[legacy],prior,data_cutoff_at=CUTOFF,
                                            evidence_root=self.evidence)

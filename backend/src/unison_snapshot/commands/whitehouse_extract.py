@@ -14,6 +14,7 @@ import tempfile
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.reviewed_annual_extraction import validate_reviewed_checkpoint
+from unison_snapshot.parser_replay import ParserTarget, read_checkpoint
 from unison_snapshot.oge_278e_public import (
     OcrCheckpointPending,
     PARSER_VERSION as ANNUAL_PARSER_VERSION,
@@ -168,12 +169,17 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                   metadata["document_id"].split(":", 1)[1] /
                   metadata["sha256"] / f"{suffix}.json")
         failure_target = target.with_suffix(".failure.json")
-        if target.is_file():
-            existing = json.loads(target.read_text(encoding="utf-8"))
-            if (existing.get("source_sha256") != metadata["sha256"] or
-                    existing.get("source_url") != metadata.get("document_url") or
-                    existing.get("parser_version") != version):
-                raise ValueError(f"White House extraction evidence conflict: {target}")
+        expected = ParserTarget(version, {"source_sha256": metadata["sha256"],
+                                         "source_url": metadata.get("document_url")})
+        existing, prior = read_checkpoint(target), read_checkpoint(failure_target)
+        # An immutable path with conflicting source metadata is corruption,
+        # not a stale parser result that may silently be overwritten.
+        for value, path in ((existing, target), (prior, failure_target)):
+            if value is not None and not expected.accepts(value):
+                raise ValueError(f"White House extraction evidence conflict: {path}")
+        disposition = expected.select(existing, prior, resumable=lambda failure:
+            kind != "278t" and failure.get("reason") == "White House 278e requires checkpointed OCR")
+        if disposition == "reuse":
             if kind == '278t':
                 from unison_snapshot.reviewed_whitehouse_ocr import profile_for, validate_reusable_report
                 correction = profile_for(metadata['document_id'], metadata['document_url'], metadata['sha256'])
@@ -183,19 +189,12 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                 validate_reviewed_checkpoint(existing)
             skipped += 1
             continue
-        if failure_target.is_file():
-            prior = json.loads(failure_target.read_text(encoding="utf-8"))
+        if disposition == "failure":
             if (prior.get("schema_version") != FAILURE_SCHEMA or
-                    prior.get("document_id") != metadata["document_id"] or
-                    prior.get("source_sha256") != metadata["sha256"] or
-                    prior.get("source_url") != metadata.get("document_url") or
-                    prior.get("parser_version") != version):
+                    prior.get("document_id") != metadata["document_id"]):
                 raise ValueError(f"White House extraction failure evidence conflict: {failure_target}")
-            resumable = (kind != "278t" and
-                         prior.get("reason") == "White House 278e requires checkpointed OCR")
-            if not resumable:
-                known_failures += 1
-                continue
+            known_failures += 1
+            continue
         if attempted >= limit:
             continue
         attempted += 1

@@ -883,7 +883,7 @@ def inspect_paper_entrypoint(metadata: dict, content: bytes) -> dict:
 inspect_paper_ptr = inspect_paper_entrypoint
 
 
-def extract_archived_report_batch(root: Path, batch: object) -> dict:
+def extract_archived_report_batch(root: Path, batch: object, *, review_root: Path | None = None) -> dict:
     """Parse a collected entrypoint batch entirely from archived bytes."""
 
     if (not isinstance(batch, dict) or batch.get("schema_version") != REPORT_BATCH_SCHEMA or
@@ -900,7 +900,16 @@ def extract_archived_report_batch(root: Path, batch: object) -> dict:
     inspections = []
     failures = []
     seen: set[str] = set()
-    replay = batch.get("replay", batch["archived"])
+    replay = list(batch.get("replay", batch["archived"]))
+    if review_root is not None:
+        # Parser upgrades operate on archived bytes even when an old report
+        # has fallen outside the current collection/catalog window.
+        known = {(item.get('document_id'), item.get('sha256')) for item in replay}
+        for path in sorted((root / 'senate_efd/reports').glob('*/*.metadata.json')):
+            metadata = json.loads(path.read_text(encoding='utf-8'))
+            if (metadata['document_id'], metadata['sha256']) not in known:
+                replay.append(metadata)
+                known.add((metadata['document_id'], metadata['sha256']))
     for item in replay:
         if not isinstance(item, dict):
             raise SenateEfdError("Senate eFD report entrypoint batch contains an invalid item")
@@ -921,12 +930,33 @@ def extract_archived_report_batch(root: Path, batch: object) -> dict:
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
             if metadata.get("document_id") != document_id or metadata.get("sha256") != source_sha:
                 raise SenateEfdError("Senate eFD report entrypoint metadata does not match its batch")
-            if item.get("access_method") == "electronic_ptr":
-                extractions.append(parse_electronic_ptr(metadata, content))
-            elif item.get("access_method") == "paper_ptr":
-                inspections.append(inspect_paper_entrypoint(metadata, content))
-            else:
-                raise SenateEfdError("Senate eFD report entrypoint method is unsupported")
+            from .parser_replay import ParserTarget
+            if (hashlib.sha256(content).hexdigest() != source_sha or
+                    metadata.get('byte_length') != len(content)):
+                raise SenateEfdError('Senate archived report bytes differ from metadata')
+            kind = 'extractions' if item.get('access_method') == 'electronic_ptr' else 'paper_inspections'
+            target = ParserTarget(PARSER_VERSION, {'source_id': 'senate_efd',
+                'document_id': document_id, 'source_sha256': source_sha,
+                'source_url': metadata.get('document_url')})
+            observed = None
+            def parse_original():
+                if item.get('access_method') == 'electronic_ptr':
+                    return parse_electronic_ptr(metadata, content)
+                if item.get('access_method') == 'paper_ptr':
+                    return inspect_paper_entrypoint(metadata, content)
+                raise SenateEfdError('Senate eFD report entrypoint method is unsupported')
+            def verify_saved(value):
+                nonlocal observed
+                observed = parse_original()
+                return value == observed
+            saved = (target.load(review_root / 'senate_efd' / kind / document_id /
+                                 source_sha / f'{PARSER_VERSION}.json', validate=verify_saved)
+                     if review_root is not None else None)
+            if saved is not None:
+                (extractions if kind == 'extractions' else inspections).append(saved)
+                continue
+            (extractions if kind == 'extractions' else inspections).append(
+                observed if observed is not None else parse_original())
         except (OSError, json.JSONDecodeError, SenateEfdError) as exc:
             failures.append({
                 "document_id": document_id,

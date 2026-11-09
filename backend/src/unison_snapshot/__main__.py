@@ -331,6 +331,7 @@ def main() -> None:
     senate_extract = sub.add_parser("extract-senate-report-entrypoints")
     senate_extract.add_argument("--batch", type=Path, required=True)
     senate_extract.add_argument("--archive", type=Path, required=True)
+    senate_extract.add_argument("--review-root", type=Path)
     senate_extract.add_argument("--output", type=Path, required=True)
     senate_paper = sub.add_parser("archive-senate-paper-pages")
     senate_paper.add_argument("--evidence-root", type=Path, required=True)
@@ -390,7 +391,7 @@ def main() -> None:
     oge_extract.add_argument("--output-dir", type=Path, required=True)
     oge_extract.add_argument("--output", type=Path, required=True)
     oge_candidate = sub.add_parser("build-oge-candidate")
-    oge_candidate.add_argument('--allow-incomplete-reports', action='store_true')
+    oge_candidate.add_argument('--prior-publication', action='store_true')
     oge_candidate.add_argument("--catalog", type=Path, required=True)
     oge_candidate.add_argument("--catalog-history-dir", type=Path)
     oge_candidate.add_argument("--extractions-dir", type=Path, required=True)
@@ -1012,7 +1013,7 @@ def main() -> None:
                               "output": str(args.output.resolve())}))
         elif args.command == "extract-senate-report-entrypoints":
             batch = json.loads(args.batch.read_text(encoding="utf-8"))
-            result = extract_archived_report_batch(args.archive, batch)
+            result = extract_archived_report_batch(args.archive, batch, review_root=args.review_root)
             _write_atomic(args.output, result)
             print(json.dumps({"entrypoints": result["entrypoint_count"],
                               "extractions": result["extraction_count"],
@@ -1091,6 +1092,11 @@ def main() -> None:
             reports = batch.get("reports") if isinstance(batch, dict) else None
             if not isinstance(reports, list):
                 raise OgeCatalogError("OGE archive batch has no report metadata")
+            report_by_source = {(row['document_id'], row['sha256']): row for row in reports}
+            for path in ([] if args.generic else sorted((args.archive / 'oge/reports').glob('*/*.json'))):
+                metadata = json.loads(path.read_text(encoding='utf-8'))
+                report_by_source.setdefault((metadata['document_id'], metadata['sha256']), metadata)
+            reports = [report_by_source[key] for key in sorted(report_by_source)]
             args.output_dir.mkdir(parents=True, exist_ok=True)
             extracted = []
             failures = []
@@ -1212,18 +1218,10 @@ def main() -> None:
                     metadata, source_path, source_sha = _read_archived_source(args.evidence_root, metadata_path)
                     expected = selected_parser_version(metadata, source_path, source_sha, generic=use_generic)
                     required_current_documents.add(document_id)
-                    if version != expected:
+                if args.evidence_root is not None:
+                    from .oge_reports import parser_target
+                    if not parser_target(metadata, expected).accepts(value):
                         continue
-                if (args.allow_incomplete_reports and document_id not in supplemented
-                        and version == OGE_REPORT_PARSER_VERSION and (
-                        not isinstance(value.get('source_rows'), list) or
-                        any(not isinstance(row, dict) or 'cells' not in row
-                            for row in value.get('transactions', [])))):
-                    # Pre-inventory native caches are historical observations.
-                    # They cannot establish a current execution selection or
-                    # owner migration. Keep exact formal facts via pending
-                    # report admission instead of replaying or guessing proof.
-                    continue
                 if document_id in document_sources:
                     pinned_source_inputs.extend(verify_selected_native_cache(
                         path, args.extractions_dir, value, args.evidence_root))
@@ -1253,7 +1251,7 @@ def main() -> None:
                     if priority[version] < priority[previous.get("parser_version")]:
                         continue
                 selected_extractions[document_id] = value
-            if required_current_documents - set(selected_extractions) and not args.allow_incomplete_reports:
+            if required_current_documents - set(selected_extractions):
                 raise OgeCatalogError('A current source-selected OGE extraction is missing')
             if document_sources.keys() - selected_extractions.keys():
                 raise OgeCatalogError('A requested archived OGE document source was not selected')
@@ -1309,18 +1307,17 @@ def main() -> None:
                     source_inputs.extend([Path(request["archived_pdf_path"]),
                         args.evidence_root / f"oge/reports/{document}/{request['observations'][0]['source_sha256']}.json"])
                 guard_saved_oge_outputs([args.output, args.audit_output], inputs=source_inputs)
-            incomplete_publication = None
-            if args.allow_incomplete_reports:
+            publication_cache = None
+            if args.prior_publication:
                 if args.evidence_root is None:
-                    raise OgeCatalogError('Incomplete OGE admission requires archived-source verification')
-                from .oge_pending import published_main
+                    raise OgeCatalogError('Published OGE comparison requires archived-source verification')
+                from .published_source import published_main
                 publication_cache = None
                 def load_publication():
                     nonlocal publication_cache
                     if publication_cache is None:
                         publication_cache = published_main(Path.cwd())
                     return publication_cache
-                incomplete_publication = load_publication
                 # Owner/classification conservation needs the actual formal
                 # predecessor even for reports that do have current inputs.
                 # The source builder emits only its own qualified scope.
@@ -1335,12 +1332,11 @@ def main() -> None:
                 evidence_root=args.evidence_root,
                 source_extractions_by_document=source_extractions,
                 catalog_history=catalog_history,
-                **({'incomplete_publication': incomplete_publication} if args.allow_incomplete_reports else {}),
                 **({"saved_observations_by_document": saved_observations} if args.saved_observations is not None else {}),
                 **({"legacy_extractions_by_document": legacy_extractions} if args.generic or scoped_generic_ids else {}),
                 **({"saved_exhibit_observations_by_document": json.loads(args.saved_exhibit_observations.read_text(encoding="utf-8"))}
                    if args.saved_exhibit_observations else {}))
-            if args.allow_incomplete_reports and publication_cache is not None:
+            if args.prior_publication and publication_cache is not None:
                 audit['prior_publication'] = {key: publication_cache[key]
                     for key in ('main_commit', 'board_sha256', 'snapshot_id')}
             bundle = build(result, generated_at=args.data_cutoff_at, allow_production=True,

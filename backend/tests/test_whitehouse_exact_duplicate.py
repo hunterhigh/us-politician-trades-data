@@ -61,7 +61,7 @@ class WhiteHouseExactDuplicateSourceTests(unittest.TestCase):
         data = self.data
         self.assertNotEqual(data['canonical_fact']['id'], data['duplicate_fact']['id'])
         legacy_path = (data['review_root'] / 'oge/extractions' /
-            data['oge_archive']['document_id'] / data['source_sha256'] / 'oge-278t-pdf-v2.json')
+            data['oge_archive']['document_id'] / data['source_sha256'] / 'oge-278t-pdf-v8.json')
         legacy = json.loads(legacy_path.read_bytes())
         # The raw v2 reader cannot assign this cover's date. It is a source
         # cell/old-ID witness here, not the qualified formal date authority.
@@ -233,7 +233,7 @@ class WhiteHouseExactDuplicateSourceTests(unittest.TestCase):
         data = self.data
         sha, doc = data['source_sha256'], data['oge_archive']['document_id']
         direct_v7 = data['review_root'] / f'oge/extractions/{doc}/{sha}/oge-278t-pdf-v7.json'
-        direct_v2 = direct_v7.with_name('oge-278t-pdf-v2.json')
+        direct_v2 = direct_v7.with_name('oge-278t-pdf-v8.json')
         for path, change in [
                 (direct_v2, lambda value: value['transactions'][0].update(amount_low=1002)),
                 (direct_v7, lambda value: value.update(source_complete=True)),

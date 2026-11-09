@@ -61,7 +61,7 @@ class OgeReportTests(unittest.TestCase):
                 parsed = parse_archived_pdf(root, metadata_path)
             reuse_root = root / "review" / "oge" / "extractions"
             checkpoint = (reuse_root / DOCUMENT_ID / metadata["sha256"] /
-                          "oge-278t-pdf-v2.json")
+                          (PARSER_VERSION.replace("/", "-") + ".json"))
             checkpoint.parent.mkdir(parents=True)
             checkpoint.write_text(json.dumps(parsed), encoding="utf-8")
 

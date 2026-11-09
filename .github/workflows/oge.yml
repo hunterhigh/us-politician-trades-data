@@ -224,7 +224,7 @@ jobs:
           # END scoped native PTR preparation
           # END bounded saved PTR selection
           mkdir -p "$REVIEW_ROOT/candidates/sources" "$REVIEW_ROOT/oge/qualifications"
-          PYTHONPATH=backend/src python -m unison_snapshot build-oge-candidate --allow-incomplete-reports \
+          PYTHONPATH=backend/src python -m unison_snapshot build-oge-candidate --prior-publication \
             --catalog .local/oge-catalog.json \
             --catalog-history-dir "$REVIEW_ROOT/oge/discoveries" \
             --extractions-dir "$REVIEW_ROOT/oge/extractions" \

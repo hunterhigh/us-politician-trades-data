@@ -18,7 +18,9 @@ from .house import HouseIndexError
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-05"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-09-date-normalization-v1"
-PARSER_RETRY_VERSION = "house-parser-suite-native-opacity-v1"
+from .parser_replay import suite_from_modules
+PARSER_RETRY_VERSION = suite_from_modules('house_ptr', 'house_native_contrast',
+    'house_native_financial', 'house_ptr_paper_qualification', 'house_ptr_paper_temporal')
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.(\d{2}))?$")

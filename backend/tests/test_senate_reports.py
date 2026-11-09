@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from unison_snapshot.senate import SenateEfdError, SenateSourceConfig
 from unison_snapshot.senate_reports import (
@@ -100,6 +101,32 @@ class FakeSession:
 
 
 class SenateReportsTest(unittest.TestCase):
+    def test_archived_inputs_outside_batch_reopen_on_version_change_and_reject_forged_cache(self):
+        from unison_snapshot import senate_reports as reports
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); review = root/'review'
+            metadata = archive_report(root, discovery(), html(), {'Content-Type':'text/html'},
+                                      '2026-09-20T00:00:00+00:00')
+            batch = {'schema_version':reports.REPORT_BATCH_SCHEMA, 'source_id':'senate_efd',
+                     'catalog_sha256':'a'*64, 'archived':[], 'replay':[]}
+            before = extract_archived_report_batch(root, batch, review_root=review)
+            self.assertEqual(before['extraction_count'], 1)
+            result = before['extractions'][0]
+            folder = review/'senate_efd/extractions'/DOCUMENT_ID/metadata['sha256']
+            folder.mkdir(parents=True)
+            checkpoint = folder/(reports.PARSER_VERSION+'.json')
+            checkpoint.write_text(json.dumps(result), encoding='utf-8')
+            forged = json.loads(checkpoint.read_bytes())
+            forged['transactions'][0]['asset_name_raw'] = 'Forged Company'
+            checkpoint.write_text(json.dumps(forged), encoding='utf-8')
+            self.assertEqual(extract_archived_report_batch(root, batch, review_root=review)['extractions'], [result])
+            with patch.object(reports, 'PARSER_VERSION', reports.PARSER_VERSION+'-next'):
+                upgraded = extract_archived_report_batch(root, batch, review_root=review)
+            self.assertEqual(upgraded['extraction_count'], 1)
+            self.assertNotEqual(upgraded['extractions'][0]['parser_version'], result['parser_version'])
+            self.assertEqual(upgraded['extractions'][0]['transactions'], result['transactions'])
+            self.assertEqual(json.loads(checkpoint.read_bytes()), forged)
+
     def test_electronic_rows_have_source_bound_position_ledger(self):
         raw = html()
         result = parse_electronic_ptr(metadata_for(raw), raw, include_source_ledger=True)

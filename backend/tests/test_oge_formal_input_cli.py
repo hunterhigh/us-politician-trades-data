@@ -1,4 +1,4 @@
-"""Normal empty-seed workflow keeps formal owners and defers proofless caches."""
+"""Normal empty-seed workflow keeps formal owners and rejects proofless caches."""
 import json
 import os
 from pathlib import Path
@@ -44,34 +44,35 @@ class FormalInputCliTests(unittest.TestCase):
                 raw = data['legacy']
                 raw.pop('source_rows')
                 for row in raw['transactions']: row.pop('cells')
-                cache = (data['review_root']/'oge/extractions'/DOCUMENT/raw['source_sha256']/'oge-278t-pdf-v2.json')
+                cache = (data['review_root']/'oge/extractions'/DOCUMENT/raw['source_sha256']/'oge-278t-pdf-v8.json')
                 cache.write_bytes(encode(raw))
             (root/'catalog.json').write_bytes(encode(data['catalog']))
             (root/'base.json').write_bytes((ROOT/'backend/data/empty-disclosure.json').read_bytes())
             command = [sys.executable, '-m', 'unison_snapshot', 'build-oge-candidate',
                 '--catalog', str(root/'catalog.json'), '--extractions-dir', str(data['review_root']/'oge/extractions'),
                 '--evidence-root', str(data['evidence_root']), '--base', str(root/'base.json'),
-                '--data-cutoff-at', CUTOFF, '--allow-incomplete-reports',
+                '--data-cutoff-at', CUTOFF, '--prior-publication',
                 '--output', str(root/'candidate.json'), '--audit-output', str(root/'audit.json')]
             env = {**os.environ, 'PYTHONPATH': str(ROOT/'backend/src')}
             for _ in range(2):
                 result = subprocess.run(command, cwd=root, env=env, capture_output=True, text=True)
+                if historical_cache:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertFalse((root/'candidate.json').exists())
+                    self.assertEqual((root/'manifest.json').read_bytes(), manifest_before)
+                    continue
                 self.assertEqual(result.returncode, 0, result.stderr)
                 candidate = json.loads((root/'candidate.json').read_bytes())
                 audit = json.loads((root/'audit.json').read_bytes())
                 self.assertEqual(candidate['transactions'], formal)
                 self.assertEqual(audit['prior_publication']['board_sha256'], bundle.manifest['board'])
                 self.assertEqual((root/'manifest.json').read_bytes(), manifest_before)
-                if historical_cache:
-                    self.assertEqual(audit['current_qualified_transaction_count'], 0)
-                    self.assertEqual(audit['retained_published_fact_count'], 1)
-                    self.assertEqual(audit['pending_reports'][0]['document_id'], DOCUMENT)
-                else:
-                    self.assertEqual(audit['current_qualified_transaction_count'], 1)
-                    self.assertEqual(audit.get('pending_reports', []), [])
+                self.assertEqual(audit['current_qualified_transaction_count'], 1)
+                self.assertNotIn('retained_published_fact_count', audit)
+                self.assertEqual(audit.get('pending_reports', []), [])
 
     def test_current_cache_uses_formal_owner_and_id_instead_of_an_empty_predecessor(self):
         self.consume(historical_cache=False)
 
-    def test_pre_inventory_cache_retains_formal_facts_without_current_qualification(self):
+    def test_pre_inventory_cache_blocks_assembly_without_replacing_formal_facts(self):
         self.consume(historical_cache=True)

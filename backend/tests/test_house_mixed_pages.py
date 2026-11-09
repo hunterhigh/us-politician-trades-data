@@ -296,7 +296,7 @@ class HouseMixedPageTests(unittest.TestCase):
                    LEGACY_PARSER_VERSION=LEGACY_PARSER_VERSION,PARSER_RETRY_VERSION=PARSER_RETRY_VERSION,BATCH_SIZE='25')
         self.assertNotEqual(PARSER_RETRY_VERSION,'house-parser-suite-2026-08')
         for version, selected in (('house-parser-suite-2026-08',True),(PARSER_RETRY_VERSION,False)):
-            failure.write_text(json.dumps({'parser_version':version}),encoding='utf-8')
+            failure.write_text(json.dumps({'parser_version':version, 'source_sha256':json.loads(f.meta_path.read_text())['sha256']}),encoding='utf-8')
             done = subprocess.run([sys.executable,'-c',script],cwd=f.root,env=env,capture_output=True,text=True)
             self.assertEqual(done.returncode,0,done.stderr)
             self.assertEqual(bool((f.root/'.local/parse-batch.txt').read_text().strip()),selected)

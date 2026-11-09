@@ -121,9 +121,11 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
         relative=Path(str(year))/str(document)/(sha+'.json')
         destinations={key:review/'house_clerk'/key/relative for key in ('extractions','identities','qualifications','failures')}
         previous=records.get(document)
-        if (previous and previous.get('source_sha256')==sha and previous.get('parser_version')==PARSER_RETRY_VERSION
-                and not needs_electronic_repair(previous)
-                and (destinations['qualifications'] if previous['status']!='parse_failed' else destinations['failures']).is_file()):
+        from .parser_replay import ParserTarget
+        if ParserTarget(PARSER_RETRY_VERSION, {'source_sha256': sha}).select(previous,
+                dependencies=(bool(previous) and not needs_electronic_repair(previous),
+                    (destinations['qualifications'] if previous and previous['status'] != 'parse_failed'
+                     else destinations['failures']).is_file())) == 'reuse':
             continue
         row={'document_id':document,'source_sha256':sha,'parser_version':PARSER_RETRY_VERSION,
              'electronic_repair_version':ELECTRONIC_REPAIR_VERSION,

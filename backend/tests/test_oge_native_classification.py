@@ -27,7 +27,7 @@ def source_case(owner=None, unknown=False, asset='Example Common Stock See Endno
         result = document.tobytes(); document.close(); return result
     old, _, review, evidence, _ = fixture(asset=asset,
         heading=heading, pdf_mutator=mutate if unknown else None)
-    legacy = json.loads(next(value for path, value in review.items() if path.endswith('v2.json')))
+    legacy = json.loads(next(value for path, value in review.items() if path.endswith('v8.json')))
     native = json.loads(next(value for path, value in review.items() if path.endswith('v7.json')))
     record = json.loads(next(value for path, value in evidence.items()
                              if '/catalog/normalized/' in path))['transactions'][0]
@@ -73,7 +73,7 @@ class OgeNativeClassificationTests(unittest.TestCase):
                         if owner in {'Spouse','Dependent Child'} and not generic:
                             self.assertNotEqual(selected['extraction_id'], prior['id'])
                         self.assertEqual(context.binding['source']['parser_version'],
-                            'oge-278t-pdf/v7' if generic else 'oge-278t-pdf/v2')
+                            'oge-278t-pdf/v7' if generic else 'oge-278t-pdf/v8')
 
     def test_nullable_omission_and_actual_stock_repeat_keep_the_same_representation(self):
         data = source_case()
@@ -198,7 +198,7 @@ class OgeNativeClassificationTests(unittest.TestCase):
         observation = {'schema_version':'oge-manual-cover-date/v1', 'status':'observation_only',
             'qualification_effect':'none', 'document_id':raw['document_id'],
             'source_sha256':raw['source_sha256'], 'source_url':raw['source_url'],
-            'extraction_parser_version':'oge-278t-pdf/v2', 'page_number':1,
+            'extraction_parser_version':'oge-278t-pdf/v8', 'page_number':1,
             'recognition_method':'human_visual_reading_of_pdf_cover',
             'field_role':'filer_signature_date', 'raw_reading':'6/13/2026',
             'observed_date':observed, 'filed_at':observed}
@@ -225,7 +225,7 @@ class OgeNativeClassificationTests(unittest.TestCase):
                          '06/02/2026', 'No', '$15,001 - $50,000']])
         record = json.loads(next(value for path,value in evidence.items()
                                  if '/catalog/normalized/' in path))['transactions'][0]
-        legacy = json.loads(next(value for path,value in review.items() if path.endswith('v2.json')))
+        legacy = json.loads(next(value for path,value in review.items() if path.endswith('v8.json')))
         native = json.loads(next(value for path,value in review.items() if path.endswith('v7.json')))
         self.assertEqual(old['instrument_type'],'Stock')
         for source in (legacy,native):

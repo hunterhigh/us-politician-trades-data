@@ -62,7 +62,7 @@ def summary_consumption_fixture(root, *, mutation=None):
         **{key:record[key] for key in ('filer_name','agency','position_title','catalog_added_date',
                                       'amended_label','pending_final_oge_disposition')}}
     write(source.with_suffix('.json'),metadata)
-    write(review/f'oge/extractions/{DOCUMENT_ID}/{sha}/oge-278t-pdf-v2.json',old)
+    write(review/f'oge/extractions/{DOCUMENT_ID}/{sha}/oge-278t-pdf-v8.json',old)
     source_catalog=catalog(record);encoded=json.dumps(source_catalog,sort_keys=True).encode()
     digest=hashlib.sha256(encoded).hexdigest()
     normalized=evidence/f'oge/catalog/normalized/{digest}.json'

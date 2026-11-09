@@ -82,7 +82,7 @@ class OgeSourceSelectionWorkflowTests(unittest.TestCase):
         binding = reports[self.data['a']]['source_interpretation_binding']
         self.assertEqual(binding['source_sha256'], self.data['sha_a'])
         self.assertEqual(binding['parser_version'], 'oge-278t-pdf/v7')
-        self.assertEqual(reports[self.data['b']]['source_interpretation_binding']['parser_version'], 'oge-278t-pdf/v2')
+        self.assertEqual(reports[self.data['b']]['source_interpretation_binding']['parser_version'], 'oge-278t-pdf/v8')
         scopes = build_oge_status(self.data['evidence_root'], self.review, candidate['transactions'], [])
         status = {record['report_id']: record for scope in scopes if scope['scope_id'] == 'oge_direct_278t'
                   for record in scope['reports']}
