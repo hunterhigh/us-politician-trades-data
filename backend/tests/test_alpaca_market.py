@@ -82,6 +82,48 @@ class Response:
 
 
 class AlpacaMarketTests(unittest.TestCase):
+    def test_account_trust_labels_do_not_classify_an_x_suffixed_stock_as_a_fund(self):
+        fresh = [{'t': '2026-09-18T04:00:00Z', 'c': 110}]
+        for label in ('Family Trust ⇒ Synthetic Company (STOCKX)',
+                      'Synthetic Company (STOCKX) — Family Trust > Brokerage'):
+            source = production_candidate()
+            source['transactions'][1].update(ticker='STOCKX', asset_name=label,
+                instrument_type='Stock', transaction_date='2026-09-17')
+            client = FakeMarketClient({'ZZDEMO': fresh, 'STOCKX': fresh})
+            result = build_market_validation(source, client=client,
+                checked_at='2026-09-20T21:00:00Z', distribution_authorized=True)
+            self.assertIn('STOCKX', result.audit['covered_tickers'])
+            self.assertTrue(any('STOCKX' in symbols and asof == '-'
+                                for symbols, start, end, asof in client.calls))
+
+    def test_unlisted_history_is_retained_only_with_matching_identity_and_disclosure_date(self):
+        source = production_candidate()
+        source['transactions'][1].update(ticker='STOCKX', asset_name='Synthetic Company (STOCKX)',
+            instrument_type='Stock', transaction_date='2026-09-01')
+        old = {'ticker': 'STOCKX', 'company_name': 'Synthetic Company (STOCKX)',
+            'source_id': 'alpaca_sip_eod', 'price_source': 'Alpaca SIP EOD',
+            'source_url': 'https://docs.alpaca.markets/docs/market-data',
+            'feed': 'sip', 'timeframe': '1Day', 'adjustment': 'split',
+            'price_history': [{'date': '2026-09-01', 'close': 90}]}
+        cache = PublishedMarketCache({'STOCKX': old}, date(2019, 1, 1), date(2026, 9, 1),
+                                     {'STOCKX': 'STOCKX'})
+        fresh = {'ZZDEMO': [{'t': '2026-09-18T04:00:00Z', 'c': 110}]}
+        result = build_market_validation(source, client=FakeMarketClient(fresh),
+            checked_at='2026-09-20T21:00:00Z', distribution_authorized=True, previous_market=cache)
+        self.assertEqual(result.audit['retained_historical_tickers'], ['STOCKX'])
+        self.assertEqual(next(r for r in result.snapshot['security_market_data']
+                              if r['ticker']=='STOCKX'), old)
+        for change in ({'company_name': 'Unrelated Business'},
+                       {'price_history': [{'date': '2020-01-01', 'close': 90}]}):
+            bad = deepcopy(cache); bad.rows['STOCKX'].update(change)
+            result = build_market_validation(source, client=FakeMarketClient(fresh),
+                checked_at='2026-09-20T21:00:00Z', distribution_authorized=True, previous_market=bad)
+            self.assertNotIn('STOCKX', result.audit['covered_tickers'])
+        with self.assertRaisesRegex(AlpacaMarketError, 'coverage is incomplete.*STOCKX'):
+            build_market_validation(source,
+                client=FakeMarketClient(fresh, assets=[asset('ZZDEMO'),asset('STOCKX')]),
+                checked_at='2026-09-20T21:00:00Z', distribution_authorized=True, previous_market=cache)
+
     def test_txse_listing_transfer_preserves_disclosures_and_requires_prices(self):
         snapshot = production_candidate()
         assets = [asset("ZZDEMO", exchange="NASDAQ", status="inactive"),
