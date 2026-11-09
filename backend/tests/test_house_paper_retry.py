@@ -76,6 +76,18 @@ class HousePaperRetryTests(unittest.TestCase):
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertIn('9116141',(self.root/'.local/parse-batch.txt').read_text())
 
+    def test_old_source_bound_paper_success_reenters_shared_upgrade_queue(self):
+        old = deepcopy(self.q)
+        old['parser_version'] = 'house-paper-source-bound-qualification-v1'
+        old['materialized_extraction']['parser_version'] = old['parser_version']
+        self.write(self.review/'house_clerk/extractions'/self.relative, old['materialized_extraction'])
+        self.write(self.review/'house_clerk/qualifications'/self.relative, old)
+        before = {p:p.read_bytes() for p in self.review.rglob('*.json')}
+        result = self.select()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('9116141', (self.root/'.local/parse-batch.txt').read_text())
+        self.assertEqual({p:p.read_bytes() for p in before}, before)
+
     def test_corrupt_legacy_extraction_keeps_existing_retry_behavior(self):
         (self.review/'house_clerk/extractions'/self.relative).write_text('{broken',encoding='utf-8')
         result=self.select()

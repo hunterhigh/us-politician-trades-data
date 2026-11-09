@@ -686,7 +686,10 @@ def selected_parser_version(metadata: dict, pdf_path: Path, source_sha: str, *, 
     return GENERIC_PARSER_VERSION if generic else correction['parser_version'] if correction else PARSER_VERSION
 
 
-def parser_target(metadata: dict, parser_version: str):
+def parser_target(metadata: dict, parser_version: str, *, observed: bool = False):
+    # An explicit, replayed observation ledger supplies its own physical proof;
+    # its normalized predecessor is reference-only. Version and source binding
+    # still apply. Ordinary checkpoint reuse always requires the full inventory.
     from .parser_replay import ParserTarget
     correction = source_correction(metadata, metadata['sha256'])
     reviewed = correction is not None and parser_version == correction['parser_version']
@@ -697,8 +700,8 @@ def parser_target(metadata: dict, parser_version: str):
         'agency': metadata.get('agency'), 'position_title': metadata.get('position_title'),
         'catalog_added_date': metadata.get('catalog_added_date')},
         {'transactions': list, 'quarantined': list, 'document_reasons': list,
-         'evidence_complete': bool, **({'source_rows': list} if not reviewed else {})},
-        {} if reviewed else {'transactions': {'cells': list}})
+         'evidence_complete': bool, **({'source_rows': list} if not (reviewed or observed) else {})},
+        {} if reviewed or observed else {'transactions': {'cells': list}})
 
 
 def load_reusable_extraction(root: Path, metadata_path: Path,

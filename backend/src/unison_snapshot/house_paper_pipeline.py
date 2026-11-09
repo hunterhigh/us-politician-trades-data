@@ -38,11 +38,12 @@ def _write(path: Path, value: dict) -> None:
 
 
 def preserved_paper_materialization(metadata: dict, extraction: dict,
-                                   qualification: dict, observation: dict) -> bool:
-    """Keep a bound saved result out of legacy retries, retaining old failures.
+                                   qualification: dict, observation: dict, *,
+                                   require_current: bool = True) -> bool:
+    """Validate source/qualification bindings and physical slot conservation.
 
-    A method label alone cannot protect an arbitrary artifact. Incomplete or
-    contradictory saved results stop selection instead of destructive fallback.
+    Queue freshness belongs to ParserTarget. Other consumers require current
+    parser output as well as this source proof.
     """
     if extraction.get("extraction_method") != "source_bound_paper_cells":
         return False
@@ -56,8 +57,8 @@ def preserved_paper_materialization(metadata: dict, extraction: dict,
             qualification.get("schema_version") != QUALIFICATION_SCHEMA or
             extraction.get("source") != metadata or extraction.get("source_sha256") != source_sha or
             qualification.get("source_sha256") != source_sha or qualification.get("document_id") != document_id or
-            extraction.get("parser_version") != FACT_PARSER_VERSION or
-            qualification.get("parser_version") != FACT_PARSER_VERSION or
+            extraction.get("parser_version") != qualification.get("parser_version") or
+            require_current and extraction.get("parser_version") != FACT_PARSER_VERSION or
             observation.get("source_sha256") != source_sha or receipt.get("observation_sha256") != digest or
             paper_materialization_counts(qualification, extraction) is None):
         raise ValueError("House saved paper retry protection has invalid source/qualification binding")

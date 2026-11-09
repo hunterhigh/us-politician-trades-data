@@ -281,7 +281,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             expected_version = selected_parser_version(metadata, path, sha,
                 generic=extraction['parser_version'] in {GENERIC_PARSER_VERSION, *VISIBLE_GENERICS})
             from .oge_reports import parser_target
-            if not parser_target(metadata, expected_version).accepts(source_extraction):
+            if not parser_target(metadata, expected_version,
+                    observed=document_id in saved or document_id in exhibits).accepts(source_extraction):
                 raise OgeCatalogError('OGE cached native version differs from the current original source plan')
         if visible:
             extraction = replay_partitioned_oge(extraction, evidence_root)

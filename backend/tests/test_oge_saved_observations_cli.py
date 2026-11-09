@@ -73,8 +73,9 @@ class SavedOgeNormalCliTests(unittest.TestCase):
         data, root = self.data, self.root
         original_bytes = data['source'].read_bytes()
         plain = run_cli(root, '--evidence-root', data['evidence'])
-        self.assertEqual(plain.returncode, 0, plain.stderr)
-        self.assertEqual(json.loads((root/'candidate.json').read_bytes())['transactions'], data['formal']['transactions'])
+        self.assertEqual(plain.returncode, 2, plain.stderr)
+        self.assertFalse((root/'candidate.json').exists())
+        self.assertEqual(json.loads((root/'base.json').read_bytes()), data['formal'])
         process = self.normal()
         self.assertEqual(process.returncode, 0, process.stderr)
         candidate = json.loads((root/'candidate.json').read_bytes())

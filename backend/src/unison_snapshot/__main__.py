@@ -1220,7 +1220,7 @@ def main() -> None:
                     required_current_documents.add(document_id)
                 if args.evidence_root is not None:
                     from .oge_reports import parser_target
-                    if not parser_target(metadata, expected).accepts(value):
+                    if not parser_target(metadata, expected, observed=document_id in supplemented).accepts(value):
                         continue
                 if document_id in document_sources:
                     pinned_source_inputs.extend(verify_selected_native_cache(

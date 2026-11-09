@@ -39,7 +39,7 @@ def select(args):
             qualification = read_checkpoint(review / 'house_clerk/qualifications' / relative)
             observation = read_checkpoint(review / 'house_clerk/paper_observations' / relative)
             dependencies.append(preserved_paper_materialization(metadata, value,
-                qualification or {}, observation or {}))
+                qualification or {}, observation or {}, require_current=False))
         try:
             plan = None if paper else plan_house_native_contrast(evidence, metadata_path)
             version = version if paper else plan['parser_version'] or PARSER_VERSION

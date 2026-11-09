@@ -194,7 +194,8 @@ def _observed_reference_counts(record: dict, audit: dict, review: Path | None,
     if len(matched) != 1:
         raise ValueError("OGE observed counts have no unique saved legacy reference")
     old = matched[0]
-    if (old.get("schema_version") != "oge-278t-extraction/v1" or old.get("parser_version") != "oge-278t-pdf/v2" or
+    from .oge_reports import PARSER_VERSION
+    if (old.get("schema_version") != "oge-278t-extraction/v1" or old.get("parser_version") not in {"oge-278t-pdf/v2", PARSER_VERSION} or
             old.get("source_id") != "oge" or old.get("document_id") != record["report_id"] or
             old.get("source_sha256") != sha or old.get("source_url") != record["source_url"] or "source_rows" in old or
             len(_rows(old, "transactions")) != normalized or len(_rows(old, "quarantined")) != old_quarantine):
