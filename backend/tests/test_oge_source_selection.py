@@ -64,7 +64,7 @@ class OgeSourceSelectionTests(unittest.TestCase):
         self.data = make_versioned_inputs(self.root)
         self.output, self.audit = self.root / 'candidate.json', self.root / 'audit.json'
 
-    def cache(self, doc, sha, version='v2'):
+    def cache(self, doc, sha, version='v8'):
         return self.data['extractions_root'] / doc / sha / f'oge-278t-pdf-{version}.json'
 
     def flags(self, sha):
