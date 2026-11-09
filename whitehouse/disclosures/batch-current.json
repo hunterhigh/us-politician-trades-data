@@ -1,10 +1,10 @@
 {
-  "archived_version_count": 365,
-  "attempted_count": 0,
+  "archived_version_count": 366,
+  "attempted_count": 1,
   "failures": [],
   "index_quarantine": [],
-  "indexed_count": 365,
-  "last_attempted_id": "wh-url:f353d1731720a9409dfdae55",
+  "indexed_count": 366,
+  "last_attempted_id": "wh-url:ab2087e100328c68404b8a1e",
   "pending_url_count": 0,
   "reports": [
     {
@@ -105,6 +105,26 @@
       "retrieved_at": "2026-09-22T07:33:05.406179+00:00",
       "schema_version": "whitehouse-public-disclosures-pdf/v1",
       "sha256": "c012b94c1247225702b69ec00283f3211807c7a31884f393c2b58cfde6ec3aa9",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/ab2087e100328c68404b8a1e/2e667abb21d0d737f0860ba7ec18d5896e5974eec8895d21e451ee5718b010b2.pdf",
+      "byte_length": 4935587,
+      "document_id": "wh-url:ab2087e100328c68404b8a1e",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/11/President-Donald-J.-Trump-Periodic-Transaction-Report-09.17.26.pdf",
+      "filer_name_from_label": "President Donald J. Trump",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"958af29da00b470c\"",
+        "last-modified": "Fri, 06 Nov 2026 20:14:42 GMT"
+      },
+      "link_label": "President Donald J. Trump Periodic Transaction Report 09.17.26",
+      "page_sha256": "f5fa90762a4660b159fccacc7798e4eb9fa32b3285d9e2ec875884bfd1926d18",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-11-09T18:58:48.131286+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "2e667abb21d0d737f0860ba7ec18d5896e5974eec8895d21e451ee5718b010b2",
       "source_id": "whitehouse_public_disclosures"
     },
     {
