@@ -44,6 +44,23 @@ class Client:
 
 
 class OgeReportTests(unittest.TestCase):
+    def test_native_ira_heading_restores_explicit_owner_without_dropping_empty_or_financial_rows(self):
+        heading = ['24', 'Spouse IRA Investment Account #1', '', '', 'No', '']
+        trade = ['25', 'Example (EXM)', 'Purchase', '01/16/2025', 'Yes', '$1,001 - $15,000']
+        good, bad = parse_table_rows([(3, heading), (3, trade)], source_sha='a'*64,
+                                    allow_ira_owner_context=True)
+        self.assertEqual((len(good), len(bad)), (1, 1))
+        self.assertEqual(good[0]['owner'], 'Spouse')
+        historical, _ = parse_table_rows([(3, trade)], source_sha='a'*64, default_owner='Spouse')
+        self.assertEqual(good, historical)
+        self.assertEqual(bad[0]['cells'], heading)
+        self.assertIn('amount_range_unsupported', bad[0]['reasons'])
+        for unsafe in (heading[:2]+['Purchase','01/16/2025','No','$1,001 - $15,000'],
+                       ['24','Possibly Spouse IRA Investment Account #1','','','No','']):
+            good, _ = parse_table_rows([(3, unsafe), (3, trade)], source_sha='a'*64,
+                                       allow_ira_owner_context=True)
+            self.assertEqual(good[-1]['owner'], 'Self')
+
     def test_reuses_only_exact_source_and_parser_bound_extraction(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

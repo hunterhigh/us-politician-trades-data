@@ -403,7 +403,8 @@ def classify_table_structure(raw_cells: list) -> dict | None:
 
 def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
                      default_owner: str = "Self", allow_open_amounts: bool = False,
-                     account_title: str | None = None, allow_exchange: bool = False) -> tuple[list[dict], list[dict]]:
+                     account_title: str | None = None, allow_exchange: bool = False,
+                     allow_ira_owner_context: bool = False) -> tuple[list[dict], list[dict]]:
     """Parse extracted six-column table rows and preserve all rejected rows."""
 
     if not isinstance(rows, list) or not re.fullmatch(r"[0-9a-f]{64}", source_sha):
@@ -432,6 +433,16 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
                                 "reasons": ["unexpected_column_count"]})
             continue
         raw_number, description, raw_type, raw_date, late_notice, raw_amount = cells
+        if allow_ira_owner_context and not any((raw_type, raw_date, raw_amount)):
+            heading = re.fullmatch(
+                r"(?P<owner>spouse|filer|self|dependent child(?:ren)?|child(?:ren)?)(?:['’]s)?\s+"
+                r"IRA\s+(?:investment|retirement)\s+account\s*#[0-9]+", description, re.I)
+            if heading:
+                role = heading['owner'].casefold()
+                owner = ('Spouse' if role == 'spouse' else 'Self' if role in {'filer', 'self'}
+                         else 'Dependent Child')
+                # Keep the original empty financial row in quarantine. This
+                # establishes explicit owner context, not an absence/skip proof.
         reasons = []
         if not _ROW_NUMBER.fullmatch(raw_number):
             reasons.append("row_number_invalid")
@@ -900,7 +911,8 @@ def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False
     if generic:
         transactions, quarantined, structural = parse_generic_table_rows(inventory, source_sha256=source_sha)
     else:
-        transactions, quarantined = parse_table_rows(rows, source_sha=source_sha)
+        transactions, quarantined = parse_table_rows(rows, source_sha=source_sha,
+            allow_ira_owner_context=correction is None)
     if not rows:
         filing_reasons.append("transaction_table_not_found")
     if not transactions and not quarantined:
