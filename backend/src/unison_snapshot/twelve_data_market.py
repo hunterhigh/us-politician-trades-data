@@ -342,8 +342,24 @@ def supplement(snapshot: dict, *, client: TwelveDataClient, checked_at: str,
         ticker = item["ticker"]
         fingerprint = _fingerprint(names.get(ticker, set()))
         prior = previous_entries.get(ticker)
-        if not isinstance(prior, dict) or prior.get("fingerprint") != fingerprint:
+        if not isinstance(prior, dict):
             prior = None
+        elif prior.get("fingerprint") != fingerprint:
+            # New filings add asset-label variants. Revalidate the previously
+            # qualified provider identity with the same name rule used below;
+            # a changed label set alone must not erase an existing price row.
+            if (prior.get('status') == 'accepted' and ticker in previous_rows
+                    and _identity_match(names.get(ticker, set()),
+                                        previous_rows[ticker]['company_name'])):
+                audit.append({'ticker': ticker, 'status': 'cached_identity_revalidated',
+                              'previous_fingerprint': prior.get('fingerprint'),
+                              'fingerprint': fingerprint})
+                prior = dict(prior, fingerprint=fingerprint)
+            else:
+                if prior.get('status') == 'accepted' and ticker in previous_rows:
+                    audit.append({'ticker': ticker, 'status': 'cached_identity_invalidated',
+                                  'reason': 'provider_name_not_matching_current_disclosures'})
+                prior = None
         if item["reason"] in {"non_equity_debt", "private_entity"}:
             remaining.append({"ticker": ticker, "reason": "not_market_security"})
             state_entries[ticker] = {"status": "not_market_security",
