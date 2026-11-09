@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-09T05:51:56.852288+00:00",
+  "checked_at": "2026-11-09T06:16:05.483946+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -229,7 +229,7 @@
     "snapshot_id": "18fc660467105d5e787fed38e0258c67c0503d8870b658cf6adc13d2c832bb96",
     "status": "passed"
   },
-  "snapshot_changed": true,
+  "snapshot_changed": false,
   "snapshot_id": "18fc660467105d5e787fed38e0258c67c0503d8870b658cf6adc13d2c832bb96",
   "sources": {
     "house_clerk": {
