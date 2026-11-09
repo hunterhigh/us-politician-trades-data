@@ -115,17 +115,13 @@ jobs:
           CACHE_MARKET_OVERRIDE: ${{ inputs.cache_market_ref }}
         run: bash .github/scripts/prepare-publication-trees.sh
       - name: Build canonical disclosure projection from qualified sources
+        uses: ./.github/actions/build-disclosure-candidate
         env:
-          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
-          PYTHONPATH: backend/src
-        run: |
-          python -m unison_snapshot build-disclosure-candidate \
-            --base backend/data/empty-disclosure.json --harmonize-cutoffs \
-            --source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
-            --source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json" \
-            --source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
-            --output "$RUNNER_TEMP/governed-disclosure.json" \
-            --audit-output "$RUNNER_TEMP/governed-cutoff.json"
+          GH_TOKEN: ${{ github.token }}
+        with:
+          review-root: ${{ steps.trees.outputs.review_root }}
+          review-commit: ${{ steps.trees.outputs.review_commit }}
+          state-commit: ${{ steps.trees.outputs.state_commit }}
       - name: Build licensed five-array candidate
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}

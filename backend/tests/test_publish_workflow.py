@@ -12,6 +12,20 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class PublishWorkflowTests(unittest.TestCase):
 
+    def test_market_and_publish_share_the_governed_candidate_and_source_gate(self):
+        action = (ROOT / '.github/actions/build-disclosure-candidate/action.yml').read_text()
+        for name in ('market', 'publish'):
+            workflow = (ROOT / f'.github/workflows/{name}.yml').read_text()
+            self.assertEqual(workflow.count('uses: ./.github/actions/build-disclosure-candidate'), 1)
+            self.assertNotIn('python -m unison_snapshot build-disclosure-candidate', workflow)
+            self.assertNotIn('--harmonize-cutoffs', workflow)
+            step = workflow.split('uses: ./.github/actions/build-disclosure-candidate', 1)[1].split('      - ', 1)[0]
+            for key in ('review-root', 'review-commit', 'state-commit'):
+                self.assertIn(key + ': ${{ steps.trees.outputs.' + key.replace('-', '_') + ' }}', step)
+        self.assertIn('--require-preparation-ready', action)
+        self.assertIn('--source-gate-file "$RUNNER_TEMP/publication-source-gate.json"', action)
+        self.assertIn('--audit-output "$RUNNER_TEMP/governed-cutoff.json"', action)
+
     def test_native_source_proof_dependencies_are_ready_before_publication_replay(self):
         project = tomllib.loads((ROOT / 'backend/pyproject.toml').read_text(encoding='utf-8'))
         extras = project['project']['optional-dependencies']
