@@ -16,6 +16,7 @@ from test_oge_owner_correction import fixture, write_files, encoded, DOCUMENT
 from test_oge_saved_observation_writer import directory_alias
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_ptr_runtime import prepare_oge_ptr_generic
+from unison_snapshot.oge_reports import PARSER_VERSION, GENERIC_PARSER_VERSION
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -40,8 +41,8 @@ class OgePtrRuntimeTests(unittest.TestCase):
         catalog = next(self.evidence.glob('oge/catalog/normalized/*.json'))
         self.catalog = self.root/'catalog.json'
         self.catalog.write_bytes(catalog.read_bytes())
-        self.targets = [self.review/f'oge/extractions/{DOCUMENT}/{self.sha}/oge-278t-pdf-v{v}.json'
-                        for v in (2, 7)]
+        self.targets = [self.review/f'oge/extractions/{DOCUMENT}/{self.sha}'/(v.replace('/', '-')+'.json')
+                        for v in (PARSER_VERSION, GENERIC_PARSER_VERSION)]
 
     def prepare(self, **kwargs):
         return prepare_oge_ptr_generic(document_id=DOCUMENT, evidence_root=self.evidence,
