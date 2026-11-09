@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 
-from unison_snapshot.cached_publication import join_disclosures, published_prices, prepared_prices
+from unison_snapshot.cached_publication import (join_disclosures, published_prices, prepared_prices,
+                                               require_published_price_series)
 from unison_snapshot.codec import digest, encode
 from unison_snapshot.legacy import load, processor_version_for, PROCESSOR_V2_SHA256
 
@@ -29,6 +30,7 @@ def main():
     from unison_snapshot.publication_amounts import project, assert_bounded
     candidate = project(candidate)
     assert_bounded(candidate)
+    require_published_price_series(args.main_root, args.market_root, candidate)
     identity = dict(candidate, meta={k: v for k, v in candidate["meta"].items() if k != "snapshot_id"})
     candidate["meta"]["snapshot_id"] = digest(encode(identity))
     root.mkdir(parents=True, exist_ok=True)

@@ -69,6 +69,50 @@ class PublishedTwelveDataCache:
     state: dict
 
 
+def load_price_cache_with_recovery(loader, *, main_root=None, market_root=None,
+        market_commit=None, recovery_main_root=None, recovery_market_root=None,
+        recovery_market_commit=None):
+    """Recover missing qualified rows without replacing newer published prices."""
+    def load_pair(paths, label):
+        if any(v is not None for v in paths) and not all(v is not None for v in paths):
+            raise ValueError(f'{label} main, market and commit must be provided together')
+        if not all(v is not None for v in paths):
+            return None
+        manifest = json.loads((paths[0] / 'manifest.json').read_bytes())
+        if manifest.get('market_commit') != paths[2] or manifest.get('is_demo') is not False:
+            raise ValueError(f'{label} cache requires a matching published main/market pair')
+        return loader(paths[0], paths[1], market_commit=paths[2])
+    current = load_pair((main_root, market_root, market_commit), 'Previous')
+    recovery_paths = (recovery_main_root, recovery_market_root, recovery_market_commit)
+    if recovery_market_commit == market_commit and current is not None:
+        # Routine refresh supplies the same published pair twice.
+        if not all(v is not None for v in recovery_paths):
+            raise ValueError('Recovery main, market and commit must be provided together')
+        manifest = json.loads((recovery_main_root / 'manifest.json').read_bytes())
+        if manifest.get('market_commit') != recovery_market_commit or manifest.get('is_demo') is not False:
+            raise ValueError('Recovery cache requires a matching published main/market pair')
+        return current
+    recovery = load_pair(recovery_paths, 'Recovery')
+    if current is None:
+        return recovery
+    if recovery is None:
+        return current
+    rows = {**recovery.rows, **current.rows}
+    if isinstance(current, PublishedTwelveDataCache) and isinstance(recovery, PublishedTwelveDataCache):
+        entries = {**recovery.state['entries'], **current.state['entries']}
+        state = {**recovery.state, **current.state, 'entries': entries}
+        rows = {k: v for k, v in rows.items() if entries[k].get('status') == 'accepted'}
+        return PublishedTwelveDataCache(rows, state)
+    if isinstance(current, PublishedMarketCache) and isinstance(recovery, PublishedMarketCache):
+        return PublishedMarketCache(rows,
+            requested_start_date=max(current.requested_start_date, recovery.requested_start_date),
+            requested_as_of_date=min(current.requested_as_of_date, recovery.requested_as_of_date),
+            provider_symbols={**recovery.provider_symbols, **current.provider_symbols},
+            full_refresh_date=min(current.full_refresh_date or current.requested_as_of_date,
+                                  recovery.full_refresh_date or recovery.requested_as_of_date))
+    raise ValueError('Recovery cache source differs from the current cache')
+
+
 def _timestamp(value: object) -> datetime:
     if not isinstance(value, str):
         raise ValueError("Market timestamp must be an ISO string")

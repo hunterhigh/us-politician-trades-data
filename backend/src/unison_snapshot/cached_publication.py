@@ -12,6 +12,30 @@ from .market_store import (MIXED_MARKET_COVERAGE_SCHEMA, MARKET_COVERAGE_SCHEMA,
                            SOURCE_ID, TWELVE_DATA_SOURCE_ID, TWELVE_STATE)
 
 
+def require_published_price_series(main_root: Path, market_root: Path, candidate: dict) -> None:
+    """New unpriced disclosures are allowed; existing referenced prices cannot vanish."""
+    manifest = json.loads((main_root / 'manifest.json').read_bytes())
+    previous = set()
+    for path in market_root.glob('market/*/index.json'):
+        previous.update(json.loads(path.read_bytes())['shards'])
+    expected = manifest['coverage']['market_ticker_count']
+    if len(previous) != expected:
+        previous = set()
+        for sha in manifest['market_pages']:
+            raw = (market_root / 'market-pages' / (sha + '.json')).read_bytes()
+            if digest(raw) != sha:
+                raise ValueError('Published price conservation requires valid prior market pages')
+            previous.update(r['ticker'] for r in json.loads(raw)['security_market_data'])
+    if len(previous) != expected:
+        raise ValueError('Published price conservation has incomplete prior coverage')
+    disclosed = {r['ticker'] for kind in ('transactions', 'reported_holdings')
+                 for r in candidate[kind] if r.get('ticker')}
+    missing = (previous & disclosed) - {r['ticker'] for r in candidate['security_market_data']}
+    if missing:
+        raise ValueError('Previously published referenced market series disappeared: '
+                         + ', '.join(sorted(missing)))
+
+
 def prepared_prices(root: Path, market_commit: str) -> dict:
     if (root / "market-base.txt").read_text().strip() != market_commit:
         raise ValueError("Market changed during refresh; discard this stale price candidate and rerun refresh")

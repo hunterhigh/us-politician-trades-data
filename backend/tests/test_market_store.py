@@ -10,6 +10,7 @@ from unison_snapshot.codec import bucket
 from unison_snapshot.market_store import (build_market_bundle,
                                           load_published_market_cache,
                                           load_published_twelve_data_cache,
+                                          load_price_cache_with_recovery,
                                           materialize_market)
 
 
@@ -31,6 +32,46 @@ def row(ticker="AAPL"):
 
 
 class MarketStoreTests(unittest.TestCase):
+    def test_additive_recovery_keeps_newer_rows_and_current_identity_rejections(self):
+        def twelve(ticker, day, close):
+            value = row(ticker)
+            value.update(source_id='twelve_data_split_adjusted_eod',
+                price_source='Twelve Data split-adjusted EOD', source_url='https://twelvedata.com/docs',
+                feed='twelve_data', price_history=[{'date': day, 'close': close}])
+            return value
+        old = [twelve('PREFERRED', '2026-09-17', 90), twelve('LOST', '2026-09-17', 80),
+               twelve('REJECTED', '2026-09-17', 70)]
+        latest = [twelve('PREFERRED', '2026-09-18', 99), twelve('NEW', '2026-09-18', 100)]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for label, rows, sha in [('current', latest, 'a'*40), ('recovery', old, 'b'*40)]:
+                target = root / label; target.mkdir()
+                state = {'schema_version': 'twelve-data-market-state/v1', 'entries': {
+                    r['ticker']: {'status': 'accepted', 'checked_at': r['price_history'][-1]['date']+'T00:00:00Z',
+                                  'fingerprint': 'c'*64} for r in rows}}
+                if label == 'current':
+                    state['entries']['REJECTED'] = {'status': 'identity_unresolved'}
+                bundle = build_market_bundle(rows, data_cutoff_at='2026-09-20T00:00:00Z',
+                                              twelve_audit={'state': state})
+                materialize_market(target, bundle)
+                (target/'manifest.json').write_text(json.dumps({'is_demo': False,
+                    'market_commit': sha, 'data_cutoff_at': '2026-09-20T00:00:00Z'}))
+            kwargs = {'main_root':root/'current', 'market_root':root/'current', 'market_commit':'a'*40,
+                      'recovery_main_root':root/'recovery', 'recovery_market_root':root/'recovery',
+                      'recovery_market_commit':'b'*40}
+            result = load_price_cache_with_recovery(load_published_twelve_data_cache, **kwargs)
+            self.assertEqual(result.rows['PREFERRED'], latest[0])
+            self.assertEqual(result.rows['NEW'], latest[1])
+            self.assertEqual(result.rows['LOST'], old[1])
+            self.assertNotIn('REJECTED', result.rows)
+            self.assertEqual(result.state['entries']['LOST']['checked_at'], '2026-09-17T00:00:00Z')
+            with self.assertRaisesRegex(ValueError, 'matching published main/market pair'):
+                load_price_cache_with_recovery(load_published_twelve_data_cache,
+                    **dict(kwargs, recovery_market_commit='d'*40))
+            with self.assertRaisesRegex(ValueError, 'provided together'):
+                load_price_cache_with_recovery(load_published_twelve_data_cache,
+                    **dict(kwargs, recovery_market_root=None))
+
     def test_published_twelve_data_state_rehydrates_accepted_rows(self):
         twelve = row("FUNDX")
         twelve.update(source_id="twelve_data_split_adjusted_eod",

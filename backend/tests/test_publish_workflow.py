@@ -184,9 +184,10 @@ npm() {
         self.assertIn("cache_market_root=$cache_market_root", complete)
         self.assertIn("cache_market_commit=$cache_market_ref", complete)
         self.assertIn("Cache main and market commits are not a published pair", complete)
-        self.assertIn('--previous-main-root "$CACHE_MAIN_ROOT"', complete)
-        self.assertIn('--previous-market-root "$CACHE_MARKET_ROOT"', complete)
-        self.assertIn('--previous-market-commit "$CACHE_MARKET_COMMIT"', complete)
+        for key in ('MAIN_ROOT', 'MARKET_ROOT', 'MARKET_COMMIT'):
+            option = key.lower().replace('_', '-')
+            self.assertIn(f'--previous-{option} "$CURRENT_{key}"', complete)
+            self.assertIn(f'--recovery-{option} "$CACHE_{key}"', complete)
         self.assertIn('git merge-base --is-ancestor "$cache_market_ref" origin/market',
                       complete)
 

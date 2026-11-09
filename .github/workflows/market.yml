@@ -20,7 +20,7 @@ on:
         description: Maximum Alpaca-unpriced tickers to audit (1-100)
         default: '30'
       cache_main_ref:
-        description: Optional published main commit for cache recovery
+        description: Optional earlier published main commit for additive cache recovery
         default: ''
       cache_market_ref:
         description: Matching published market commit for cache recovery
@@ -128,6 +128,9 @@ jobs:
           CACHE_MAIN_ROOT: ${{ steps.trees.outputs.cache_main_root }}
           CACHE_MARKET_ROOT: ${{ steps.trees.outputs.cache_market_root }}
           CACHE_MARKET_COMMIT: ${{ steps.trees.outputs.cache_market_commit }}
+          CURRENT_MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          CURRENT_MARKET_ROOT: ${{ steps.trees.outputs.market_root }}
+          CURRENT_MARKET_COMMIT: ${{ steps.trees.outputs.market_base }}
           ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
           ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
@@ -142,9 +145,12 @@ jobs:
             --audit-output "$RUNNER_TEMP/market-audit.json" \
             --checked-at "$checked_at" --batch-size "$BATCH_SIZE" \
             --assets-url "$assets_url" \
-            --previous-main-root "$CACHE_MAIN_ROOT" \
-            --previous-market-root "$CACHE_MARKET_ROOT" \
-            --previous-market-commit "$CACHE_MARKET_COMMIT" \
+            --previous-main-root "$CURRENT_MAIN_ROOT" \
+            --previous-market-root "$CURRENT_MARKET_ROOT" \
+            --previous-market-commit "$CURRENT_MARKET_COMMIT" \
+            --recovery-main-root "$CACHE_MAIN_ROOT" \
+            --recovery-market-root "$CACHE_MARKET_ROOT" \
+            --recovery-market-commit "$CACHE_MARKET_COMMIT" \
             --distribution-authorized
       - name: Reuse or advance licensed Twelve Data daily prices
         env:
@@ -158,9 +164,12 @@ jobs:
             --output "$RUNNER_TEMP/complete-candidate.json" \
             --audit-output "$RUNNER_TEMP/twelve-audit.json" \
             --checked-at "$checked_at" --limit "$TWELVE_LIMIT" \
-            --previous-main-root "${{ steps.trees.outputs.cache_main_root }}" \
-            --previous-market-root "${{ steps.trees.outputs.cache_market_root }}" \
-            --previous-market-commit "${{ steps.trees.outputs.cache_market_commit }}" \
+            --previous-main-root "${{ steps.trees.outputs.main_root }}" \
+            --previous-market-root "${{ steps.trees.outputs.market_root }}" \
+            --previous-market-commit "${{ steps.trees.outputs.market_base }}" \
+            --recovery-main-root "${{ steps.trees.outputs.cache_main_root }}" \
+            --recovery-market-root "${{ steps.trees.outputs.cache_market_root }}" \
+            --recovery-market-commit "${{ steps.trees.outputs.cache_market_commit }}" \
             --distribution-authorized
           python - <<'PY'
           import json, os

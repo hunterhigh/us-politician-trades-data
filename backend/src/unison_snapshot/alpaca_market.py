@@ -512,9 +512,15 @@ def _preferred_share_key(value: str) -> str | None:
     return disclosure.group(1) + disclosure.group(2) if disclosure else None
 
 
+def _asset_leaf_name(value: object) -> str:
+    # These are the source-bound account display forms, not part of the asset's
+    # identity. A stock held in a trust must not become a mutual fund.
+    return str(value or '').split(' — ', 1)[0].rsplit('⇒', 1)[-1].strip()
+
+
 def _unsupported_reason(ticker: str, rows: list[dict]) -> str | None:
     instruments = {str(row.get("instrument_type") or "").strip().casefold() for row in rows}
-    names = " ".join(str(row.get("asset_name") or "") for row in rows).casefold()
+    names = " ".join(_asset_leaf_name(row.get("asset_name")) for row in rows).casefold()
     if instruments and all("bond" in value or "debt" in value for value in instruments):
         return "non_equity_debt"
     if ticker.endswith("X") and (
@@ -781,6 +787,7 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                             if entry["ticker"] not in cached_tickers]
     split_refresh_count = 0
     isolated_retry_count = 0
+    retained_historical_tickers = []
     rejected_historical_symbols: list[str] = []
     if historical_entries:
         # A 400 here means the query format itself is rejected, not a bad filing
@@ -831,6 +838,19 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                                          end=end).get(entry['provider_symbol'], [])
                 market_row = (_market_row(ticker, names[ticker], bars, start_day,
                                           requested_as_of) if bars else None)
+            if (not bars and entry['asset_status'] in {'not_listed', 'inactive'}
+                    and previous_market is not None
+                    and previous_market.provider_symbols.get(ticker) == entry['provider_symbol']):
+                prior = previous_market.rows.get(ticker)
+                prior_name = _asset_name_key(_asset_leaf_name(prior.get('company_name'))) if prior else ''
+                if prior_name and any(_asset_name_key(_asset_leaf_name(r.get('asset_name')))
+                                      == prior_name for r in contexts[ticker]):
+                    points = [p for p in prior['price_history']
+                              if start_day <= date.fromisoformat(p['date']) <= requested_as_of]
+                    if points and _historical_bar_matches_disclosure(points, contexts[ticker]):
+                        market_row = dict(prior, price_history=deepcopy(points))
+                        bars = points
+                        retained_historical_tickers.append(ticker)
             if not bars:
                 if entry["asset_status"] == "not_listed":
                     unsupported.append({"ticker": ticker, "reason": "outside_sip_not_listed"})
@@ -936,6 +956,7 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                                       + len(historical_entries) + split_refresh_count),
         "split_refresh_ticker_count": split_refresh_count,
         "isolated_retry_count": isolated_retry_count,
+        "retained_historical_tickers": sorted(retained_historical_tickers),
         "full_history_verified_at": (
             (previous_market.full_refresh_date
              or previous_market.requested_as_of_date).isoformat()

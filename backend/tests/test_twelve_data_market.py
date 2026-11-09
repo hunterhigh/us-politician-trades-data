@@ -165,6 +165,38 @@ class TwelveDataMarketTests(unittest.TestCase):
         self.assertEqual({row["ticker"] for row in data["security_market_data"]},
                          {"FUNDX", "ZZDEMO"})
 
+    def test_asset_label_changes_revalidate_cache_identity_without_inventing_freshness(self):
+        source = candidate()
+        cached_row = {'ticker': 'FUNDX', 'company_name': 'Example Fund Class A',
+            'source_id': 'twelve_data_split_adjusted_eod',
+            'price_source': 'Twelve Data split-adjusted EOD',
+            'source_url': 'https://twelvedata.com/docs', 'feed': 'twelve_data',
+            'timeframe': '1Day', 'adjustment': 'split',
+            'price_history': [{'date': '2026-09-17', 'close': 12.6}]}
+        prior = {'status': 'accepted', 'checked_at': '2026-09-01T00:00:00Z',
+                 'fingerprint': _fingerprint({'Example Fund'})}
+        cache = PublishedTwelveDataCache({'FUNDX': cached_row}, {'entries': {'FUNDX': prior}})
+        client = TwelveDataClient('cache-only', opener=lambda *_args, **_kwargs:
+            self.fail('Identity revalidation must not request or fabricate prices'))
+        for name, accepted in [('Example Fund - account two', True),
+                               ('Unrelated Business', False)]:
+            with self.subTest(name=name):
+                source['transactions'][1]['asset_name'] = name
+                result, audit = supplement(source, client=client,
+                    checked_at='2026-09-19T00:01:00Z', limit=0, previous_market=cache)
+                rows = {r['ticker']: r for r in result['security_market_data']}
+                self.assertEqual('FUNDX' in rows, accepted)
+                self.assertEqual(audit['request_count'], 0)
+                self.assertEqual(prior['fingerprint'], _fingerprint({'Example Fund'}))
+                if accepted:
+                    self.assertEqual(rows['FUNDX'], cached_row)
+                    entry = audit['state']['entries']['FUNDX']
+                    self.assertEqual(entry['checked_at'], prior['checked_at'])
+                    self.assertEqual(entry['fingerprint'], _fingerprint({name}))
+                    self.assertEqual(audit['results'][0]['status'], 'cached_identity_revalidated')
+                else:
+                    self.assertEqual(audit['results'][0]['status'], 'cached_identity_invalidated')
+
     def test_mixed_candidate_and_price_provenance(self):
         urls = []
 

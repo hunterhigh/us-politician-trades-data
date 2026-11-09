@@ -12,7 +12,8 @@ from test_alpaca_market import production_candidate
 from test_market_store import row
 from test_public_repo import FakeTransport, COMMIT, MARKET_COMMIT
 from unison_snapshot.builder import build
-from unison_snapshot.cached_publication import join_disclosures, published_prices, prepared_prices
+from unison_snapshot.cached_publication import (join_disclosures, published_prices, prepared_prices,
+                                               require_published_price_series)
 from unison_snapshot.codec import encode, digest
 from unison_snapshot.legacy import load
 from unison_snapshot.market_store import build_market_bundle
@@ -20,6 +21,27 @@ from unison_snapshot.public_repo import PublicSnapshotRepository
 
 
 class CachedPublicationTests(unittest.TestCase):
+    def test_prepublication_rejects_loss_of_existing_referenced_prices_but_allows_new_gaps(self):
+        from unison_snapshot.market_store import materialize_market
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            prices = self.prices()['security_market_data']
+            bundle = build_market_bundle(prices, data_cutoff_at='2026-09-20T00:00:00Z')
+            materialize_market(root, bundle)
+            (root/'manifest.json').write_bytes(encode({'coverage': {'market_ticker_count': 2},
+                                                      'market_pages': list(bundle.page_shas)}))
+            data = production_candidate()
+            data['transactions'][0]['ticker'] = 'AAPL'
+            data['transactions'][1]['ticker'] = 'NEWCO'
+            data['security_market_data'] = prices[1:]
+            with self.assertRaisesRegex(ValueError, 'market series disappeared.*AAPL'):
+                require_published_price_series(root, root, data)
+            data['security_market_data'] = prices
+            require_published_price_series(root, root, data)
+            data['transactions'][0]['ticker'] = None
+            data['security_market_data'] = prices[1:]
+            require_published_price_series(root, root, data)
+
     def test_cached_and_prepared_cli_use_current_consumer_and_preserve_approved_annual_facts(self):
         import importlib.util
         from test_oge_annual_approved_policy import complete_case

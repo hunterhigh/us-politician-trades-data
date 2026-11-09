@@ -22,7 +22,8 @@ from .builder import build, normalize
 from .codec import digest, encode
 from .materialize import materialize
 from .market_store import (build_market_bundle, load_published_market_cache,
-                           load_published_twelve_data_cache, materialize_market)
+                           load_published_twelve_data_cache, materialize_market,
+                           load_price_cache_with_recovery)
 from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archive_indexed_ptr, discover
 from .house_ptr import parse_archived_pdf, qualify_automatic
 from .house_ptr_paper_qualification import qualify_paper_observation
@@ -278,6 +279,10 @@ def main() -> None:
     twelve_market.add_argument("--previous-main-root", type=Path)
     twelve_market.add_argument("--previous-market-root", type=Path)
     twelve_market.add_argument("--previous-market-commit")
+    for price_parser in (market_validation, twelve_market):
+        price_parser.add_argument('--recovery-main-root', type=Path)
+        price_parser.add_argument('--recovery-market-root', type=Path)
+        price_parser.add_argument('--recovery-market-commit')
     senate_roster = sub.add_parser("parse-senate-members")
     senate_roster.add_argument("--input", type=Path, required=True)
     senate_roster.add_argument("--output", type=Path, required=True)
@@ -775,16 +780,11 @@ def main() -> None:
             # already licensed rows and deliberately cannot issue a request.
             key = "cache-only" if args.limit == 0 else os.environ.get(args.key_env, "")
             client = TwelveDataClient(key)
-            cache_options = (args.previous_main_root, args.previous_market_root,
-                             args.previous_market_commit)
-            if any(value is not None for value in cache_options) \
-                    and not all(value is not None for value in cache_options):
-                raise TwelveDataError(
-                    "Previous main, market and commit must be provided together")
-            previous_market = (load_published_twelve_data_cache(
-                args.previous_main_root, args.previous_market_root,
-                market_commit=args.previous_market_commit)
-                if all(value is not None for value in cache_options) else None)
+            previous_market = load_price_cache_with_recovery(load_published_twelve_data_cache,
+                main_root=args.previous_main_root, market_root=args.previous_market_root,
+                market_commit=args.previous_market_commit, recovery_main_root=args.recovery_main_root,
+                recovery_market_root=args.recovery_market_root,
+                recovery_market_commit=args.recovery_market_commit)
             result, audit = supplement_twelve_data(payload, client=client,
                                                    checked_at=checked_at, limit=args.limit,
                                                    previous_market=previous_market)
@@ -821,15 +821,11 @@ def main() -> None:
                 timeout=args.timeout,
                 assets_url=args.assets_url,
             )
-            cache_options = (args.previous_main_root, args.previous_market_root,
-                             args.previous_market_commit)
-            if any(value is not None for value in cache_options) \
-                    and not all(value is not None for value in cache_options):
-                raise ValueError("Previous main, market and commit must be provided together")
-            cache = (load_published_market_cache(
-                args.previous_main_root, args.previous_market_root,
-                market_commit=args.previous_market_commit)
-                if all(value is not None for value in cache_options) else None)
+            cache = load_price_cache_with_recovery(load_published_market_cache,
+                main_root=args.previous_main_root, market_root=args.previous_market_root,
+                market_commit=args.previous_market_commit, recovery_main_root=args.recovery_main_root,
+                recovery_market_root=args.recovery_market_root,
+                recovery_market_commit=args.recovery_market_commit)
             validation = build_market_validation(
                 payload, client=client, checked_at=checked_at,
                 as_of_date=args.as_of_date, batch_size=args.batch_size,
