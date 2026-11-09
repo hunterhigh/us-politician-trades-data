@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-09T17:27:31.360271+00:00",
+  "checked_at": "2026-11-09T19:08:10.650211+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -178,7 +178,7 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "4a1ec16b68bd73d736c9b736975998eeaecad29f",
+  "quality_review_commit": "25853dcb9c60ae8948598e66e4ec23ffe09bd31a",
   "schema_version": "production-health/v1",
   "smoke": {
     "checked_at": "2026-11-09T10:44:01.300468+00:00",
