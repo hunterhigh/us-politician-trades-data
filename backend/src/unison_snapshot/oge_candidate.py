@@ -1,10 +1,10 @@
 """Conservative source candidate builder for archived OGE 278-T reports."""
 from __future__ import annotations
 
+from .source_pipeline.candidates import CandidatePlan, candidate_source, person_record
+
 from copy import deepcopy
 from datetime import datetime
-import hashlib
-import json
 import re
 
 from .builder import timestamp
@@ -179,6 +179,7 @@ def _inherit_generic_legacy(extraction: dict, legacy: dict | None,
     return result, receipt
 
 
+@candidate_source
 def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                         data_cutoff_at: str,
                         catalog_history: list[dict] | None = None,
@@ -647,21 +648,13 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                                         **({"native_exhibit_reference":row["native_exhibit_reference"]} if row.get("native_exhibit_reference") else {})})
                 continue
             person_id = person_for(extraction)['id'] if reviewed_source else _person_id(key)
-            people.setdefault(person_id, {
-                "id": person_id,
-                "display_name": person_for(extraction)['display_name'] if reviewed_source else record["filer_name"],
-                "short_name": person_for(extraction)['short_name'] if reviewed_source else _short_name(record["filer_name"]),
-                "role": (person_for(extraction)['role'] if reviewed_source else
-                         record["position_title"]),
-                "office_type": record["agency"],
-                "chamber": None,
-                "party": None,
-                "state": None,
-                "disclosure_authority": "oge",
-                "priority": False,
-                "priority_reason": None,
-                "portrait_url": None,
-            })
+            people.setdefault(person_id, person_record(
+                                             person_id,
+                                             person_for(extraction)['display_name'] if reviewed_source else record['filer_name'],
+                                             person_for(extraction)['short_name'] if reviewed_source else _short_name(record['filer_name']),
+                                             person_for(extraction)['role'] if reviewed_source else record['position_title'],
+                                             record['agency'],
+                                             'oge'))
             fact_id = extraction_id
             if fact_id in promoted_ids:
                 raise OgeCatalogError("OGE candidate duplicates a promoted transaction ID")
@@ -880,11 +873,10 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         raise OgeCatalogError(str(exc)) from exc
     replacement_redirects = _apply_native_exhibit_replacements(transactions, audit_reports, base)
 
-    candidate = deepcopy(base)
-    candidate["meta"]["data_cutoff_at"] = data_cutoff_at
-    candidate["meta"]["subtitle"] = "OGE 真实 278-T 候选数据；申请型文件和异常记录保持隔离"
-    candidate["people"] = [people[key] for key in sorted(people)]
-    candidate["transactions"] = sorted(transactions, key=lambda row: row["id"])
+    candidate = yield CandidatePlan(base,
+        metadata={"data_cutoff_at": data_cutoff_at,
+                  "subtitle": "OGE 真实 278-T 候选数据；申请型文件和异常记录保持隔离"},
+        arrays={"people": people, "transactions": transactions}, sort={"transactions": "id"})
     for relation in candidate["meta"].get("transaction_disclosure_relations", []):
         replaced = []
         for identifier in relation.get("possible_ptr_transaction_ids", []):
@@ -896,15 +888,15 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 identifier = replacement_redirects[identifier]
             replaced.append(identifier)
         relation["possible_ptr_transaction_ids"] = sorted(set(replaced))
-    candidate["reported_holdings"] = []
-    candidate["meta"].pop("holding_report_coverage", None)
+    candidate = yield CandidatePlan(candidate, copy=False,
+        arrays={"reported_holdings": []}, drop_metadata=("holding_report_coverage",))
     output_ids = {row["id"] for row in candidate["transactions"]}
     relations = [row for row in candidate["meta"].get("transaction_disclosure_relations", [])
                  if row.get("transaction_id") in output_ids]
     candidate["meta"].pop("transaction_disclosure_relations", None)
     if relations:
         candidate["meta"]["transaction_disclosure_relations"] = relations
-    candidate["security_market_data"] = []
+    candidate = yield CandidatePlan(candidate, copy=False, arrays={"security_market_data": []})
     owner_current_count = (sum(len(report['native_classification']['qualified_ids'])
         if 'native_classification' in report else len(report['owner_scope_current_qualified_ids'])
         if 'owner_scope_current_qualified_ids' in report else
@@ -933,13 +925,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                    f"catalog entries were not automated; {retained_from_history} direct documents "
                    "were retained from archived catalog history."),
     }
-    current_health = candidate.get("source_health")
-    if not isinstance(current_health, list):
-        raise OgeCatalogError("OGE candidate base has no source health array")
-    candidate["source_health"] = [health if row.get("source_id") == "oge" else row
-                                  for row in current_health]
-    if not any(row.get("source_id") == "oge" for row in current_health):
-        candidate["source_health"].append(health)
+    candidate = yield CandidatePlan(candidate, copy=False,
+        health=(health, OgeCatalogError, "OGE candidate base has no source health array"))
     audit = {
         "schema_version": "oge-candidate-audit/v1",
         "source_id": "oge",

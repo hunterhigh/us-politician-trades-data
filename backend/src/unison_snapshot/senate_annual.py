@@ -7,6 +7,11 @@ unambiguous annual report contributes frontend holdings.
 """
 from __future__ import annotations
 
+from .source_pipeline.records import json_bytes, write_once as _shared_write_once
+
+from .source_pipeline.annual import ReportSelection, project_row
+from .source_pipeline.candidates import CandidatePlan, candidate_source, referenced_people
+
 from collections import Counter, defaultdict
 from datetime import date, datetime, timezone
 import hashlib
@@ -104,17 +109,12 @@ def _structured_labels(raw: bytes) -> dict:
 
 
 def _write_once(path: Path, raw: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        if path.read_bytes() != raw:
-            raise SenateEfdError(f"Immutable Senate annual evidence changed: {path}")
-        return
-    path.write_bytes(raw)
+    return _shared_write_once(path, raw, error=SenateEfdError,
+        conflict=f"Immutable Senate annual evidence changed: {path}", atomic=False)
 
 
 def _json(value: dict) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) +
-            "\n").encode("utf-8")
+    return json_bytes(value, newline=True)
 
 
 def _exact_source_copy_groups(records: list[dict], verified_sources: dict[str, dict],
@@ -236,23 +236,20 @@ def select_current_annual_versions(discovery: dict, roster: dict) -> tuple[list[
     if discovery.get("schema_version") != DISCOVERY_SCHEMA:
         raise SenateEfdError("Senate annual discovery is invalid")
     current = {row["person_id"] for row in members}
-    by_person = defaultdict(list)
+    versions = ReportSelection(keep_ties=True)
     identity_counts = Counter()
     for report in discovery["reports"]:
         identity = match_report_identity(report, roster)
         identity_counts[identity["status"]] += 1
         person_id = identity.get("person_id")
         if identity.get("status") == "matched_automatically" and person_id in current:
-            by_person[person_id].append({**report, "identity": identity})
-    selected = []
-    for person_id, rows in by_person.items():
-        latest_year = max(row["report_year"] for row in rows)
-        selected.extend(row for row in rows if row["report_year"] == latest_year)
+            versions.add(person_id, report["report_year"], {**report, "identity": identity})
+    selected = [report for reports in versions.groups.values() for report in reports]
     selected.sort(key=lambda row: (row["identity"]["person_id"], row["report_year"],
                                    row["amendment_number"], row["document_id"]))
     return selected, {"roster_sha256": roster_sha,
                       "current_member_count": len(current),
-                      "matched_member_count": len(by_person),
+                      "matched_member_count": len(versions.groups),
                       "selected_report_count": len(selected),
                       "identity_counts": dict(sorted(identity_counts.items()))}
 
@@ -431,26 +428,24 @@ def extract_annual(metadata: dict, raw: bytes, *, structured_asset_labels: bool 
             "row_count": len(rows), "rows": rows}
 
 
-
 def _holding_from_annual_row(row: dict, report: dict, extraction: dict, person_id: str) -> dict:
     raw_type = row["asset_type_raw"]
     instrument = ("Stock" if "Stock" in raw_type else
                   "Bond" if "Bond" in raw_type else
                   "Fund" if "Fund" in raw_type else "Other")
-    return {"id": row["extraction_id"],
-                     "filing_id": report["document_id"], "person_id": person_id,
-                     "owner": row["owner"], "asset_name": row["asset_name"],
-                     "ticker": row["ticker"],
-                     "ticker_mapping_basis": "filing_explicit" if row["ticker"] else None,
-                     "instrument_type": instrument,
-                     "report_period_end": extraction["report_period_end"],
-                     "filed_at": extraction["filed_at"] + "T00:00:00Z",
-                     "value_low": row["value_low"], "value_high": row["value_high"],
-                     **({"value_low_exclusive": row["value_low_exclusive"]}
-                        if "value_low_exclusive" in row else {}),
-                     "change_from_prior": "unknown", "source_id": "senate_efd",
-                     "source": "U.S. Senate eFD", "source_url": extraction["source_url"],
-                     "verification_status": "official_matched"}
+    return project_row(row, {'id': 'extraction_id', 'owner': 'owner', 'asset_name': 'asset_name', 'ticker': 'ticker', 'value_low': 'value_low', 'value_high': 'value_high'},
+               filing_id=report['document_id'],
+               person_id=person_id,
+               ticker_mapping_basis='filing_explicit' if row['ticker'] else None,
+               instrument_type=instrument,
+               report_period_end=extraction['report_period_end'],
+               filed_at=extraction['filed_at'] + 'T00:00:00Z',
+               change_from_prior='unknown',
+               source_id='senate_efd',
+               source='U.S. Senate eFD',
+               source_url=extraction['source_url'],
+               verification_status='official_matched',
+               **({'value_low_exclusive': row['value_low_exclusive']} if 'value_low_exclusive' in row else {}))
 
 
 def build_annual_review(evidence_root: Path, review_root: Path, roster: dict, *,
@@ -765,6 +760,7 @@ def _independent_annual_contexts(annual: dict, evidence_root: Path, copies: list
     return contexts,{r['document_id']:r for r in discovery['reports']}
 
 
+@candidate_source
 def overlay_annual_candidate(candidate: dict, review_root: Path, *,
                              expected_roster_sha256: str,
                              evidence_root: Path | None = None) -> tuple[dict, dict]:
@@ -792,13 +788,9 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
     _verify_structured_holdings(annual, review_root, evidence_root)
     # Rebuild the annual projection from its current review artifact. A later
     # annual run must replace, not accumulate, prior-year or amended rows.
-    candidate["reported_holdings"] = [
-        row for row in candidate["reported_holdings"]
-        if not str(row.get("id", "")).startswith("senate-annual:")]
-    retained_people = {row["person_id"] for row in candidate["transactions"]}
-    retained_people.update(row["person_id"] for row in candidate["reported_holdings"])
-    existing = {person["id"]: person for person in candidate["people"]
-                if person["id"] in retained_people}
+    candidate = yield CandidatePlan(candidate, copy=False,
+        remove_prefixes={"reported_holdings": "senate-annual:"})
+    existing = {person["id"]: person for person in referenced_people(candidate)}
     for person in annual["people"]:
         if person["id"] in existing:
             if any(existing[person["id"]].get(field) != person.get(field)

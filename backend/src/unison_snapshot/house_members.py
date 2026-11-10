@@ -1,15 +1,12 @@
 """Official House Clerk current-member roster and conservative identity suggestions."""
+from .source_pipeline.members import download_roster, roster_xml, ascii_name
+from .source_pipeline.records import archive_record
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-import hashlib
-import json
 from pathlib import Path
 import re
-import tempfile
-import unicodedata
 import urllib.error
 import urllib.request
-import xml.etree.ElementTree as ET
 
 from .house import HouseIndexError
 
@@ -29,12 +26,8 @@ class HouseMember:
 
 
 def parse_members(content: bytes) -> tuple[str, list[HouseMember]]:
-    if len(content) > MAX_MEMBERS_BYTES or b"<!DOCTYPE" in content.upper() or b"<!ENTITY" in content.upper():
-        raise HouseIndexError("Invalid House member roster")
-    try:
-        root = ET.fromstring(content)
-    except ET.ParseError:
-        raise HouseIndexError("House member roster XML is invalid") from None
+    root = roster_xml(content, limit=MAX_MEMBERS_BYTES, error=HouseIndexError,
+        source='House', require_bytes=False)
     if root.tag != "MemberData":
         raise HouseIndexError("House member roster has an unexpected root")
     published = root.attrib.get("publish-date", "")
@@ -81,60 +74,23 @@ class HouseMemberClient:
         self.timeout = timeout
 
     def download(self) -> tuple[bytes, dict[str, str]]:
-        request = urllib.request.Request(MEMBERS_URL, headers={
-            "Accept": "text/xml,application/xhtml+xml,text/html;q=0.9,*/*;q=0.8",
-            "User-Agent": "unison-house-identity/0.2"}, method="GET")
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                if response.status != 200 or response.geturl() != MEMBERS_URL:
-                    raise HouseIndexError("House member roster returned an unexpected response")
-                content = response.read(MAX_MEMBERS_BYTES + 1)
-                headers = {name.lower(): value for name, value in response.headers.items()
-                           if name.lower() in {"etag", "last-modified", "content-type"}}
-        except urllib.error.HTTPError as exc:
-            raise HouseIndexError(f"House member roster returned HTTP {exc.code}") from None
-        except (urllib.error.URLError, TimeoutError):
-            raise HouseIndexError("House member roster is unavailable") from None
-        if len(content) > MAX_MEMBERS_BYTES:
-            raise HouseIndexError("House member roster exceeds its size limit")
-        return content, headers
+        return download_roster(MEMBERS_URL,
+            {"Accept": 'text/xml,application/xhtml+xml,text/html;q=0.9,*/*;q=0.8', "User-Agent": 'unison-house-identity/0.2'},
+            timeout=self.timeout, limit=MAX_MEMBERS_BYTES, error=HouseIndexError, label='House member roster')
 
 
 def archive_members(root: Path, content: bytes, headers: dict[str, str], members: list[HouseMember],
                     published_date: str, retrieved_at: str | None = None) -> dict:
-    root = root.resolve()
-    sha = hashlib.sha256(content).hexdigest()
-    folder = root / "house_clerk" / "members"
-    target = folder / f"{sha}.xml"
-    folder.mkdir(parents=True, exist_ok=True)
-    if target.exists() and target.read_bytes() != content:
-        raise HouseIndexError("Archived House member roster hash collision")
-    if not target.exists():
-        with tempfile.NamedTemporaryFile(dir=folder, prefix=f".{sha}.", suffix=".tmp", delete=False) as handle:
-            handle.write(content)
-            temporary = Path(handle.name)
-        temporary.replace(target)
-    metadata = {"source_id": "house_clerk_members", "source_url": MEMBERS_URL,
-                "published_date": published_date,
-                "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
-                "sha256": sha, "record_count": len(members), "headers": headers,
-                "archive_path": target.relative_to(root).as_posix()}
-    meta_path = target.with_suffix(".json")
-    if meta_path.exists():
-        try:
-            existing = json.loads(meta_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
-            raise HouseIndexError("Archived House member metadata is invalid") from None
-        stable = ("source_id", "source_url", "published_date", "sha256", "record_count", "archive_path")
-        if any(existing.get(field) != metadata[field] for field in stable):
-            raise HouseIndexError("Archived House member metadata conflicts with its content")
-        return existing
-    encoded = json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    with tempfile.NamedTemporaryFile(dir=folder, prefix=f".{sha}.", suffix=".tmp", delete=False) as handle:
-        handle.write(encoded)
-        temporary = Path(handle.name)
-    temporary.replace(meta_path)
-    return metadata
+    return archive_record(root, ('house_clerk', 'members'), content, '.xml',
+        lambda sha, target, root: {"source_id": "house_clerk_members", "source_url": MEMBERS_URL,
+                    "published_date": published_date,
+                    "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
+                    "sha256": sha, "record_count": len(members), "headers": headers,
+                    "archive_path": target.relative_to(root).as_posix()},
+        error=HouseIndexError, collision='Archived House member roster hash collision',
+        stable=("source_id", "source_url", "published_date", "sha256", "record_count", "archive_path"),
+        invalid='Archived House member metadata is invalid',
+        conflict='Archived House member metadata conflicts with its content')
 
 
 def discover_members(root: Path, *, client: HouseMemberClient | None = None) -> dict:
@@ -145,7 +101,7 @@ def discover_members(root: Path, *, client: HouseMemberClient | None = None) -> 
 
 
 def _name_key(value: str) -> tuple[str, str] | None:
-    normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii").lower()
+    normalized = ascii_name(value)
     # The Clerk roster and disclosure headers do not always use the same display order.
     # Treat ``Surname, Given`` as the same name as ``Given Surname`` without broadening
     # the comparison beyond the first and last name tokens.

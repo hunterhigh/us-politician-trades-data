@@ -6,12 +6,15 @@ extractions must already be bound to archived PDF byte hashes by the caller.
 """
 from __future__ import annotations
 
+from .source_pipeline.records import json_bytes
+
+from .source_pipeline.candidates import CandidatePlan, candidate_source, person_record
+
 from collections import Counter
 from copy import deepcopy
 from datetime import datetime, time
 import re
 import hashlib
-import json
 from urllib.parse import urlsplit
 
 from .builder import ARRAYS, FIELDS, normalize, timestamp
@@ -70,8 +73,7 @@ def _cross_source_bindings(extractions, bindings):
             "receipt": {"canonical_document_id": report["document_id"],
                 "source_sha256": report["source_sha256"], "oge_document_id": oge["document_id"],
                 "oge_source_url": oge["document_url"], "whitehouse_source_url": wh["document_url"],
-                "binding_sha256": hashlib.sha256(json.dumps(binding, sort_keys=True,
-                    ensure_ascii=False, separators=(",", ":")).encode()).hexdigest(),
+                "binding_sha256": hashlib.sha256(json_bytes(binding)).hexdigest(),
                 "old_observed_transaction_count": len(parsed["transactions"]),
                 "old_quarantined_observation_count": len(parsed["quarantined"]), "rows": []}}
     return result
@@ -309,17 +311,13 @@ def _person(identity: dict) -> dict:
     if person_id != computed_id and reviewed_person is None and not (
             source_bound_new and re.fullmatch(r"oge:[0-9a-f]{16}", person_id or "")):
         raise OgeCatalogError("White House 278-T person identity is unsupported")
-    person = {
-        "id": person_id,
-        "display_name": reviewed_person['display_name'] if reviewed_person else identity["filer_name"],
-        "short_name": reviewed_person['short_name'] if reviewed_person else _short_name(identity["filer_name"]),
-        "role": (reviewed_person['role'] if reviewed_person else
-                 identity["position_title"]),
-        "office_type": identity["agency"],
-        "chamber": None, "party": None, "state": None,
-        "disclosure_authority": "oge", "priority": False,
-        "priority_reason": None, "portrait_url": None,
-    }
+    person = person_record(
+                 person_id,
+                 reviewed_person['display_name'] if reviewed_person else identity['filer_name'],
+                 reviewed_person['short_name'] if reviewed_person else _short_name(identity['filer_name']),
+                 reviewed_person['role'] if reviewed_person else identity['position_title'],
+                 identity['agency'],
+                 'oge')
     if set(person) != FIELDS["people"]:
         raise OgeCatalogError("White House 278-T person field contract changed")
     return person
@@ -354,6 +352,7 @@ def _transaction(report: dict, row: dict, person_id: str) -> dict:
     return fact
 
 
+@candidate_source
 def build_whitehouse_278t_review_candidate(
         base_oge_candidate: dict, extractions: list[dict], eligibility_audit: dict,
         oge_whitehouse_coverage: dict, *, data_cutoff_at: str,
@@ -405,8 +404,7 @@ def build_whitehouse_278t_review_candidate(
     if len(extractions) != expected_audit["report_count"]:
         raise OgeCatalogError("White House 278-T report count changed")
 
-    candidate = deepcopy(base_oge_candidate)
-    candidate["meta"]["data_cutoff_at"] = data_cutoff_at
+    candidate = yield CandidatePlan(base_oge_candidate, metadata={"data_cutoff_at": data_cutoff_at})
     existing_people = {person["id"]: person for person in candidate["people"]}
     existing_people_by_name: dict[tuple[str, str], list[dict]] = {}
     for existing_person in candidate["people"]:
@@ -572,8 +570,7 @@ def build_whitehouse_278t_review_candidate(
                     "legacy_cache_hash_is_reference_only": True,
                     "rows": [{"formal_id": row["extraction_id"], "page_number": source["page_number"],
                         "source_rows_index": source.get("source_rows_index"),
-                        "raw_cells_canonical_sha256": hashlib.sha256(json.dumps(source.get("cells"),ensure_ascii=False,
-                            sort_keys=True,separators=(",", ":")).encode()).hexdigest(),
+                        "raw_cells_canonical_sha256": hashlib.sha256(json_bytes(source.get('cells'))).hexdigest(),
                         "basis": "same_source_raw_cells_stable_id_replayed_and_formal_projection_bound"}
                         for row,source in zip(row_results,source_rows,strict=True) if row["status"] == "retained_existing"]}}
                if report.get("parser_version") == GENERIC_PARSER_VERSION else {}),
@@ -593,8 +590,7 @@ def build_whitehouse_278t_review_candidate(
                     "schema_version":"whitehouse-saved-current-retained/v1", "source_sha256":report["source_sha256"],
                     "document_id":document_id,"parser_version":report["parser_version"],"geometry_mode":report["geometry_mode"],
                     "rows":[{"formal_id":row["extraction_id"],"source_rows_index":source.get("source_rows_index"),
-                        "page_number":source["page_number"],"raw_cells_canonical_sha256":hashlib.sha256(json.dumps(
-                            source["cells"],ensure_ascii=False,sort_keys=True,separators=(",", ":")).encode()).hexdigest(),
+                        "page_number":source["page_number"],"raw_cells_canonical_sha256":hashlib.sha256(json_bytes(source['cells'])).hexdigest(),
                         "basis":"current_source_replayed_exact_formal_projection"}
                         for row,source in zip(row_results,source_rows,strict=True) if row["status"] == "retained_existing"]}}
                if report.get("parser_version") == DUAL_AXIS_PARSER_VERSION else {}),
@@ -602,13 +598,11 @@ def build_whitehouse_278t_review_candidate(
         })
     if len(added_transactions) != sum(row["promoted_count"] for row in audit_reports):
         raise OgeCatalogError("White House 278-T promoted row count is inconsistent")
-    candidate["people"].extend(added_people.values())
-    candidate["transactions"] = [corrected_existing[row["id"]]["fact"] if row["id"] in corrected_existing else row
-                                 for row in candidate["transactions"]]
-    candidate["transactions"].extend(added_transactions)
-    candidate["people"].sort(key=lambda row: row["id"])
-    candidate["transactions"].sort(key=lambda row: row["id"])
-    candidate["source_health"].sort(key=lambda row: row["source_id"])
+    candidate = yield CandidatePlan(candidate, copy=False,
+        arrays={"transactions": [corrected_existing[row["id"]]["fact"] if row["id"] in corrected_existing else row
+                                  for row in candidate["transactions"]]},
+        append={"people": added_people, "transactions": added_transactions},
+        sort={"people": "id", "transactions": "id", "source_health": "source_id"})
     total_rows = sum(row["source_row_count"] for row in audit_reports)
     promoted = sum(row["promoted_count"] for row in audit_reports)
     quarantined = sum(row["quarantined_count"] for row in audit_reports)

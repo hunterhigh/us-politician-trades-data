@@ -1,13 +1,12 @@
 """Official House Clerk bulk-index discovery; PDF parsing is a separate stage."""
+from .source_transport import read_response
+from .source_pipeline.records import archive_record
 from .content_integrity import content_boundary
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-import hashlib
 import io
-import json
 from pathlib import Path, PurePosixPath
 import re
-import tempfile
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -125,12 +124,9 @@ class HouseIndexClient:
         request = urllib.request.Request(url, headers={"Accept": "application/zip",
             "User-Agent": "unison-house-discovery/0.2"}, method="GET")
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                if response.status != 200 or response.geturl() != url:
-                    raise HouseIndexError("House index returned an unexpected response")
-                content = response.read(MAX_ZIP_BYTES + 1)
-                headers = {name.lower(): value for name, value in response.headers.items()
-                           if name.lower() in {"etag", "last-modified", "content-type"}}
+            content, headers = read_response(request, urllib.request.urlopen,
+                timeout=self.timeout, maximum=MAX_ZIP_BYTES, expected_url=url,
+                unexpected=HouseIndexError("House index returned an unexpected response"))
         except urllib.error.HTTPError as exc:
             raise HouseIndexError(f"House index returned HTTP {exc.code}") from None
         except (urllib.error.URLError, TimeoutError):
@@ -154,12 +150,9 @@ class HouseDocumentClient:
         request = urllib.request.Request(url, headers={"Accept": "application/pdf",
             "User-Agent": "unison-house-evidence/0.2"}, method="GET")
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                if response.status != 200 or response.geturl() != url:
-                    raise HouseIndexError("House PTR returned an unexpected response")
-                content = response.read(MAX_PDF_BYTES + 1)
-                headers = {name.lower(): value for name, value in response.headers.items()
-                           if name.lower() in {"etag", "last-modified", "content-type"}}
+            content, headers = read_response(request, urllib.request.urlopen,
+                timeout=self.timeout, maximum=MAX_PDF_BYTES, expected_url=url,
+                unexpected=HouseIndexError('House PTR returned an unexpected response'))
         except urllib.error.HTTPError as exc:
             raise HouseDownloadError(f"House PTR returned HTTP {exc.code}",
                 transient=exc.code in {408, 425, 429} or 500 <= exc.code < 600,
@@ -183,82 +176,37 @@ def archive_document(root: Path, candidate: HouseFilingCandidate, content: bytes
             candidate.filing_year, candidate.filing_type, candidate.document_id):
         raise HouseIndexError("House PTR candidate is not index-confirmed")
     validate_pdf(content)
-    root = root.resolve()
-    sha = hashlib.sha256(content).hexdigest()
-    folder = root / "house_clerk" / "documents" / str(candidate.filing_year) / candidate.document_id
-    target = folder / f"{sha}.pdf"
-    folder.mkdir(parents=True, exist_ok=True)
-    if target.exists() and target.read_bytes() != content:
-        raise HouseIndexError("Archived House PTR hash collision")
-    if not target.exists():
-        with tempfile.NamedTemporaryFile(dir=folder, prefix=f".{sha}.", suffix=".tmp", delete=False) as handle:
-            handle.write(content)
-            temporary = Path(handle.name)
-        temporary.replace(target)
-    metadata = {
-        "source_id": "house_clerk", "source_url": candidate.document_url,
-        "document_id": candidate.document_id, "filing_type": candidate.filing_type,
-        "filer_name": candidate.filer_name, "state_district": candidate.state_district,
-        "filing_year": candidate.filing_year, "filed_date": candidate.filed_date,
-        "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
-        "sha256": sha, "byte_length": len(content), "headers": headers,
-        "archive_path": target.relative_to(root).as_posix(),
-        "verification_status": "official_raw_unparsed",
-    }
-    meta_path = target.with_suffix(".json")
-    if meta_path.exists():
-        try:
-            existing = json.loads(meta_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
-            raise HouseIndexError("Archived House PTR metadata is invalid") from None
-        stable_fields = ("source_id", "source_url", "document_id", "filing_type", "filing_year",
-                         "sha256", "byte_length", "archive_path", "verification_status")
-        if any(existing.get(field) != metadata[field] for field in stable_fields):
-            raise HouseIndexError("Archived House PTR metadata conflicts with its content")
-        return existing
-    encoded = json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    with tempfile.NamedTemporaryFile(dir=folder, prefix=f".{sha}.", suffix=".tmp", delete=False) as handle:
-        handle.write(encoded)
-        temporary = Path(handle.name)
-    temporary.replace(meta_path)
-    return metadata
+    return archive_record(root, ('house_clerk', 'documents', candidate.filing_year, candidate.document_id), content, '.pdf',
+        lambda sha, target, root: {
+            "source_id": "house_clerk", "source_url": candidate.document_url,
+            "document_id": candidate.document_id, "filing_type": candidate.filing_type,
+            "filer_name": candidate.filer_name, "state_district": candidate.state_district,
+            "filing_year": candidate.filing_year, "filed_date": candidate.filed_date,
+            "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
+            "sha256": sha, "byte_length": len(content), "headers": headers,
+            "archive_path": target.relative_to(root).as_posix(),
+            "verification_status": "official_raw_unparsed",
+        },
+        error=HouseIndexError, collision='Archived House PTR hash collision',
+        stable=("source_id", "source_url", "document_id", "filing_type", "filing_year",
+                             "sha256", "byte_length", "archive_path", "verification_status"),
+        invalid='Archived House PTR metadata is invalid',
+        conflict='Archived House PTR metadata conflicts with its content')
 
 
 def archive_discovery(root: Path, year: int, content: bytes, headers: dict[str, str],
                       rows: list[HouseFilingCandidate], retrieved_at: str | None = None) -> dict:
-    root = root.resolve()
-    sha = hashlib.sha256(content).hexdigest()
-    target = root / "house_clerk" / "index" / str(year) / f"{sha}.zip"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if target.exists() and target.read_bytes() != content:
-        raise HouseIndexError("Archived House index hash collision")
-    if not target.exists():
-        with tempfile.NamedTemporaryFile(dir=target.parent, prefix=f".{sha}.", suffix=".tmp", delete=False) as handle:
-            handle.write(content)
-            temporary = Path(handle.name)
-        temporary.replace(target)
-    metadata = {
-        "source_id": "house_clerk", "source_url": INDEX_URL.format(year=year),
-        "filing_year": year, "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
-        "sha256": sha, "record_count": len(rows), "headers": headers,
-        "archive_path": target.relative_to(root).as_posix(),
-    }
-    meta_path = target.with_suffix(".json")
-    if meta_path.exists():
-        try:
-            existing = json.loads(meta_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError, OSError):
-            raise HouseIndexError("Archived House index metadata is invalid") from None
-        stable_fields = ("source_id", "source_url", "filing_year", "sha256", "record_count", "archive_path")
-        if any(existing.get(field) != metadata[field] for field in stable_fields):
-            raise HouseIndexError("Archived House index metadata conflicts with its content")
-        return existing
-    encoded = json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    with tempfile.NamedTemporaryFile(dir=meta_path.parent, prefix=f".{sha}.", suffix=".tmp", delete=False) as handle:
-        handle.write(encoded)
-        temporary = Path(handle.name)
-    temporary.replace(meta_path)
-    return metadata
+    return archive_record(root, ('house_clerk', 'index', year), content, '.zip',
+        lambda sha, target, root: {
+            "source_id": "house_clerk", "source_url": INDEX_URL.format(year=year),
+            "filing_year": year, "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
+            "sha256": sha, "record_count": len(rows), "headers": headers,
+            "archive_path": target.relative_to(root).as_posix(),
+        },
+        error=HouseIndexError, collision='Archived House index hash collision',
+        stable=("source_id", "source_url", "filing_year", "sha256", "record_count", "archive_path"),
+        invalid='Archived House index metadata is invalid',
+        conflict='Archived House index metadata conflicts with its content')
 
 
 def discover(year: int, archive_root: Path, *, client: HouseIndexClient | None = None) -> dict:

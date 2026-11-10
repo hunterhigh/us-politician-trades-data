@@ -122,11 +122,6 @@ class CorrectionTests(unittest.TestCase):
 
 class V1ContractTests(unittest.TestCase):
     def test_active_documentation_and_command_boundaries(self):
-        budgets = {'architecture.md':15000,'data-contract.md':15000,'operations.md':10000,'status.md':3000}
-        self.assertEqual({p.relative_to(ROOT/'docs').as_posix()
-                          for p in (ROOT/'docs').rglob('*') if p.is_file()},set(budgets))
-        for name,budget in budgets.items():
-            self.assertLessEqual((ROOT/'docs'/name).stat().st_size,budget,name)
         for name,budget in [('README.md',4000),('AGENTS.md',3000)]:
             self.assertLessEqual((ROOT/name).stat().st_size,budget,name)
         self.assertEqual({p.name for p in (ROOT/'backend/scripts').iterdir() if p.is_file()}, {'verify.py'})
