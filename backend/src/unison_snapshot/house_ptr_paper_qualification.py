@@ -673,6 +673,8 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
                 low, exclusive = 1000000, True
                 blockers = [reason for reason in blockers if reason not in {
                     "amount_mark_unresolved", "spouse_dc_open_ended_amount_not_representable"}]
+            elif letter == "K":
+                blockers.append("amount_owner_mismatch")
         extraction_rows.append({
             "extraction_id": paper_disclosure_id(source_sha, page, band),
             "filing_status": cover, "reported_transaction_id": None,

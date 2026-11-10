@@ -797,7 +797,8 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
         raise ValueError('OGE source interpretation requires its controlled roots and selection')
     sha, version = selected.get('source_sha256'), selected.get('parser_version')
     supported = {PARSER_VERSION, GENERIC_PARSER_VERSION, *VERSIONS, *parser_versions()}
-    if (version not in supported or
+    historical_native = ordinary and version == 'oge-278t-pdf/v2'
+    if (version not in supported and not historical_native or
             sha not in record.get('source_versions', []) or
             selected.get('document_id') != record.get('report_id')):
         raise ValueError('OGE source interpretation selection differs from report identity')
@@ -825,10 +826,11 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
         raise ValueError('OGE selected original is unavailable or exceeds budget')
     metadata, path, actual_sha = _read_archived_source(evidence, meta)
     generic = version == GENERIC_PARSER_VERSION or version in GENERIC_VERSIONS
+    current_parser = selected_parser_version(metadata, path, sha, generic=generic)
     if (actual_sha != sha or metadata.get('archive_path') != relative or
             metadata.get('document_id') != record['report_id'] or
             metadata.get('document_url') != record['source_url'] or
-            selected_parser_version(metadata, path, sha, generic=generic) != version):
+            current_parser != version and not (historical_native and current_parser == PARSER_VERSION)):
         raise ValueError('OGE selected original or parser differs from its source interpretation')
     if catalog_record is not None and any(metadata.get(field) != catalog_record.get(field)
             for field in ('filer_name', 'agency', 'position_title', 'catalog_added_date',
@@ -846,8 +848,13 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
             replay = load_reusable_extraction(evidence, meta, review/'oge/extractions')
         else:
             replay = parse_archived_pdf(evidence, meta, generic=generic)
-        if replay != raw:
+        equivalent = dict(replay, parser_version=version) if historical_native and isinstance(replay, dict) else replay
+        if equivalent != raw:
             raise ValueError('OGE selected source cache differs from complete original replay')
+        if historical_native:
+            record['historical_source_interpretation_binding'] = selected
+            raw = replay
+            selected = source_interpretation_binding(raw)
     record['source_interpretation_binding'] = selected
     return raw
 
@@ -857,6 +864,18 @@ def _apply_source_interpretation(record, audit, *, review, evidence, catalog_rec
         catalog_record=catalog_record, transactions=transactions)
     if raw is None:
         return
+    if record.get('historical_source_interpretation_binding') is not None:
+        old = record['historical_source_interpretation_binding']
+        current = record['source_interpretation_binding']
+        def rebind(value):
+            if isinstance(value, dict):
+                return current if value == old else {key: rebind(item) for key, item in value.items()}
+            if isinstance(value, list):
+                return [rebind(item) for item in value]
+            return value
+        # Only proof references are translated, after exact original replay;
+        # persisted qualification and all financial objects stay untouched.
+        audit = rebind(audit)
     classification = _native_classification_state(record, audit, raw, review=review,
         evidence=evidence, catalog_record=catalog_record, transactions=transactions)
     if classification is not None:

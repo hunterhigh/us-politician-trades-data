@@ -255,6 +255,9 @@ def _build_house_status(evidence_root: Path, review_root: Path,
                     replaced = [row["id"] for row in rows if row["id"] in superseded]
                     rows = [row for row in rows if row["id"] not in superseded]
                     record["qualified_transaction_count"] = len(rows)
+                    if extraction is not None:
+                        from .house_open_amounts import quarantined_limitations
+                        limitations.extend(quarantined_limitations(extraction, qualification))
                     if replaced:
                         record["superseded_transaction_ids"] = sorted(replaced)
                         record["revision_replacements"] = [superseded[key] for key in sorted(replaced)]

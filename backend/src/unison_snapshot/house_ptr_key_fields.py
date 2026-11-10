@@ -161,8 +161,6 @@ def read_house_ptr_key_fields(observation: dict, *, filing_year: int | None = No
                 ("amount_mark_unresolved", amount is not None)) if not valid]
             if spouse_dc_mark is True and amount is not None:
                 blockers.append("amount_column_combination_unresolved")
-            if spouse_dc_mark is True and amount is None:
-                blockers.append("spouse_dc_open_ended_amount_not_representable")
             rows.append({"page": page["page"],
                          "physical_band_index": physical["physical_band_index"],
                          "status": "raw_fields_present_unverified" if not blockers
