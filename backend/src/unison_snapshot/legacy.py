@@ -59,8 +59,9 @@ def load(name: str, *, version: str = "v1"):
             return result
         module.build_snapshot = build_snapshot
     if name == 'render_dashboard':
+        from .ticker_display import render as render_tickers
         from .known_gaps import render
         from .source_freshness import render as render_freshness
         original = module.render_html
-        module.render_html = lambda data: render_freshness(render(original(data), data), data)
+        module.render_html = lambda data: render_tickers(render_freshness(render(original(data), data), data))
     return module

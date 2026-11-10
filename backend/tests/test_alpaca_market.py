@@ -614,10 +614,10 @@ class AlpacaMarketTests(unittest.TestCase):
             }],
         }
 
-        with self.assertRaisesRegex(ValueError, "now class-ambiguous"):
-            enrich_whitehouse_annual_tickers(
-                snapshot, assets, checked_at="2026-09-20T21:00:00Z",
-                previous=previous)
+        result, audit = enrich_whitehouse_annual_tickers(
+            snapshot, assets, checked_at="2026-09-20T21:00:00Z", previous=previous)
+        self.assertEqual(result["transactions"][-1]["ticker"], "BRK.A")
+        self.assertEqual(audit["mappings"], previous["mappings"])
         previous["schema_version"] = "whitehouse-annual-ticker-mapping/v1"
         with self.assertRaisesRegex(ValueError, "mapping is invalid"):
             enrich_whitehouse_annual_tickers(
