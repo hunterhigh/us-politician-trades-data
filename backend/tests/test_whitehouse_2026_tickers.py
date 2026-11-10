@@ -141,6 +141,9 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
                     checked_at="2026-11-09T00:00:00Z", previous=audit)
                 self.assertEqual(repeated, result)
                 self.assertEqual(repeated_audit["mappings"], audit["mappings"])
+                for conflict in repeated_audit['retained_ticker_conflicts']:
+                    self.assertEqual(conflict['reason'],
+                        'current_market_mapping_differs_from_historical_binding')
 
     def test_current_name_ticker_proposal_is_quarantined_without_rewriting_history(self):
         record_id = 'oge-278t:' + 'a' * 24
@@ -310,6 +313,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         result, audit = enrich_reviewed_tickers(
             candidate, assets, checked_at="2026-09-28T00:00:00Z")
         self.assertTrue(all(row["ticker"] is None for row in result["transactions"]))
+        self.assertEqual(len(audit["unmatched_records"]), audit["unmatched_record_count"])
         self.assertEqual(audit["new_mapping_count"], 0)
         self.assertEqual(
             audit["unmatched_record_count"] + audit["ambiguous_record_count"],

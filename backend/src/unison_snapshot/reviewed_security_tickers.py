@@ -418,7 +418,9 @@ def enrich_reviewed_tickers(candidate: dict, assets: object, *,
                     'record_id': record_id, 'asset_name': old['asset_name'],
                     'retained_ticker': old['ticker'],
                     'proposed_ticker': current_mapping['ticker'],
-                    'reason': 'provider_name_match_changed_ticker',
+                    'reason': ('provider_name_match_changed_ticker'
+                               if old['ticker'] != current_mapping['ticker'] else
+                               'current_market_mapping_differs_from_historical_binding'),
                     'disposition': 'proposal_quarantined_prior_mapping_retained',
                 })
         row["ticker"] = old["ticker"]
@@ -478,7 +480,7 @@ def enrich_reviewed_tickers(candidate: dict, assets: object, *,
         "unmatched_record_count": len(unmatched),
         "unmatched_records": [{"record_id": row["id"], "status": "unmatched",
                                "reason": "no_unique_market_ticker"}
-                              for row in source_rows if not row.get("ticker")],
+                              for row in unmatched],
         "explicit_ticker_count": len(explicit),
         "mappings": mappings,
     }
