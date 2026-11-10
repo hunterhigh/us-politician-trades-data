@@ -4,7 +4,7 @@
 
 ## 有效决定
 
-House/OGE采集及合格水位48小时；Senate宽限30天（`SENATE_MAX_STALE_DAYS`），20天提醒一次，超过停发告警。独立真实截止时间，保留Senate旧事实，前端标明缺口；来源告警保持，正式恢复后关闭发布窗口告警。Senate仅每日正常采集，自动补齐成功以来区间，不做访问诊断。允许告警Issue、内容失败回退；网络仅重试。回填限2025 House PTR及已归档年报持仓；年报版本变化自动重跑。语义见[契约](data-contract.md)。
+House/OGE采集及合格水位48小时；Senate宽限30天（`SENATE_MAX_STALE_DAYS`），20天提醒一次，超过停发告警。独立真实截止时间，保留Senate旧事实，前端标明缺口；来源告警保持，正式恢复后关闭发布窗口告警。Senate仅每日正常采集，自动补齐成功以来区间，不做访问诊断。允许告警Issue、内容失败回退；网络仅重试。回填限2025 House PTR及已归档年报持仓；五个来源共用解析版本重跑机制，不以旧版结果代替当前解析。语义见[契约](data-contract.md)。
 
 v1.1日期、稳定一周及定时检查已取消；本轮连续完成。两种方法未推进同一验收项即记待决、继续独立步骤；仅产品范围、付费或删除生产数据须询问。用户接受src 69,492、tests 59,137行，瘦身结束。
 
@@ -22,12 +22,14 @@ v1.1日期、稳定一周及定时检查已取消；本轮连续完成。两种�
 
 ## 当前结果
 
-年报持仓重跑基线main d6160521：430人、27083交易、5595持仓；正式发布结果与差异见对应发布PR及[健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)。3115行YAML接受，不再压缩。
+2026-11-10：正式main仍为4010b3f3，584人、27228交易、19499持仓，OGE直接来源5693笔。[PR331](https://github.com/hunterhigh/us-politician-trades-data/pull/331)/PR332共用重跑机制已合入并通过完整CI；OGE 339份当前解析已持久化（319份新版、20份通过当前校验），解析失败0，采集状态待解析0。新版资格候选为5693笔；整合及正式发布未完成，不能据此宣称review待解析已清零。3115行YAML接受，不再压缩；[健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)。
 
 PR303–306受控原件重跑及候选投影完成：226份361行底纹误判消除，原始交易对象不变；身份恢复15/16，3电子长表修复。合格440、部分6、隔离69（52纸表失败），合格7643行、隔离444行。重试锁定三份电子长表ID+哈希，纸表同错不重跑。受控[收据](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/house_backfill_2025.json)；集成/守恒证据维护于[PR303](https://github.com/hunterhigh/us-politician-trades-data/pull/303)。
 
 人物缺口、清理、改名及冻结链路演练已验收（PR296/299/300）。PR303–306负例及2026候选字节守恒通过。新发布规则、缓存接入与正式快照差异见[PR307](https://github.com/hunterhigh/us-politician-trades-data/pull/307)。
 
 ## 待决事项
+
+OGE整合/发布：已试完整受控重跑、同一证券显示名称兼容后重试，ARI仍无唯一活跃SIP身份（记录oge-278t:15141742f9a9d3d335e4cb1e）；review仍待解析315份、保留旧版4696笔，main未前进。判断是历史ticker绑定与当前行情资格耦合，不能猜继任证券或改旧事实；建议将已验证历史绑定与当前行情可用性分开，再持久化当前资格并发布。按两种方法停止规则暂止此项，已撤掉提前检查以恢复正常采集；[失败证据](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42602307345)，原件与319份新版解析已在evidence/review，未删除。
 
 Manning 20026638身份：已试官方名册、Clerk个人页，缺可重放历史身份原件；8行继续隔离，建议取得118届官方名册后再绑定，不推断；20029046另有未解修订关系。
