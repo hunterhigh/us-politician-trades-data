@@ -77,7 +77,7 @@ class AmountColumnConsumptionTests(unittest.TestCase):
         rejected, _ = self.consume({'letter': 'K', 'low': 1000000, 'high': None,
             'low_exclusive': True, 'kind': 'spouse_dc_special_open_ended'}, header=header)
         self.assertEqual(rejected['transactions'], [])
-        self.assertIn('spouse_dc_open_ended_amount_not_representable', rejected['quarantined'][0]['reasons'])
+        self.assertIn('amount_owner_mismatch', rejected['quarantined'][0]['reasons'])
 
     def test_duplicate_column_readings_cannot_outvote_a_complete_header(self):
         rejected, bound = self.consume({'letter': 'A', 'low': 1000, 'high': 15000, 'kind': 'range'}, copies=2)

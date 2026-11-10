@@ -159,8 +159,6 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
         row = read_house_ptr_key_fields(observed)["rows"][0]
         self.assertIsNone(row["fields"]["amount_letter"])
         self.assertIn("amount_mark_unresolved", row["blocking_reasons"])
-        self.assertIn("spouse_dc_open_ended_amount_not_representable",
-                      row["blocking_reasons"])
 
     def test_wrong_schema_cannot_become_key_field_report(self):
         observed = report()

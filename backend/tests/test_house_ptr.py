@@ -469,13 +469,12 @@ class HousePtrTests(unittest.TestCase):
         del open_extraction["transactions"][0]["amount_low_exclusive"]
         with self.assertRaises(HouseIndexError):
             qualify_automatic(open_extraction, IDENTITY)
-        # A real legacy cache has no replayable words; preserve its existing
-        # row-level qualification rather than accepting edited replay evidence.
+        # A legacy cache's explicit source spelling still supplies its threshold.
         open_extraction.pop("source_word_pages")
         open_extraction.pop("source_word_pages_sha256")
-        unknown = qualify_automatic(open_extraction, IDENTITY)
-        self.assertTrue(any("open_ended_amount_not_representable" in row["reasons"]
-                            for row in unknown["quarantined"]))
+        legacy = qualify_automatic(open_extraction, IDENTITY)
+        self.assertEqual(legacy['transactions'][0]['amount_low'], 1000000)
+        self.assertTrue(legacy['transactions'][0]['amount_low_exclusive'])
 
         ocr_extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False,
                                           ocr_engine="tesseract 5.3.0")

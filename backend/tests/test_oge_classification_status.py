@@ -38,6 +38,37 @@ class ClassificationStatusTests(unittest.TestCase):
                     candidate['transactions'], []) for row in scope['reports']
                     if row['report_id'] == data['document_id'])
 
+    def test_historical_version_label_requires_complete_equal_current_source_replay(self):
+        from unison_snapshot.oge_native_owner_scope import source_interpretation_binding
+        data = classification_candidate_inputs(self.root, owner='Spouse')
+        candidate, audit = self.build(data)
+        current = source_interpretation_binding(data['legacy'])
+        historical = dict(data['legacy'], parser_version='oge-278t-pdf/v2')
+        binding = source_interpretation_binding(historical)
+        def rebind(value):
+            if isinstance(value, dict):
+                return binding if value == current else {key: rebind(item) for key,item in value.items()}
+            return [rebind(item) for item in value] if isinstance(value,list) else value
+        historical_audit = rebind(audit)
+        cache = (data['review_root']/'oge/extractions'/data['document_id']/
+                 historical['source_sha256']/'oge-278t-pdf-v2.json')
+        cache.write_bytes(encode(historical)); self.save(data, historical_audit)
+        before = deepcopy(candidate)
+        record = self.record(data, candidate)
+        self.assertEqual(record['historical_source_interpretation_binding'], binding)
+        self.assertEqual(record['source_interpretation_binding'], current)
+        self.assertEqual(record['qualified_transaction_count'], 1)
+        self.assertEqual(candidate, before)
+        for field in ('transactions', 'source_rows'):
+            damaged = deepcopy(historical)
+            damaged[field] = []
+            changed_binding = source_interpretation_binding(damaged)
+            forged = deepcopy(historical_audit)
+            forged['reports'][0]['source_interpretation_binding'] = changed_binding
+            cache.write_bytes(encode(damaged)); self.save(data, forged)
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'complete original replay'):
+                self.record(data, candidate)
+
     def test_selected_reader_combination_and_native_id_repeat_remain_current(self):
         cases = [(False, 'Self', None), (True, None, None),
                  (False, 'Spouse', None), (False, None, 'Undisclosed')]

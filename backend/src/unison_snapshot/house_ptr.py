@@ -1051,11 +1051,13 @@ def qualify_automatic(extraction: dict, identity: dict, *,
                         re.fullmatch(r"[0-9]{1,30}", target) else "official_target_id_unavailable",
                     "source_sha256": extraction.get("source_sha256"), "evidence": row.get("evidence"),
                     "description": row.get("description")})
+        from .house_open_amounts import threshold
+        open_threshold = threshold(row, extraction.get('parser_version'))
         if row.get("amount_high") is None:
             if row.get("amount_kind") != "open_ended":
                 reasons.append("amount_upper_bound_missing")
-            elif type(row.get("amount_low_exclusive")) is not bool:
-                reasons.append("open_ended_amount_not_representable")
+            elif open_threshold is None:
+                reasons.append("amount_invalid")
         needs_ocr_confidence = str(extraction.get("extraction_method", "")).startswith("tesseract_")
         if extraction.get("extraction_method") == "mixed_native_ocr":
             needs_ocr_confidence = bool(row["ocr_source_pages"])
@@ -1076,6 +1078,8 @@ def qualify_automatic(extraction: dict, identity: dict, *,
                 r"[A-Z0-9][A-Z0-9.\-^/]{0,31}", ticker)):
             reasons.append("ticker_invalid")
         low, high = row.get("amount_low"), row.get("amount_high")
+        if open_threshold is not None:
+            low = open_threshold[0]
         if type(low) is not int or low < 0 or (high is not None and type(high) is not int) or \
                 (type(high) is int and not 0 <= low <= high):
             reasons.append("amount_invalid")
@@ -1134,7 +1138,7 @@ def qualify_automatic(extraction: dict, identity: dict, *,
                 "expiration_date": expiration_date} if row.get("instrument_type") == "Option" else {}),
             "transaction_date": row["transaction_date"], "filed_at": filed_at,
             "amount_low": low, "amount_high": high,
-            **({"amount_low_exclusive": row["amount_low_exclusive"]} if high is None else {}),
+            **({"amount_low_exclusive": open_threshold[1]} if high is None else {}),
             "position_effect": "unknown",
             "position_effect_basis": None, "source_id": "house_clerk", "source": "U.S. House Clerk",
             "source_url": source["source_url"], "verification_status": "official_matched",

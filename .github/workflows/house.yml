@@ -384,6 +384,12 @@ jobs:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           PARSER_COMMIT: ${{ github.sha }}
         run: |
+          python - <<'PY'
+          import json, os
+          from unison_snapshot.house_open_amounts import refresh_qualifications
+          print(json.dumps({'open_amount_qualification_refresh': refresh_qualifications(
+              os.environ['REVIEW_ROOT'], os.environ['EVIDENCE_ROOT'])}))
+          PY
           python -m unison_snapshot house-review status
       - name: Persist qualified House review before candidate assembly
         if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025' && steps.selection.outputs.cache_ready == 'true'
