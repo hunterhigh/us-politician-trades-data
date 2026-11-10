@@ -97,8 +97,27 @@ def _replay_ordinary_current(sources, evidence, review, catalog, history, docume
     return actual, None, scoped, record, scoped_history, metadata, raw
 
 
+def _ordinary_current_receiver(selected, catalog, history, metadata, raw, prior, people):
+    """Replay one complete report with its complete fixed published predecessor set."""
+    from ..oge_candidate import build_oge_candidate
+    filed = selected.get('filed_at')
+    if not isinstance(filed, str):
+        raise InventoryError('Direct OGE classification has no source qualified filing date')
+    cutoff = filed + 'T23:59:59Z'
+    with TemporaryDirectory() as temporary:
+        root = Path(temporary); path = root / metadata['archive_path']
+        path.parent.mkdir(parents=True); path.write_bytes(raw)
+        path.with_suffix('.json').write_text(json.dumps(metadata), encoding='utf-8')
+        base = _empty(cutoff)
+        base.update(people=deepcopy(people), transactions=deepcopy(prior))
+        result, audit = build_oge_candidate(catalog, [selected], base,
+            data_cutoff_at=cutoff, catalog_history=history, evidence_root=root,
+            source_extractions_by_document={selected['document_id']: selected})
+    return {row['id']: row for row in result['transactions']}, audit['reports'][0]
+
+
 def _prove(selected, legacy, generic, catalog, record, history, metadata, raw,
-           prior, replacement, person):
+           prior, replacement, person, *, normal_receiver=None):
     from ..oge_native_classification import prepare_native_classification
     from ..oge_candidate import build_oge_candidate, _identity_key, _person_id
     from ..oge_reports import GENERIC_PARSER_VERSION
@@ -112,28 +131,34 @@ def _prove(selected, legacy, generic, catalog, record, history, metadata, raw,
     if not isinstance(filed, str):
         raise InventoryError('Direct OGE classification has no source qualified filing date')
     cutoff = filed + 'T23:59:59Z'
+    if replacement.get('instrument_type') == 'Unspecified':
+        from ..whitehouse_native_correction import _historical_projection
+        from ..oge_projection import _transaction_projection
+        from ..oge_native_owner_scope import _represented
+        rows = [row for row in selected['transactions'] if row.get('extraction_id') == prior['id']]
+        if (len(rows) != 1 or not re.search(r'\bEndnote\b', rows[0].get('asset_name', ''), re.I)
+                or _differences(prior, replacement) != ['instrument_type']
+                or _represented(_historical_projection(selected, rows[0], pid), prior) != prior
+                or _represented(_transaction_projection(selected, rows[0], pid), replacement) != replacement):
+            raise InventoryError('Unspecified classification does not reproduce complete source old/new projections')
+        if normal_receiver is None:
+            raise InventoryError('Unspecified classification requires a freshly replayed complete receiver')
+        actual, report = normal_receiver
+        if (actual.get(prior['id']) != replacement or report.get('document_reasons') or
+                any(row.get('extraction_id') == prior['id'] for row in report.get('quarantined', []))):
+            raise InventoryError('Direct OGE classification is not the selected qualified normal interpretation')
+        return
     with TemporaryDirectory() as temporary:
         root = Path(temporary)
         path = root / metadata['archive_path']
         path.parent.mkdir(parents=True)
         path.write_bytes(raw)
         path.with_suffix('.json').write_text(json.dumps(metadata), encoding='utf-8')
-        if replacement.get('instrument_type') == 'Unspecified':
-            from ..whitehouse_native_correction import _historical_projection
-            from ..oge_projection import _transaction_projection
-            from ..oge_native_owner_scope import _represented
-            rows = [row for row in selected['transactions'] if row.get('extraction_id') == prior['id']]
-            if (len(rows) != 1 or not re.search(r'\bEndnote\b', rows[0].get('asset_name', ''), re.I)
-                    or _differences(prior, replacement) != ['instrument_type']
-                    or _represented(_historical_projection(selected, rows[0], pid), prior) != prior
-                    or _represented(_transaction_projection(selected, rows[0], pid), replacement) != replacement):
-                raise InventoryError('Unspecified classification does not reproduce complete source old/new projections')
-        else:
-            context = prepare_native_classification(selected, [prior], record,
-                evidence_root=root, source_extraction=selected, legacy_extraction=legacy)
-            verified = context.reconcile(prior)
-            if context.status != 'observed' or verified is None or verified['fact'] != replacement:
-                raise InventoryError('Direct OGE classification does not reproduce complete source old/new projections')
+        context = prepare_native_classification(selected, [prior], record,
+            evidence_root=root, source_extraction=selected, legacy_extraction=legacy)
+        verified = context.reconcile(prior)
+        if context.status != 'observed' or verified is None or verified['fact'] != replacement:
+            raise InventoryError('Direct OGE classification does not reproduce complete source old/new projections')
         base = _empty(cutoff)
         base.update(people=[deepcopy(person)], transactions=[deepcopy(prior)])
         result,audit = build_oge_candidate(catalog, [selected], base,
@@ -176,6 +201,7 @@ def verified_oge_classification_corrections(*, old, current, repo, evidence_comm
         catalog,history = load_fixed_oge_catalogs(sources,evidence_commit,review_commit)
         selected_reports = _selected_reports(sources,review_commit)
         cache,result = {},[]
+        normal_receivers = {}
         for key in sorted(possible):
             prior,replacement = old[key],current[key]
             if pinned.get(key) != prior:
@@ -195,8 +221,15 @@ def verified_oge_classification_corrections(*, old, current, repo, evidence_comm
                     _replay(sources,evidence_commit,review_commit,catalog,history,document,url))
             legacy,generic,scoped,record,scoped_history,metadata,raw = cache[cache_key]
             selected = _selected_input(selected_reports.get(document),legacy,generic)
+            if mode == 'unspecified' and document not in normal_receivers:
+                predecessors = [row for row in pinned.values() if row.get('source_id') == 'oge'
+                    and row.get('filing_id') == document and row.get('source_url') == url
+                    and row.get('verification_status') == 'official_matched']
+                person_ids = {row['person_id'] for row in predecessors}
+                normal_receivers[document] = _ordinary_current_receiver(selected, scoped, scoped_history,
+                    metadata, raw, predecessors, [people[identifier] for identifier in person_ids])
             _prove(selected,legacy,generic,scoped,record,scoped_history,metadata,raw,
-                   prior,replacement,person)
+                   prior,replacement,person, normal_receiver=normal_receivers.get(document))
             result.append({'entity':'transactions','kind':'corrected','old_id':key,'new_id':key,
                 'reason':'source_classification_correction','evidence_url':url,
                 'source_sha256':selected['source_sha256'],'changed_fields':_differences(prior,replacement)})

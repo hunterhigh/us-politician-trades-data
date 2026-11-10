@@ -75,7 +75,8 @@ class OgeClassificationCorrectionTests(unittest.TestCase):
                 git(*args)
             commit = git('rev-parse','HEAD')
             return verified_oge_classification_corrections(
-                old={old['id']:old},current={current['id']:current},
+                old={row['id']:row for row in (old if isinstance(old,list) else [old])},
+                current={row['id']:row for row in (current if isinstance(current,list) else [current])},
                 repo=repo,evidence_commit=commit,review_commit=commit,main_commit=commit,
                 previous_people=board['people'] if supplied_people is None else supplied_people)
 
@@ -106,6 +107,31 @@ class OgeClassificationCorrectionTests(unittest.TestCase):
                 old['amount_low'] = current['amount_low'] = board['transactions'][0]['amount_low'] = 1002
             with self.assertRaisesRegex(InventoryError, 'complete source old/new'):
                 self.verify(tuple(data), edit=forged)
+
+    def test_multiple_source_corrections_replay_one_complete_receiver_and_check_every_object(self):
+        _,_,review,evidence,base = fixture(asset='Retirement Account See Endnote', heading=' ',
+            extra_rows=[['2','Other Account See Endnote','Sale','06/02/2026','No','$1,001 - $15,000']])
+        legacy = json.loads(next(raw for path,raw in review.items() if path.endswith('v8.json')))
+        catalog = json.loads(next(raw for path,raw in evidence.items() if '/catalog/normalized/' in path))
+        base['transactions'] = [_historical_projection(legacy,row,base['people'][0]['id'])
+                                for row in legacy['transactions']]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory);write_files(root,evidence)
+            current,audit = build_oge_candidate(catalog,[legacy],base,data_cutoff_at=CUTOFF,evidence_root=root)
+        self.assertEqual(len(current['transactions']),2)
+        self.assertTrue(all(row['instrument_type']=='Unspecified' for row in current['transactions']))
+        review['oge/qualifications/current.json'] = encoded(audit)
+        data = (base['transactions'],current['transactions'],review,evidence,base)
+        from unison_snapshot.fact_policy import oge_classification_correction as policy
+        with patch.object(policy,'_ordinary_current_receiver',wraps=policy._ordinary_current_receiver) as receiver:
+            self.assertEqual(len(self.verify(data)),2)
+            self.assertEqual(receiver.call_count,1)
+        def edit(old,current,review,evidence,board):
+            identifier=old[1]['id']
+            for row in old+current+board['transactions']:
+                if row['id']==identifier:row['amount_low']=1002
+        with self.assertRaisesRegex(InventoryError,'complete source old/new'):
+            self.verify(data,edit=edit)
 
     def test_unknown_type_cannot_remove_an_explicit_source_bond_classification(self):
         data = list(deepcopy(classification_fixture(asset='Treasury Bond See Endnote')))
