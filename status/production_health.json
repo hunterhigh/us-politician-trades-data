@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-10T12:57:53.030847+00:00",
+  "checked_at": "2026-11-10T14:31:19.252703+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -178,7 +178,7 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "13ff930de18bac8541e7ece05b926f2596945eaa",
+  "quality_review_commit": "a37e7c51f1adc68a39637d394d09547275ab8cff",
   "schema_version": "production-health/v1",
   "smoke": {
     "checked_at": "2026-11-10T12:57:52.556165+00:00",
@@ -229,7 +229,7 @@
     "snapshot_id": "1e1dd3ce6de7a66c79ecbb677f1ca4dd7eecff1d0667c0e30522e1be86b8b4c3",
     "status": "passed"
   },
-  "snapshot_changed": true,
+  "snapshot_changed": false,
   "snapshot_id": "1e1dd3ce6de7a66c79ecbb677f1ca4dd7eecff1d0667c0e30522e1be86b8b4c3",
   "sources": {
     "house_clerk": {
@@ -248,13 +248,13 @@
       "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-10T08:39:20.135546+00:00",
-      "last_successful_collection_at": "2026-11-10T08:31:00.846478+00:00",
+      "last_attempt_at": "2026-11-10T13:17:53.132501+00:00",
+      "last_successful_collection_at": "2026-11-10T13:03:50.094642+00:00",
       "qualified_cutoff_at": "2026-11-10T08:31:00.846478+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42782953671"
+      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42820543328"
     },
     "senate_efd": {
       "detail": "Authorized eFD PTR catalog and a bounded batch of report entrypoint responses were archived. Transaction facts remain unpublished.",
