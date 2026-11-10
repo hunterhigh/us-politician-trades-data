@@ -141,7 +141,7 @@ def enrich_whitehouse_annual_tickers(
         "unmatched_record_count": len(unmatched),
         "unmatched_records": [{"record_id": row["id"], "status": "unmatched",
                                "reason": "no_unique_market_ticker"}
-                              for row in annual_rows if not row.get("ticker")],
+                              for row in unmatched],
         "unmatched_asset_name_count": len({row["asset_name"] for row in unmatched}),
         "mappings": mappings,
     }
