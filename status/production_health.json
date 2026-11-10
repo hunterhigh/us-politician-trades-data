@@ -6,6 +6,11 @@
       "title": "[Health] senate_efd collection blocked or stale"
     },
     {
+      "detail": "Latest snapshot: 2026-11-09T06:48:46Z\nBlocking sources: []",
+      "key": "publication",
+      "title": "[Health] Production publication missed its expected window"
+    },
+    {
       "condition": [
         {
           "baseline_comparable": true,
@@ -152,13 +157,18 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-10T00:28:37.636256+00:00",
+  "checked_at": "2026-11-10T01:29:17.857869+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
       "action": "already_open",
       "key": "source:senate_efd",
       "number": 290
+    },
+    {
+      "action": "reopened",
+      "key": "publication",
+      "number": 291
     },
     {
       "action": "already_open",
