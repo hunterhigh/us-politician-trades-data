@@ -43,6 +43,9 @@ def scheduled_fixed_body(name):
     if condition is None:return body
     if condition=="inputs.filing_year != '2025'":
         return 'if [ "${UNISON_HOUSE_FILING_YEAR:-}" != "2025" ]; then\n'+body+'\nfi\n'
+    if condition=="inputs.filing_year != '2025' && inputs.mode != 'amount-policy'":
+        return ('if [ "${UNISON_HOUSE_FILING_YEAR:-}" != "2025" ] && '
+                '[ "${INPUT_MODE:-ptr}" != "amount-policy" ]; then\n'+body+'\nfi\n')
     ready="steps.selection.outputs.cache_ready == 'true'"
     combined="inputs.filing_year != '2025' && (inputs.materialize_saved_paper == true || "+ready+")"
     if condition==combined:

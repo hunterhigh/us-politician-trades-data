@@ -6,7 +6,7 @@ import unittest
 
 from test_house_ptr import META, IDENTITY, fixture_pages
 from unison_snapshot.house_ptr import parse_word_pages, qualify_automatic, LEGACY_PARSER_VERSION
-from unison_snapshot.house_open_amounts import threshold, quarantined_limitations, refresh_qualifications
+from unison_snapshot.house_open_amounts import threshold, quarantined_limitations, refresh_qualifications, refresh_candidate
 from unison_snapshot.publication_amounts import project
 
 
@@ -82,3 +82,32 @@ class HouseOpenAmountTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'another eligible fact'):
                 refresh_qualifications(root, None)
             self.assertEqual(target.read_bytes(),before)
+
+    def test_candidate_refresh_preserves_finite_objects_cutoff_and_rejects_unbound_open_rows(self):
+        from test_house_candidate import BASE
+        from unison_snapshot.house_candidate import _person
+        extraction=legacy_open(); qualification=qualify_automatic(extraction, IDENTITY)
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary)
+            for folder,value in (('extractions',extraction),('qualifications',qualification)):
+                path=root/f'house_clerk/{folder}/2026/20000001'/('b'*64+'.json')
+                path.parent.mkdir(parents=True);path.write_text(json.dumps(value))
+            base=deepcopy(BASE);base['people']=[_person(IDENTITY)];base['source_health']=[]
+            base['transactions']=qualify_automatic(parse_word_pages(META,'a'*64,
+                fixture_pages(),copy_allowed=True),IDENTITY)['transactions']
+            original=deepcopy(base)
+            result=refresh_candidate(base,root,None)
+            self.assertEqual(len(result['transactions']),len(base['transactions'])+1)
+            self.assertEqual(result['meta'],base['meta'])
+            self.assertEqual(base,original)
+            self.assertEqual(refresh_candidate(result,root,None),result)
+            path=root/'house_clerk/qualifications/2026/20000001'/('b'*64+'.json')
+            qualification['transactions'][0]['amount_low']=2
+            path.write_text(json.dumps(qualification))
+            with self.assertRaisesRegex(ValueError,'exact source qualification'):
+                refresh_candidate(base,root,None)
+            qualification=qualify_automatic(extraction,IDENTITY)
+            path.write_text(json.dumps(qualification))
+            base['meta']['data_cutoff_at']='2020-01-01T00:00:00Z'
+            with self.assertRaisesRegex(ValueError,'existing source scope'):
+                refresh_candidate(base,root,None)

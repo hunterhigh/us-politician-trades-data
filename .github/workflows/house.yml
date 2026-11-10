@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Normal PTR processing, or existing annual-report support
+        description: PTR processing, annual support, or financial-data-preserving amount policy refresh
         type: choice
-        options: [ptr, annual]
+        options: [ptr, annual, amount-policy]
         default: ptr
       filing_year:
         description: Current filing year, or the authorized fixed 2025 PTR scope
@@ -89,9 +89,17 @@ jobs:
         id: clock
         env:
           INPUT_YEAR: ${{ inputs.filing_year }}
+          INPUT_MODE: ${{ inputs.mode }}
+          SAVED_ONLY: ${{ inputs.materialize_saved_paper }}
         run: |
+          if [ "$INPUT_MODE" = "amount-policy" ] && [ "$SAVED_ONLY" != "true" ]; then
+            echo 'Amount policy refresh requires saved observations only' >&2; exit 2
+          fi
           year="${INPUT_YEAR:-$(date -u +%Y)}"
           case "$year" in 2025|"$(date -u +%Y)") ;; *) echo 'House v1 only permits the current year or fixed 2025 PTR scope' >&2; exit 2 ;; esac
+          if [ "$INPUT_MODE" = "amount-policy" ] && [ "$year" != "$(date -u +%Y)" ]; then
+            echo 'Amount policy refresh uses the complete current source projection' >&2; exit 2
+          fi
           echo "year=$year" >> "$GITHUB_OUTPUT"
           echo "UNISON_HOUSE_FILING_YEAR=$year" >> "$GITHUB_ENV"
           echo "run_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
@@ -340,7 +348,7 @@ jobs:
               --extraction "$extraction" --identity "$identity" --evidence-root "$EVIDENCE_ROOT" --output "$qualification"
           done
       - name: Bridge bounded House paper observations into qualification
-        if: inputs.filing_year != '2025'
+        if: inputs.filing_year != '2025' && inputs.mode != 'amount-policy'
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -404,6 +412,7 @@ jobs:
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+          INPUT_MODE: ${{ inputs.mode }}
         run: |
           mkdir -p "$REVIEW_ROOT/candidates/sources"
           # Preserve activated annual disclosure rows if a later source
@@ -412,12 +421,24 @@ jobs:
           if [ -f "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" ]; then
             candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
           fi
-          PYTHONPATH=backend/src python -m unison_snapshot build-house-candidate \
+          if [ "${INPUT_MODE:-ptr}" = "amount-policy" ]; then
+            python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from unison_snapshot.codec import encode
+          from unison_snapshot.house_open_amounts import refresh_candidate
+          path = Path(os.environ['REVIEW_ROOT']) / 'candidates/sources/house_clerk-current.json'
+          candidate = refresh_candidate(json.loads(path.read_bytes()), os.environ['REVIEW_ROOT'], os.environ['EVIDENCE_ROOT'])
+          path.write_bytes(encode(candidate))
+          PY
+          else
+            PYTHONPATH=backend/src python -m unison_snapshot build-house-candidate \
             --review-root "$REVIEW_ROOT" \
             --evidence-root "$EVIDENCE_ROOT" \
             --state-status "$STATE_ROOT/status/house_clerk.json" \
             --base "$candidate_base" \
             --output "$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
+          fi
           cp "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
             "$REVIEW_ROOT/candidates/house-current.json"
           # Persist the validated House projection through the shared assembler.
