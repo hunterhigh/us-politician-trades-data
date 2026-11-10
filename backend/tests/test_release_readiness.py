@@ -81,6 +81,96 @@ class ReleaseReadinessTests(unittest.TestCase):
             },
         })
 
+    def _deferred_oge(self):
+        document = 'a' * 32
+        row = {'id': 't2', 'filing_id': document, 'source_id': 'oge',
+               'verification_status': 'official_matched', 'asset_name': 'Original asset',
+               'ticker': None, 'owner': 'Self', 'instrument_type': 'Bond'}
+        self.sources['oge']['transactions'] = [row]
+        self._write('candidates/sources/oge-current.json', self.sources['oge'])
+        self.candidate['transactions'][1] = dict(row)
+        self._write('candidates/disclosure-current.json', self.candidate)
+        self._write_cutoff()
+        status = json.loads((self.root/'status/oge.json').read_bytes())
+        status.update(qualified_transaction_count=None, publication_transaction_count=1,
+            oge_direct_publication_transaction_count=1, oge_direct_qualified_transaction_count=0,
+            whitehouse_public_qualified_transaction_count=0,
+            whitehouse_public_qualified_annual_transaction_count=0,
+            pending_extraction_count=0, retained_prior_qualified_transaction_count=0)
+        self._write('status/oge.json', status)
+        audit = {'schema_version': 'oge-candidate-audit/v1', 'extraction_count': 2,
+            'promoted_transaction_count': 1, 'current_qualified_transaction_count': 0,
+            'reports': [{'document_id': document, 'promoted_count': 1,
+                'native_classification': {'qualified_ids': [], 'deferred_ids': ['t2']}},
+                {'document_id': 'b' * 32, 'promoted_count': 0}]}
+        self._write('oge/qualifications/current.json', audit)
+        self._write('previous-board.json', {'transactions': [dict(row)]})
+        return status, audit
+
+    def test_unchanged_deferred_fact_does_not_block_the_rest_of_publication(self):
+        self._deferred_oge()
+        before = self.candidate_path.read_bytes()
+        result = validate_publication(self.root, self.candidate_path,
+            previous_board_path=self.root/'previous-board.json')
+        self.assertEqual(result['transaction_count'], 3)
+        self.assertEqual(result['oge_publication_accounting'], {
+            'publication_transaction_count': 1, 'current_qualified_transaction_count': 0,
+            'historical_unchanged_transaction_count': 1})
+        self.assertEqual(self.candidate_path.read_bytes(), before)
+        self.assertIsNone(json.loads((self.root/'status/oge.json').read_bytes())['qualified_transaction_count'])
+
+    def test_source_readiness_uses_the_fixed_published_git_board_when_no_path_is_supplied(self):
+        import subprocess
+        self._deferred_oge()
+        def git(*args):
+            return subprocess.check_output(['git', '-C', str(self.root), *args], stderr=subprocess.PIPE)
+        git('init', '-q')
+        git('config', 'user.name', 'Readiness fixture')
+        git('config', 'user.email', 'fixture@example.test')
+        previous = (self.root/'previous-board.json').read_bytes()
+        sha = digest(previous)
+        self._write('manifest.json', {'is_demo': False, 'board': sha, 'snapshot_id': 'a' * 64})
+        (self.root/'board').mkdir()
+        (self.root/'board'/f'{sha}.json').write_bytes(previous)
+        git('add', 'manifest.json', f'board/{sha}.json')
+        git('commit', '-qm', 'Published fixture')
+        git('update-ref', 'refs/remotes/origin/main', 'HEAD')
+        (self.root/'board'/f'{sha}.json').write_text('uncommitted wrong board', encoding='utf-8')
+        result = validate_publication(self.root, self.candidate_path)
+        self.assertEqual(result['oge_publication_accounting']['historical_unchanged_transaction_count'], 1)
+
+    def test_deferred_fact_requires_full_previous_object_and_preserves_existing_bindings(self):
+        self._deferred_oge()
+        with self.assertRaisesRegex(ReleaseReadinessError, 'previous published board'):
+            validate_publication(self.root, self.candidate_path)
+        self.sources['oge']['transactions'][0]['asset_name'] = 'Unproved changed asset'
+        self.candidate['transactions'][1]['asset_name'] = 'Unproved changed asset'
+        self._write('candidates/sources/oge-current.json', self.sources['oge'])
+        self._write('candidates/disclosure-current.json', self.candidate)
+        self._write_cutoff()
+        with self.assertRaisesRegex(ReleaseReadinessError, 'previous complete published object'):
+            validate_publication(self.root, self.candidate_path,
+                previous_board_path=self.root/'previous-board.json')
+
+    def test_deferred_counts_and_ids_must_close_and_cannot_cover_old_parser_fallback(self):
+        for change, message in (
+            ({'publication_transaction_count': 2}, 'subtotals'),
+            ({'oge_direct_qualified_transaction_count': 2}, 'subtotals'),
+            ({'retained_prior_qualified_transaction_count': 1}, 'inconsistent source state'),
+        ):
+            with self.subTest(change=change):
+                status, _ = self._deferred_oge()
+                status.update(change); self._write('status/oge.json', status)
+                with self.assertRaisesRegex(ReleaseReadinessError, message):
+                    validate_publication(self.root, self.candidate_path,
+                        previous_board_path=self.root/'previous-board.json')
+        _, audit = self._deferred_oge()
+        audit['reports'][0]['native_classification']['deferred_ids'].append('not-a-published-row')
+        self._write('oge/qualifications/current.json', audit)
+        with self.assertRaisesRegex(ReleaseReadinessError, 'do not conserve'):
+            validate_publication(self.root, self.candidate_path,
+                previous_board_path=self.root/'previous-board.json')
+
     def test_accepts_accounted_scope_and_excludes_form_201(self):
         result = validate_publication(self.root, self.candidate_path)
         self.assertEqual(result["transaction_count"], 3)

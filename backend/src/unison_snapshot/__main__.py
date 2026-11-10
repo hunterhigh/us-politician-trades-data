@@ -148,6 +148,8 @@ def main() -> None:
     readiness.add_argument("--input", type=Path, required=True)
     readiness.add_argument("--cutoff-audit", type=Path,
                            help="Audit produced with this exact disclosure candidate")
+    readiness.add_argument("--previous-board", type=Path,
+                           help="Fixed published board for unchanged deferred OGE facts")
     readiness.add_argument("--output", type=Path)
     house = sub.add_parser("discover-house-index")
     house.add_argument("--year", type=int, required=True)
@@ -515,7 +517,8 @@ def main() -> None:
                               "output": str(args.output.resolve())}))
         elif args.command == "verify-publication-readiness":
             result = validate_publication(args.review_root, args.input,
-                                          cutoff_audit_path=args.cutoff_audit)
+                                          cutoff_audit_path=args.cutoff_audit,
+                                          previous_board_path=args.previous_board)
             if args.output:
                 _write_atomic(args.output, result)
             print(json.dumps({**result, "status": "ready",

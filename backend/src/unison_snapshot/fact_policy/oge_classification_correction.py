@@ -16,7 +16,12 @@ from .source_objects import InventoryError, _differences, git_object
 from .oge_owner_correction import DIRECT, _replay, _empty
 from .whitehouse_owner_correction import _fixed_board
 from .house_revision_supersession import _git_read
-from ..whitehouse_native_correction import _Sources, NativeCorrectionError, MAX_DOCUMENTS
+from ..whitehouse_native_correction import _Sources, NativeCorrectionError
+
+# Full direct-OGE replay spans more documents and complete catalog history than
+# the separate White House migration. Per-object, page and row bounds remain.
+MAX_DOCUMENTS = 128
+MAX_SOURCE_BYTES = 2 * 1024 * 1024 * 1024
 
 
 def _selected_reports(sources, review):
@@ -112,7 +117,7 @@ def verified_oge_classification_corrections(*, old, current, repo, evidence_comm
     from .oge_catalog_source import load_fixed_oge_catalogs
     from ..oge import OgeCatalogError
     sources = _Sources(repo, _git_read if read_object is git_object else read_object,
-                       preflight_git=read_object is git_object)
+                       preflight_git=read_object is git_object, max_total=MAX_SOURCE_BYTES)
     try:
         pinned,people = _fixed_board(sources,repo,main_commit)
         catalog,history = load_fixed_oge_catalogs(sources,evidence_commit,review_commit)
