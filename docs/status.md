@@ -28,6 +28,6 @@ OGE正式5693笔未变。PR331/332共用重跑已合入；339份当前解析已�
 
 ## 待决事项
 
-OGE整合进行中：11/10用户决定匹配失败只影响该条，新记录ticker为空并标明未匹配；历史ticker绑定不再依赖当前行情资格。PR339已合入并通过完整CI，当前[受控整合](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42782953671)正在组装来源候选。发布前基线：OGE直接报告5693笔、含白宫14155笔；review待解析315份、保留旧版4696笔。验收要求main前进、上述两项归零。
+OGE：PR339已合入、完整CI通过；[受控整合](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42782953671)运行中。11/10决定：新记录无唯一代码时ticker为空、显示未匹配；历史绑定不依赖当前行情资格。验收：main前进，review待解析315→0、保留旧版4696→0。
 
 Manning 20026638身份：已试官方名册、Clerk个人页，缺可重放历史身份原件；8行继续隔离，建议取得118届官方名册后再绑定，不推断；20029046另有未解修订关系。
