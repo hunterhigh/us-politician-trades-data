@@ -6,11 +6,6 @@
       "title": "[Health] senate_efd collection blocked or stale"
     },
     {
-      "detail": "Latest snapshot: 2026-11-09T06:48:46Z\nBlocking sources: []",
-      "key": "publication",
-      "title": "[Health] Production publication missed its expected window"
-    },
-    {
       "condition": [
         {
           "baseline_comparable": true,
@@ -157,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-10T07:33:01.667953+00:00",
+  "checked_at": "2026-11-10T07:50:12.366048+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -167,18 +162,18 @@
     },
     {
       "action": "already_open",
-      "key": "publication",
-      "number": 291
-    },
-    {
-      "action": "updated_condition",
       "key": "quality-summary:2026-W46",
       "number": 327
+    },
+    {
+      "action": "closed",
+      "key": "publication",
+      "number": 291
     }
   ],
-  "last_successful_publication_check_at": "2026-11-09T07:34:55Z",
+  "last_successful_publication_check_at": "2026-11-10T07:45:24Z",
   "publication": "sources_recovered",
-  "published_at": "2026-11-09T06:48:46Z",
+  "published_at": "2026-11-10T06:47:48Z",
   "quality_complete": false,
   "quality_observed_scopes": [
     "quality:house_clerk:house_ptr",
@@ -188,37 +183,37 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "d971558d67274dc2972b6a5a2ab68db99dcaddf3",
+  "quality_review_commit": "f64f0e700a9e6be4f9450436b4b5d9642eab579d",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-10T04:53:19.458301+00:00",
+    "checked_at": "2026-11-10T07:50:11.955293+00:00",
     "checks": [
       {
-        "commit": "4010b3f3b7ec5f8ebc25319df8f60aabce2a3a2a",
+        "commit": "0013cec5454bcb1e0dbecec8f14112082c296ae9",
         "mode": "dashboard",
         "person_id": null,
-        "snapshot_id": "a6fb9088cd7171f71097ea971f9a20c40b408908aa7adaf1e581763ee127e833",
+        "snapshot_id": "f157d9501f0ffbedee83e4e3b2a671b4f1d21ab287ff807a39b9a232c13f6e6e",
         "status": "passed"
       },
       {
-        "commit": "4010b3f3b7ec5f8ebc25319df8f60aabce2a3a2a",
+        "commit": "0013cec5454bcb1e0dbecec8f14112082c296ae9",
         "mode": "person",
         "person_id": "house:M001157",
-        "snapshot_id": "a6fb9088cd7171f71097ea971f9a20c40b408908aa7adaf1e581763ee127e833",
+        "snapshot_id": "f157d9501f0ffbedee83e4e3b2a671b4f1d21ab287ff807a39b9a232c13f6e6e",
         "status": "passed"
       },
       {
-        "commit": "4010b3f3b7ec5f8ebc25319df8f60aabce2a3a2a",
+        "commit": "0013cec5454bcb1e0dbecec8f14112082c296ae9",
         "mode": "person",
         "person_id": "senate:W000805",
-        "snapshot_id": "a6fb9088cd7171f71097ea971f9a20c40b408908aa7adaf1e581763ee127e833",
+        "snapshot_id": "f157d9501f0ffbedee83e4e3b2a671b4f1d21ab287ff807a39b9a232c13f6e6e",
         "status": "passed"
       },
       {
-        "commit": "4010b3f3b7ec5f8ebc25319df8f60aabce2a3a2a",
+        "commit": "0013cec5454bcb1e0dbecec8f14112082c296ae9",
         "mode": "person",
         "person_id": "oge:076544f8ba0638cf",
-        "snapshot_id": "a6fb9088cd7171f71097ea971f9a20c40b408908aa7adaf1e581763ee127e833",
+        "snapshot_id": "f157d9501f0ffbedee83e4e3b2a671b4f1d21ab287ff807a39b9a232c13f6e6e",
         "status": "passed"
       },
       {
@@ -227,20 +222,20 @@
       }
     ],
     "client_sha256": "bfc13671f4d038918b49a4f22cc7c556aed0207dbeab278bea9a1782317bc19b",
-    "commit": "4010b3f3b7ec5f8ebc25319df8f60aabce2a3a2a",
+    "commit": "0013cec5454bcb1e0dbecec8f14112082c296ae9",
     "failed_snapshots": {},
-    "last_good_commit": "4010b3f3b7ec5f8ebc25319df8f60aabce2a3a2a",
+    "last_good_commit": "0013cec5454bcb1e0dbecec8f14112082c296ae9",
     "recovery": {
       "action": "none",
       "reason": "passed"
     },
     "rollback_requested_for": null,
     "schema_version": "publication-smoke/v1",
-    "snapshot_id": "a6fb9088cd7171f71097ea971f9a20c40b408908aa7adaf1e581763ee127e833",
+    "snapshot_id": "f157d9501f0ffbedee83e4e3b2a671b4f1d21ab287ff807a39b9a232c13f6e6e",
     "status": "passed"
   },
-  "snapshot_changed": false,
-  "snapshot_id": "a6fb9088cd7171f71097ea971f9a20c40b408908aa7adaf1e581763ee127e833",
+  "snapshot_changed": true,
+  "snapshot_id": "f157d9501f0ffbedee83e4e3b2a671b4f1d21ab287ff807a39b9a232c13f6e6e",
   "sources": {
     "house_clerk": {
       "detail": null,
