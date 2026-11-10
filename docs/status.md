@@ -22,12 +22,12 @@ v1.1日期、稳定一周及定时检查已取消；本轮连续完成。两种�
 
 ## 当前结果
 
-正式main仍为4010b3f3：584人、27228交易、19499持仓，OGE直接来源5693笔。[PR331](https://github.com/hunterhigh/us-politician-trades-data/pull/331)/PR332共用重跑已合入、完整CI通过。OGE 339份当前解析已保存（319份新版、20份当前校验），解析失败0、采集待解析0；新版资格候选5693笔，尚未完成整合发布，review待解析未清零。3115行YAML接受，不再压缩；[健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)。
+main为0013cec5：584人、27228交易、19499持仓，与4010b3f3逐对象一致。PR335–337完整CI通过；开口金额统一C：合格交易排除4→10、持仓79不变；37条纸表观察仍因其他原因隔离并列known_gaps，47条观察公开读取/v2渲染通过，前端/Skill未改。[发布](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42770458934)成功；[回退演练](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42777684194)通过，生产未动。
 
-人物缺口、清理及冻结链路已验收（PR296/299/300）；House回填、负例及2026守恒见[PR303](https://github.com/hunterhigh/us-politician-trades-data/pull/303)。三份长表按ID+哈希重试，纸表同错不重跑；发布切换证据见PR307。
+OGE正式5693笔未变。PR331/332共用重跑已合入；339份当前解析已保存（319新版、20当前校验），解析失败/原件待解析均0，资格整合见待决。3115行YAML接受，不再压缩；[健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)。三份长表按ID+哈希重试，纸表同错不重跑。
 
 ## 待决事项
 
-OGE整合：完整重跑、显示名称兼容重试后，ARI仍无唯一活跃SIP匹配（oge-278t:15141742f9a9d3d335e4cb1e）；review待解析315份、保留旧版4696笔。判断是历史ticker绑定耦合当前行情资格，建议分离后再整合，不猜继任证券、不改旧事实。按两方法规则停止；撤掉提前检查，恢复正常采集。[失败证据](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42602307345)；原件及新版解析已保存。
+OGE整合：全量重跑、名称兼容两次后，ARI无唯一活跃SIP匹配（oge-278t:15141742f9a9d3d335e4cb1e）；review待解析315份、旧正式4696笔未迁移。判断历史ticker绑定耦合当前行情资格，建议分离后整合，不猜继任、不改旧事实。按规则停止；已撤提前检查、恢复正常采集。[失败](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42602307345)。
 
 Manning 20026638身份：已试官方名册、Clerk个人页，缺可重放历史身份原件；8行继续隔离，建议取得118届官方名册后再绑定，不推断；20029046另有未解修订关系。
