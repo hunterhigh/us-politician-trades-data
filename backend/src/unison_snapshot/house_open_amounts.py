@@ -87,3 +87,52 @@ def refresh_qualifications(review_root, evidence_root):
         temporary.write_bytes(encode(current)); temporary.replace(path)
         changed.append({'document_id': current['document_id'], 'added_open_rows': len(new.keys() - old.keys())})
     return changed
+
+
+def refresh_candidate(candidate, review_root, evidence_root):
+    """Add verified open observations without rebuilding unrelated parser caches.
+
+    This is an explicit policy-only operation on an existing source projection.
+    Its real cutoff and every published financial object must remain unchanged.
+    Normal source assembly and original-proof verification still follow it.
+    """
+    from copy import deepcopy
+    from datetime import datetime
+    import json
+    from pathlib import Path
+    from .builder import build
+    from .house_ptr import qualify_automatic
+
+    result = deepcopy(candidate)
+    cutoff = datetime.fromisoformat(candidate['meta']['data_cutoff_at'].replace('Z', '+00:00'))
+    people = {row['id'] for row in candidate['people']}
+    existing = {row['id'] for row in candidate['transactions']}
+    review = Path(review_root)
+    for path in sorted((review / 'house_clerk/qualifications').glob('*/*/*.json')):
+        qualification = json.loads(path.read_bytes())
+        added = [row for row in qualification.get('transactions', [])
+                 if row.get('amount_high', ...) is None and row['id'] not in existing]
+        if not added:
+            continue
+        relative = path.relative_to(review / 'house_clerk/qualifications')
+        extraction = json.loads((review / 'house_clerk/extractions' / relative).read_bytes())
+        if (path.stem != extraction.get('source_sha256') or
+                path.parent.name != str(extraction.get('source', {}).get('document_id')) or
+                qualification != qualify_automatic(extraction, qualification['identity'],
+                                                    evidence_root=evidence_root)):
+            raise ValueError('House open-amount candidate lacks its exact source qualification')
+        for row in added:
+            if (row.get('source_id') != 'house_clerk' or row['person_id'] not in people or
+                    datetime.fromisoformat(row['filed_at'].replace('Z', '+00:00')) > cutoff):
+                raise ValueError('House open-amount refresh exceeds the existing source scope')
+            result['transactions'].append(row)
+            existing.add(row['id'])
+
+    def financial_arrays(payload):
+        bundle = build(payload, generated_at=candidate['meta']['data_cutoff_at'], allow_production=True)
+        board = json.loads(bundle.files['board/' + bundle.manifest['board'] + '.json'])
+        return {key: board[key] for key in ('people', 'transactions', 'reported_holdings')}
+
+    if financial_arrays(candidate) != financial_arrays(result):
+        raise ValueError('House open-amount refresh changed published financial objects')
+    return result
