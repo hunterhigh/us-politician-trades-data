@@ -59,11 +59,12 @@ class HousePaperCliTests(unittest.TestCase):
         self.assertIn("materialize_saved_paper:", text)
         self.assertIn("paper_args+=(--materialize-saved)", text)
         for name in ("Detect pages requiring OCR in this batch", "Parse and prepare machine extraction artifacts",
-                     "Refresh deterministic House identities", "Build automatic qualification artifacts"):
+                     "Refresh deterministic House identities"):
             step = text.split("- name: " + name, 1)[1].split("- name:", 1)[0]
             self.assertIn("if: inputs.materialize_saved_paper != true", step)
         self.assertIn(': > .local/parse-batch.txt', text)
         qualification_step = text.split("- name: Build automatic qualification artifacts", 1)[1].split("- name:", 1)[0]
+        self.assertIn("inputs.materialize_saved_paper != true || inputs.mode == 'amount-policy'", qualification_step)
         self.assertIn('[ "$method" != "source_bound_paper_cells" ] || continue', qualification_step)
         self.assertLess(qualification_step.index('source_bound_paper_cells'),
                         qualification_step.index('qualify-house-ptr'))

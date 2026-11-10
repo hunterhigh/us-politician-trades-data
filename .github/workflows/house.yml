@@ -324,24 +324,30 @@ jobs:
               --extraction "$extraction" --members "$roster" --output "$identity"
           done
       - name: Build automatic qualification artifacts
-        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025'
+        if: inputs.filing_year != '2025' && (inputs.materialize_saved_paper != true || inputs.mode == 'amount-policy')
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           HOUSE_CACHE_READY: ${{ steps.selection.outputs.cache_ready }}
+          INPUT_MODE: ${{ inputs.mode }}
         run: |
           find "$REVIEW_ROOT/house_clerk/extractions/$UNISON_HOUSE_FILING_YEAR" -name '*.json' -type f -print0 | sort -z | \
           while IFS= read -r -d '' extraction; do
+            relative="${extraction#"$REVIEW_ROOT/house_clerk/extractions/"}"
+            identity="$REVIEW_ROOT/house_clerk/identities/$relative"
+            qualification="$REVIEW_ROOT/house_clerk/qualifications/$relative"
+            # Complete interrupted qualification checkpoints in saved policy mode.
+            # Existing qualifications and the frozen financial projection stay intact.
+            if [ "${INPUT_MODE:-ptr}" = "amount-policy" ] && [ -f "$qualification" ]; then
+              continue
+            fi
             # Source-bound paper facts must be replayed with their saved proofs.
             # The generic qualifier cannot reproduce a verified blank Owner.
             method="$(python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("extraction_method", ""))' "$extraction")"
             [ "$method" != "source_bound_paper_cells" ] || continue
             # Paper bridging remains per batch; native replay waits for complete caches.
-            if [ "$HOUSE_CACHE_READY" != "true" ] && [ "$method" != "tesseract_legacy_checkbox" ]; then
+            if [ "${INPUT_MODE:-ptr}" != "amount-policy" ] && [ "$HOUSE_CACHE_READY" != "true" ] && [ "$method" != "tesseract_legacy_checkbox" ]; then
               continue
             fi
-            relative="${extraction#"$REVIEW_ROOT/house_clerk/extractions/"}"
-            identity="$REVIEW_ROOT/house_clerk/identities/$relative"
-            qualification="$REVIEW_ROOT/house_clerk/qualifications/$relative"
             test -f "$identity" || continue
             mkdir -p "$(dirname "$qualification")"
             PYTHONPATH=backend/src python -m unison_snapshot qualify-house-ptr \
@@ -400,12 +406,19 @@ jobs:
           PY
           python -m unison_snapshot house-review status
       - name: Persist qualified House review before candidate assembly
-        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025' && steps.selection.outputs.cache_ready == 'true'
+        if: inputs.filing_year != '2025' && (inputs.mode == 'amount-policy' || (inputs.materialize_saved_paper != true && steps.selection.outputs.cache_ready == 'true'))
         uses: ./.github/actions/publish-data
         with:
           workspace: ${{ runner.temp }}/house-source
           roles: review
           message: House Persist source-qualified progress ${{ github.run_id }}
+      - name: Verify saved policy accounting before original proof replay
+        if: inputs.mode == 'amount-policy'
+        run: |
+          python -m unison_snapshot verify-publication-readiness \
+            --review-root "$REVIEW_ROOT" \
+            --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --output .local/saved-policy-readiness.json
       - name: Build and validate frontend candidate
         if: inputs.filing_year != '2025' && (inputs.materialize_saved_paper == true || steps.selection.outputs.cache_ready == 'true')
         id: candidate

@@ -46,6 +46,10 @@ def scheduled_fixed_body(name):
     if condition=="inputs.filing_year != '2025' && inputs.mode != 'amount-policy'":
         return ('if [ "${UNISON_HOUSE_FILING_YEAR:-}" != "2025" ] && '
                 '[ "${INPUT_MODE:-ptr}" != "amount-policy" ]; then\n'+body+'\nfi\n')
+    if condition=="inputs.filing_year != '2025' && (inputs.materialize_saved_paper != true || inputs.mode == 'amount-policy')":
+        return ('if [ "${UNISON_HOUSE_FILING_YEAR:-}" != "2025" ] && '
+                '{ [ "$MATERIALIZE_SAVED_PAPER" != "true" ] || [ "${INPUT_MODE:-ptr}" = "amount-policy" ]; }; then\n'
+                +body+'\nfi\n')
     ready="steps.selection.outputs.cache_ready == 'true'"
     combined="inputs.filing_year != '2025' && (inputs.materialize_saved_paper == true || "+ready+")"
     if condition==combined:
@@ -105,7 +109,7 @@ class HouseSavedFixedWorkflowTests(unittest.TestCase):
             'result=subprocess.run([sys.executable,*args])\n'
             'raise SystemExit(result.returncode)\n',encoding='utf-8')
 
-    def execute(self,body,*,saved,cache_ready=True):
+    def execute(self,body,*,saved,cache_ready=True,mode='ptr'):
         script=('set -euo pipefail\n'
                 'python() { "$REAL_PYTHON" "$TEST_SHIM" "$@"; }\n'
                 'git() { echo "No Git/network operation in this test" >&2; return 90; }\n'+body)
@@ -113,6 +117,7 @@ class HouseSavedFixedWorkflowTests(unittest.TestCase):
             TEST_CALL_LOG=str(self.calls),EVIDENCE_ROOT=str(self.evidence),REVIEW_ROOT=str(self.review),
             STATE_ROOT=str(self.state),MATERIALIZE_SAVED_PAPER='true' if saved else 'false',
             HOUSE_CACHE_READY='true' if cache_ready else 'false',
+            INPUT_MODE=mode,
             PAPER_DOCUMENT_ID=self.data['metadata']['document_id'],PARSER_COMMIT='a'*40,
             UNISON_HOUSE_FILING_YEAR=str(self.data['metadata']['filing_year']),
             GITHUB_STEP_SUMMARY=str(self.root/'step-summary.md'),MSYS_NO_PATHCONV='1',PYTHONUTF8='1')
@@ -179,6 +184,27 @@ class HouseSavedFixedWorkflowTests(unittest.TestCase):
         self.assertTrue(any('qualify-house-ptr' in call for call in calls))
         self.assertEqual(extraction.read_bytes(),before[extraction])
         self.assertEqual(self.candidate.read_bytes(),before[self.candidate])
+
+    def test_saved_policy_completes_missing_qualification_without_rewriting_existing_artifacts(self):
+        from unison_snapshot.house_ptr import qualify_automatic
+        path=self.review/'house_clerk/qualifications'/self.relative
+        before={p:p.read_bytes() for p in (path,self.candidate,
+            self.review/'house_clerk/extractions'/self.relative)}
+        body=scheduled_fixed_body('Build automatic qualification artifacts')
+        existing=self.execute(body,saved=True,cache_ready=False,mode='amount-policy')
+        self.assertEqual(existing.returncode,0,existing.stdout+existing.stderr)
+        self.assertTrue(all(p.read_bytes()==data for p,data in before.items()))
+        path.unlink()
+        ordinary_saved=self.execute(body,saved=True,cache_ready=False)
+        self.assertEqual(ordinary_saved.returncode,0,ordinary_saved.stdout+ordinary_saved.stderr)
+        self.assertFalse(path.exists())
+        completed=self.execute(body,saved=True,cache_ready=False,mode='amount-policy')
+        self.assertEqual(completed.returncode,0,completed.stdout+completed.stderr)
+        expected=qualify_automatic(self.data['legacy_extraction'],self.data['identity'],evidence_root=self.evidence)
+        self.assertEqual(json.loads(path.read_bytes()),expected)
+        self.assertEqual(self.candidate.read_bytes(),before[self.candidate])
+        raw=self.review/'house_clerk/extractions'/self.relative
+        self.assertEqual(raw.read_bytes(),before[raw])
 
     def test_pending_cache_batch_preserves_candidate_qualifications_and_waterline(self):
         qualification=self.review/'house_clerk/qualifications'/self.relative
