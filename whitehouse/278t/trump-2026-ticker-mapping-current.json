@@ -50,9 +50,9 @@
       "record_id": "oge-278t:dee002ed6a980788267295a2"
     }
   ],
-  "asset_master_sha256": "9f87a4d6e21cc55d2838c7e30297995f993c805c8b8bcdd9aa2e90edb654baba",
-  "candidate_before_sha256": "7deba53468802ed62b8fc6ab8797a864d5a6a650b3e92843134bb12bcbe7037c",
-  "checked_at": "2026-11-10T09:06:09Z",
+  "asset_master_sha256": "5763a1d11979a33ec19f39e246c9bb1f5d8de5e6c214654d68330ce957e2b34b",
+  "candidate_before_sha256": "3e6730a5117c43434c38d4650265a0a2f3ba4c0f0b1ef1aa494c015e1e3bdc3f",
+  "checked_at": "2026-11-10T22:45:03Z",
   "correction_count": 3,
   "correction_ids": [
     "oge-278t:6edb6800bfd420ed027f7f1c",
@@ -9378,11 +9378,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "oge-278t:31add982d10635327c215132",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "oge-278t:31b54c9537d74e0b6e5a27e2",
       "status": "unmatched"
     },
@@ -9404,11 +9399,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "oge-278t:36e8846698540ef595fbd59a",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "oge-278t:377010e05afb2ba5d37dbe5f",
       "status": "unmatched"
     },
     {
@@ -9729,11 +9719,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "oge-278t:5f23a1237a0e2febb8b5d4d0",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "oge-278t:5fd965b59608a0ff43195dda",
       "status": "unmatched"
     },
     {
@@ -10313,11 +10298,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "oge-278t:b584b7b635cff65259453237",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "oge-278t:b5dfbf9ac9dade1343fa3078",
       "status": "unmatched"
     },
@@ -10533,11 +10513,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "oge-278t:d2dd18f8b3efb0f4adb58795",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "oge-278t:d373db8a3adc150444320046",
       "status": "unmatched"
     },
@@ -10614,11 +10589,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "oge-278t:de6d7048a0f6cde5270121e4",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "oge-278t:dee002ed6a980788267295a2",
       "status": "unmatched"
     },
     {

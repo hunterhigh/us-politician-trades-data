@@ -749,9 +749,9 @@
     }
   ],
   "annual_transaction_count": 6759,
-  "asset_master_sha256": "9f87a4d6e21cc55d2838c7e30297995f993c805c8b8bcdd9aa2e90edb654baba",
-  "candidate_before_sha256": "84836483e07002ac1cefa755249d8ed54e43dff310c72efad6f7cde74e95e443",
-  "checked_at": "2026-11-10T09:06:09Z",
+  "asset_master_sha256": "5763a1d11979a33ec19f39e246c9bb1f5d8de5e6c214654d68330ce957e2b34b",
+  "candidate_before_sha256": "29fedbd0efb984c8b8f6cc596fb5fae80ffce1ebbb35c22511c3b2083728fc61",
+  "checked_at": "2026-11-10T22:45:03Z",
   "mapped_asset_name_count": 1128,
   "mapping_count": 4540,
   "mappings": [
@@ -32645,11 +32645,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:026183f6b5c12b70b642d61c",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:027ca1ce01d8bb43dd5f4c7a",
       "status": "unmatched"
     },
@@ -32671,11 +32666,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:02b513df7fe6040f9bdb4ba5",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:02c43cd20dee722095669bd4",
       "status": "unmatched"
     },
     {
@@ -32905,11 +32895,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:0797dd0ed05c5c888d01f573",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:07ea278e1ce863cc0d2dadf6",
       "status": "unmatched"
     },
@@ -33085,11 +33070,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:0c77eda11577a0fb3091317e",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:0c8e078e5a22fe1578bb2b61",
       "status": "unmatched"
     },
@@ -33181,11 +33161,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:0eb4194941c80c5e7ada76a8",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:0f13afbde9bc508870d9bc5f",
       "status": "unmatched"
     },
     {
@@ -33450,11 +33425,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:13944efcd63a403555aef5d5",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:13aeeb0260fd4c9da361ce7d",
       "status": "unmatched"
     },
@@ -33550,11 +33520,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:15e5b2bedebdfcfec72cba13",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:163709447084c97261b66b7d",
       "status": "unmatched"
     },
@@ -33566,11 +33531,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:168012b89670c015093c72ef",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:1686f2727abe546e63e4af06",
       "status": "unmatched"
     },
     {
@@ -33685,11 +33645,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:18a5141687e68c2cd01975a9",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:18c02a5048b51c2a9fbbe21f",
       "status": "unmatched"
     },
@@ -33731,11 +33686,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:1951993249614237bc014e0f",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:19570eb77b364a1abfd406b2",
       "status": "unmatched"
     },
     {
@@ -33816,11 +33766,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:1a5aa36c7fb7694b446a4c2d",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:1a5c865674c2158e65fb2adb",
       "status": "unmatched"
     },
     {
@@ -33970,11 +33915,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:1e6dfb738e3136aacd86c8fe",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:1e7cad00d751828d36e5a783",
       "status": "unmatched"
     },
@@ -34095,11 +34035,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:20909be068635882096e6da2",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:209a464b2ad7115c2148d105",
       "status": "unmatched"
     },
@@ -34121,11 +34056,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:210d0115ce1bb720e910e27d",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:212824807cbe65dcf3559b03",
       "status": "unmatched"
     },
     {
@@ -34365,11 +34295,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:2683bec49dd54dff63895363",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:26dbc1a907ff899c9668adca",
       "status": "unmatched"
     },
@@ -34390,17 +34315,7 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:2728d5e65b8c8b61b386b78f",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:273fbec8671466b5917c7ede",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:27b1fb4e2e09c32f3b6cab06",
       "status": "unmatched"
     },
     {
@@ -34435,11 +34350,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:2865aae213f939fd382a0290",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:2888d857e1e2014e83749a47",
       "status": "unmatched"
     },
@@ -34456,11 +34366,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:28ebad4dae90b410626c88ff",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:29203eec76136461af701349",
       "status": "unmatched"
     },
     {
@@ -34595,11 +34500,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:2c54242ccdc006922eb90c05",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:2c5a18c23207b9815743f7d1",
       "status": "unmatched"
     },
@@ -34641,11 +34541,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:2ce5fdecc181a894d14b4f0a",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:2d2b9333a2ce97182b58f0c7",
       "status": "unmatched"
     },
     {
@@ -34731,11 +34626,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:2e6c0eaab8a65f32abcdd4ca",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:2e71c89f9d295703ac0ff73c",
       "status": "unmatched"
     },
     {
@@ -35155,11 +35045,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:37677dc2c87cb5057a65bad6",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:3799c6d7f5aeba79ca7a9af4",
       "status": "unmatched"
     },
@@ -35171,11 +35056,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:3826c4f618c9da5df4f0d409",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:3885b3f6de6dd2fa6eba07db",
       "status": "unmatched"
     },
     {
@@ -35420,11 +35300,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:3e8323d900a9f2192e6bfe7a",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:3e9506bfc2514d51418bf266",
       "status": "unmatched"
     },
@@ -35516,11 +35391,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:412a424e80b6c547f4c1689f",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:415f8507f5d1c1bdbd4b4495",
       "status": "unmatched"
     },
     {
@@ -35675,11 +35545,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:43af226c84954ebce471f844",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:43b502d7371540ef79ab2949",
       "status": "unmatched"
     },
@@ -35750,11 +35615,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:4556c6c343d07e16e487b9b5",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:455b8aedfd09991ec0f92fda",
       "status": "unmatched"
     },
@@ -35776,11 +35636,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:4582e7466e07194fa9fcd24c",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:45b33d869dc4c3d59567912d",
       "status": "unmatched"
     },
     {
@@ -35841,11 +35696,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:466499d314b55287baf27dae",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:467ee24b29f3dffe7747ccdf",
       "status": "unmatched"
     },
     {
@@ -35975,11 +35825,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:491432b4fdff4c6b3ab364b8",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:493b898c699fbf8eade1d32b",
       "status": "unmatched"
     },
@@ -36011,11 +35856,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:49947984896f1f58bac0e5d3",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:4a0a26ce2c1a7b62486be3fa",
       "status": "unmatched"
     },
     {
@@ -36150,16 +35990,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:4ccc4e66807ff8054ecbfc15",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:4ce6bae40dc6179fa52b5780",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:4cfaec4760555c596fca8a5a",
       "status": "unmatched"
     },
@@ -36170,22 +36000,12 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:4d4c1d81aca466aa4881ddf2",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:4d4db774fa8c3fa92ba76a46",
       "status": "unmatched"
     },
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:4d5ffbf63db02de43da7f6b9",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:4d8ac91e31c5e7f65e1c3d12",
       "status": "unmatched"
     },
     {
@@ -36336,11 +36156,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:5210cf205b93b3a633a06115",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:521dcfd644b26d3bd1fdb033",
       "status": "unmatched"
     },
     {
@@ -36610,11 +36425,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:592885ed2842e893464d2cd4",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:5949e7eeab476fa4b018caa1",
       "status": "unmatched"
     },
@@ -36700,11 +36510,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:5bd42d71bd5ec271a2db67e4",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:5be8169d2c1f560ad94ee63d",
       "status": "unmatched"
     },
@@ -36756,11 +36561,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:5d0b71c6aa6305800031f3ab",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:5d198a4a78ad97406bca715c",
       "status": "unmatched"
     },
     {
@@ -36975,11 +36775,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:6221f8bd45396e311b86c19e",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:62252b3c818ba6075e5a2f84",
       "status": "unmatched"
     },
@@ -36996,11 +36791,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:62771bc3745313507272fce2",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:62d1d27a95460827cc013051",
       "status": "unmatched"
     },
     {
@@ -37091,11 +36881,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:64621a05953a656abb208997",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:6464c1469c92622ae29ba001",
       "status": "unmatched"
     },
     {
@@ -37270,22 +37055,12 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:689477e7ed43e89d714536d1",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:689ffd3df4b811c0abfee99d",
       "status": "unmatched"
     },
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:68fa700ccc513a8af2936ff4",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:6900d502107edb87d2986e3c",
       "status": "unmatched"
     },
     {
@@ -37500,11 +37275,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:6f0a2b6cd0824044e141f9bc",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:6f0cffe237b458e28520f7b6",
       "status": "unmatched"
     },
@@ -37555,11 +37325,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:702863ec9d28421adb521398",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:70579182dc3481e2d93450ee",
       "status": "unmatched"
     },
@@ -37581,11 +37346,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:70c2a361d4e3521fcf678b05",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:71054e73784ba1f8669026f7",
       "status": "unmatched"
     },
     {
@@ -37666,11 +37426,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:729592e18302e0eec0dec828",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:72a0fb4862cec4a14dc8dfff",
       "status": "unmatched"
     },
     {
@@ -37930,11 +37685,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:77397970952bf547e6d08599",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:773f705788af73b6f8439156",
       "status": "unmatched"
     },
@@ -37946,11 +37696,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:779b4bfc46e812407aeb6087",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:779e8e30d2b3656f70b8e5a5",
       "status": "unmatched"
     },
     {
@@ -37996,11 +37741,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:78dc1836ee1455eec50946bc",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:78e42dde2fc8962fa04c79ad",
       "status": "unmatched"
     },
     {
@@ -38890,11 +38630,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:8c4b6bc60af90b4229d87049",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:8c6848f54125fa500058ee1e",
       "status": "unmatched"
     },
@@ -39130,11 +38865,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:938f4f5ed421e4d0c8bbfdab",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:9394b51360e7ed2c388d6482",
       "status": "unmatched"
     },
@@ -39211,11 +38941,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:9590429faa3c5665e3d926f5",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:95a8c0513cf255fde2ffc76e",
       "status": "unmatched"
     },
     {
@@ -39330,11 +39055,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:988629f5dba74c2dcddee3ee",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:988a748ba3fba45dac9ab118",
       "status": "unmatched"
     },
@@ -39375,11 +39095,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:996c0ee7db7300bb1e84d51c",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:997fd5eca025c23cc393764c",
       "status": "unmatched"
     },
@@ -39406,11 +39121,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:9aee625c0a970fa6dbbf2037",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:9af40a48938051308fe5cd65",
       "status": "unmatched"
     },
     {
@@ -39466,11 +39176,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:9ca942ffaf7aad64fc299b07",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:9cab83b3ed610a2ce91fc500",
       "status": "unmatched"
     },
     {
@@ -39710,16 +39415,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:a4568bb168081062560e2b2c",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:a4585f9ce8356d862668ba3b",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:a4880517a2d6529cfc1f220f",
       "status": "unmatched"
     },
@@ -39860,11 +39555,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:a754152a4ddbf9e32e9e4672",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:a759008f50db42821e662c81",
       "status": "unmatched"
     },
@@ -39901,11 +39591,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:a817df9dcfcc8f632fcce287",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:a819f5a478ee93867ffa41cd",
       "status": "unmatched"
     },
     {
@@ -39950,22 +39635,7 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:a93fb2b586355ff79f515e4e",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:a9649cd005c953383e25f153",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:a9788753e45eeef93f29f88b",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:a99177f3bc1cb9644c083378",
       "status": "unmatched"
     },
     {
@@ -39996,11 +39666,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:aa23be277a25eb7185af8e40",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:aa517bf513311193f44f09a4",
       "status": "unmatched"
     },
     {
@@ -40225,11 +39890,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:ae479e898f0b7f6bb758cd43",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:ae6e03626d0e9abda1ca0fa2",
       "status": "unmatched"
     },
@@ -40291,11 +39951,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:b02e50be25e85cde7229c647",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:b040e01a93dfc685540a34ad",
       "status": "unmatched"
     },
     {
@@ -40615,11 +40270,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:b726e287c298e2bb305f840b",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:b734ee76fd40167aad779928",
       "status": "unmatched"
     },
@@ -40666,11 +40316,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:b7fa55d3c5ac5d61d38ed820",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:b86127169790a08484ef54df",
       "status": "unmatched"
     },
     {
@@ -40731,11 +40376,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:b9a0007de6bf15d00ac35d10",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:b9ad2b336d8851eb78488cf3",
       "status": "unmatched"
     },
     {
@@ -40930,11 +40570,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:bf3fc632566fa6e48ba2a565",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:bf965e54a73df6314194571c",
       "status": "unmatched"
     },
@@ -41026,11 +40661,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:c31d6873fb358aea9a4ba7f8",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:c340871894c34c421c817b4f",
       "status": "unmatched"
     },
     {
@@ -41360,11 +40990,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:cd168152f15417fb8161a63d",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:cd5cf54b397f97b84cba6430",
       "status": "unmatched"
     },
@@ -41455,11 +41080,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:cef65fe4512d5117f3eaae8a",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:cf046045f6f0f8f7b112cdd1",
       "status": "unmatched"
     },
@@ -41500,11 +41120,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:d06594bd8f07395e9a45a319",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:d0662ff8c88e128e5e5bef44",
       "status": "unmatched"
     },
@@ -41521,11 +41136,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:d09a7a92b0685825f8365ba3",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:d0ac173b2bf30a706e753610",
       "status": "unmatched"
     },
     {
@@ -41556,11 +41166,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:d17d17208228ea28335e73ae",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:d1a9c8bee710ec5e8a5265f8",
       "status": "unmatched"
     },
     {
@@ -41661,11 +41266,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:d3d37d05a736ff74434cbe6c",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:d3d3e5529472a27952b3fd1e",
       "status": "unmatched"
     },
     {
@@ -41860,11 +41460,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:d83aa31db5ec06edf66bf652",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:d8437f71f678d98fddf5ae64",
       "status": "unmatched"
     },
@@ -41971,11 +41566,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:da68b097341dce2163eda01f",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:da97c6c36f823f1dad8edc6e",
       "status": "unmatched"
     },
     {
@@ -42755,11 +42345,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:ed45fab40cf648b1498b2f39",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:ed4c18f7ca9eb3ce39e13b41",
       "status": "unmatched"
     },
@@ -42930,11 +42515,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:f0e44ef86a82c21a2a2fcf4d",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:f119061c84fd72060e8fba10",
       "status": "unmatched"
     },
@@ -43011,11 +42591,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:f2dc415079119a3db4eb1541",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:f2e1f6f3f26c1a196ada9df2",
       "status": "unmatched"
     },
     {
@@ -43150,11 +42725,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:f53ad9287fd2fc8d21ab9af6",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:f540b9c18ef4d4ff1db408bb",
       "status": "unmatched"
     },
@@ -43275,11 +42845,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:f7e5d733fab76ab8e16e0e8d",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:f83d2bb7bdd8db4972b8c101",
       "status": "unmatched"
     },
@@ -43306,11 +42871,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:f8eb3ea7e9571533633f8083",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:f8eb6bc2d6ddf49ce426d06b",
       "status": "unmatched"
     },
     {
@@ -43360,11 +42920,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:fa3850c367847d093f8b53bf",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:fa3b7c14e7a785195c4842e4",
       "status": "unmatched"
     },
@@ -43381,11 +42936,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:fa6e0880546b47edafc9354c",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:fa6e4a878d0cc19c00a27403",
       "status": "unmatched"
     },
     {
@@ -43510,11 +43060,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:fd67f3a3859f44fb16201bf2",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:fd98eba34614f468e5ec4cc1",
       "status": "unmatched"
     },
@@ -43585,11 +43130,6 @@
     },
     {
       "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:ff14e2707417f101446b7c4f",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:ff4e132091e1e8b22a0f8033",
       "status": "unmatched"
     },
@@ -43616,11 +43156,6 @@
     {
       "reason": "no_unique_market_ticker",
       "record_id": "wh-annual-tx:ffb580376ba3ebb0eb6f2924",
-      "status": "unmatched"
-    },
-    {
-      "reason": "no_unique_market_ticker",
-      "record_id": "wh-annual-tx:ffdc3e63dc5c7cd22a18bf54",
       "status": "unmatched"
     },
     {
