@@ -67,10 +67,6 @@ def enrich_whitehouse_annual_tickers(
     proposed, recovered, current_audit = _recover_unique_asset_name_tickers(candidate, assets)
     proposed_by_id = {row["record_id"]: row for row in recovered}
     prior_by_id = _previous_mappings(previous)
-    ambiguous_ids = {row["record_id"] for row in current_audit["ambiguous_records"]}
-    if prior_by_id.keys() & ambiguous_ids:
-        raise ValueError(
-            "A sticky White House annual ticker mapping is now class-ambiguous")
     transaction_by_id = {
         row.get("id"): row for row in proposed.get("transactions", [])
         if isinstance(row, dict) and isinstance(row.get("id"), str)
@@ -78,6 +74,7 @@ def enrich_whitehouse_annual_tickers(
 
     mappings = []
     retained = 0
+    conflicts = []
     for record_id, prior in prior_by_id.items():
         row = transaction_by_id.get(record_id)
         if row is None or row.get("asset_name") != prior["asset_name"]:
@@ -85,7 +82,10 @@ def enrich_whitehouse_annual_tickers(
         current = proposed_by_id.get(record_id)
         if current is not None and (current["ticker"] != prior["ticker"] or
                                     current["mapping_basis"] != prior["mapping_basis"]):
-            raise ValueError("Alpaca asset identity conflicts with a sticky annual ticker mapping")
+            conflicts.append({"record_id": record_id,
+                              "retained_ticker": prior["ticker"],
+                              "proposed_ticker": current["ticker"],
+                              "disposition": "proposal_quarantined_prior_mapping_retained"})
         row["ticker"] = prior["ticker"]
         row["ticker_mapping_basis"] = prior["mapping_basis"]
         mappings.append(dict(prior))
@@ -132,12 +132,16 @@ def enrich_whitehouse_annual_tickers(
         "annual_transaction_count": len(annual_rows),
         "mapping_count": len(mappings),
         "retained_mapping_count": retained,
+        "retained_ticker_conflicts": conflicts,
         "new_mapping_count": len(mappings) - retained,
         "mapped_asset_name_count": len({row["asset_name"] for row in mappings}),
         "ambiguous_record_count": len(ambiguous),
         "ambiguous_asset_name_count": len({row["asset_name"] for row in ambiguous}),
         "ambiguous_records": ambiguous,
         "unmatched_record_count": len(unmatched),
+        "unmatched_records": [{"record_id": row["id"], "status": "unmatched",
+                               "reason": "no_unique_market_ticker"}
+                              for row in annual_rows if not row.get("ticker")],
         "unmatched_asset_name_count": len({row["asset_name"] for row in unmatched}),
         "mappings": mappings,
     }
