@@ -50,9 +50,9 @@
       "record_id": "oge-278t:dee002ed6a980788267295a2"
     }
   ],
-  "asset_master_sha256": "dc92b027295a88df5f918cdac427bed1b171ab52c4c70a42c5de84b6e885a907",
-  "candidate_before_sha256": "e0bb19800e77d7e6e5ae8703cf0247a3a6af8d4d39e53542ecb10638d9022a6a",
-  "checked_at": "2026-11-09T02:29:58Z",
+  "asset_master_sha256": "9f87a4d6e21cc55d2838c7e30297995f993c805c8b8bcdd9aa2e90edb654baba",
+  "candidate_before_sha256": "7deba53468802ed62b8fc6ab8797a864d5a6a650b3e92843134bb12bcbe7037c",
+  "checked_at": "2026-11-10T09:06:09Z",
   "correction_count": 3,
   "correction_ids": [
     "oge-278t:6edb6800bfd420ed027f7f1c",
@@ -8969,5 +8969,1847 @@
   "semantic_mapping_count": 68,
   "source_directory_mapping_count": 155,
   "source_transaction_count": 1355,
-  "unmatched_record_count": 362
+  "unmatched_record_count": 362,
+  "unmatched_records": [
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0001ce3c7bb1737dfee0e31b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:00b7d3d42d9081eea074faa1",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:012bb4f9de4ad85fde6c073c",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:014cce3f036c41f8f8d28f89",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:02424af437cd5c85a99f3d66",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:027a071c6893f3f6b4cdf9f9",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0288997bd6c626c2606752b8",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:02fcee192d1c7845e8a7d37c",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:037467839bd922dcd51b9cbf",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:037fb47874951576ec19cce4",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:03b69c154e48a055f91fa825",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:040b4f110a240118d9f16e87",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:04523596243110c82c5009c6",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:04736336c28d7df0dc6eb112",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:064972d2b35aa0ecb7afcac7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:06abde73774ce66d3bc9d6e4",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:072d96d5ff49bff30f48937b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:07380ecc6195e6d651575b24",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:077278d8ff58bf36c10f6a2f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:08b415aed451b8a84c99319a",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:08f493b13ffa6ffcf1808bac",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0b1e23e2bce10f2c399ef96c",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0baca5704172bd08be94b4d5",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0bc2d511a402ab69b7caceb8",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0c00de2250c941e19796ca52",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0cb251f9bfa203575123c28b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0dc7abb8c26dfe1f7be85616",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0dee5529cf202fd9c15bd8ad",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0df14b64c548b13292ea0e8d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0e40022f47df528df3da3c12",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:0e8c91187c5bed484ce7e988",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:108c815a183436dbf25a6382",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:109a3e1b8564ec020dc9505c",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:10ad9630a265774fd0a550d7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:1103f63c4d3bc2afd7f53a57",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:11df86ce6eaacf36758b33ac",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:12b7795a8340a612b71cbeb2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:12ec060d2d2906fb71322efd",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:13c5060d3614b41372988308",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:14088cb182f02429c89af5b7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:14ddc0441501db8cbab77cdb",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:14e4373436d4898ec3f0bfc6",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:15128f422876fa9a6c00543e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:15b6a6b8b086d6511e7adf00",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:15f64e55a8858bc2bcd40af6",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:17be41af58107921bfb3092f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:184ede9d28d55efa16d12aa3",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:19827cec7b5284b12296da4e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:1bff66ba5656f23e4c1385ea",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:1c01f47e31d357af5d923a74",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:1cfa8e215e2444b5a941dafe",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:1da357f587f9db5ee0d74833",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:1e56bbd7048528b266598953",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:21bd86aee7b7c82b78b92f83",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2328d8a709eaf419cd002faf",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:251334867e79833ea15271df",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:25c8482c93f0f3d9e6802aea",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:26f8f64981155b9c3a79a317",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:270f26a5172741070a9094dd",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:27d75cd9f4dbe4d81b355133",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:28186305246e2f54bff68141",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:28208362de8477ae5affcf27",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2861bb41c795303243de5cc9",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:29e5385fdd4030045a743b29",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2a0e2276dfde3fdd48fee9ed",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2b5e8ecc47e4e2929af98506",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2bf2ae78db678c857fbba8e7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2cf9cec54bc889110de65de9",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2d11234d5ff93ed195e57bb8",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2d167a1d84965c9e58c8abdb",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2d312aed2e7622c1baae7743",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2e3797e2831617f8fd300980",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2e7d350c39aa3eeb12e33173",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2f3053e034b3eb5a76c6c01b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2f66661bb1cd01ad362cecad",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2fb6cb5849c64fb3638c3281",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:2fde4677a26c47ebd22a2fa7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:300fcb233fa9a47e3bfd0974",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:305a575f76e5aef0ba3f1a7c",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:309c3f2abdb7bd7e3bf43e51",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3189210408e3b78bf52b36dc",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:31add982d10635327c215132",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:31b54c9537d74e0b6e5a27e2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3304371b5b2c7818a7f257a4",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:333053b51a0a317c5ddc3d15",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:342ea3c52d96123b08c0a640",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:36e8846698540ef595fbd59a",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:377010e05afb2ba5d37dbe5f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:37a9216e9841a827b86ca312",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3885d84428407db5dacbebf1",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:39195ef17182030a39f692a5",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:397a17be8609cbbe69df3392",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3a6e5d48ed149318ab6d1630",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3b8c12853d6c1e0e4b12224e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3b93c204a080755f058c27ec",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3bb5c4c89eb11f89672c784f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3bfd24bbf9fef23d08587983",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3cced837537607caf96d13a7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3de0398d93137c4d95f8bf39",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3dfcb5cf4ea3521037bf6c7f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3eddb8a8809ee651d7fe915a",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3f2739ec64aea4591a86c45b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:3fbad1d36c530ed7ecf6e11f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4092d776ea20223d8fd66db2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:40a05f64588838876ab863ee",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:40afb2a8c2dceed3e89f3f7d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:40f248a2456ae1647accc250",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4129f1d9211a10cb737bf134",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:418b78f9e56b8a126801c16b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:42b3c93b3d5d1b05a71d1306",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:43038c204ce46e627410d8bc",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:434414f7f96c37de669151b7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:43886fc84462da85142e81f1",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:43a985dcbf176840689e2e90",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:450e018c2b36a1303ad208da",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:45dd6e935a334a654e6c04ff",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:45fbfe8697ab1871a1b4f899",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:470a3bafaf2fcdb4fe483fdd",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4810ac1ba6b3f4dc6c0785a2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:48c9e48142ef368c5e39257f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4a85a2825cdb35ef6c7033c4",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4b09ca01919cd188ba7812db",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4bd4bbfb727189dbba78f4a1",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4d786dd012823022dbafe787",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4dccecf28dc3c851ddd8ec73",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4e5d9672f742accf8056d8f5",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4ec5d8d1e7c73cb0e64d9292",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4fcae77f3e9971e6e09f483c",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:4fcddf0f4e246f1838d6dd53",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5071bef901758138dcd3d93b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:507b14028db752ba8fba8635",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:50acaae7fa6062358706b927",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:50b62eea7a5d4ba62e1c345a",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:50d1ffc0730629fdc305dfc1",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:50f7641d58ba93870227abd7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5138283f079bd912c53849d0",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:51da8abecc66cb5ea90fe78d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:52b5a90629781a286098e618",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:531d9c4cdf9c26b5f65d6b52",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:571c5d1724aaa56bbf46de82",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:57b1a07058e398406150279e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:58639b4152c679b7a946edca",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:598e93b82ab7dd84aa44966b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5a7b847ab0a477d4a47c087a",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5b5a93442e9d582f19e811ac",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5ba4c305aafc77cd554edcda",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5bc4af67590ec0ce08722900",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5c40250d4d9f919a4a594156",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5d0243b033be6cbf5fdcae0c",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5d5a077399a2095161a1f4e2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5e2b653ab81519d51cca7340",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5f23a1237a0e2febb8b5d4d0",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5fd965b59608a0ff43195dda",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:5fe7b83712112e5c206ef113",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6174c68873924f082431b918",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:61ee7161860c7f2648f50ea3",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:62e8d175b8bb8d310f133819",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:64b296bdc67b404c7097fc9a",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:64fdbe8fa51060f53450bee0",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:66f120fd38c2135ba430c9fa",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:671b46384f339b9ce2895094",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:67892ba8e80dd4c5409c3454",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6810d0c291fac9bf42d6eec5",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:68c2bfd381cf1e9285cfc5e8",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:68c47c10b3caaf700f6f6bf1",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6a90de739e1ebe1a406db295",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6a996b029e583b6e42091603",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6b7a090887868b7cb905646f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6c9cca6c4fea54473c65277f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6cc126478ae5a3a2b656955e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6ecc20e5caf44564da48f847",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6f5da58cbe2fa5f228ce6cd9",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6fb32710941df30cdcdaacb2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:6fc31bb5a6c1d71422b6e016",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:7114b6d1e5bf5d6f6d6f19d3",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:719c0a10f4db6aa3884dd83e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:71a00e1fe7f85d5068e16078",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:71a212c59a8740809cd78b59",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:72df52109f47ab014d4f2142",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:73b3a93109bb2e3f9e54255d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:76f93b5f877bffa6cd00f850",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:7839fa78e3aa69deaa77ee69",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:78cf82b026584f7d719a4ad6",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:78f873c89e9a8734dd126870",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:79b3840b53533bf924c7009d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:7c5ee56fa0b881747efc8301",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:7d175ddfc12403e0acbf3cb8",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:7d7db4940a251c11dde287c0",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:7da5eb7d400ba8ab60903e58",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:7ddc1dbfa0c1901cb72a9ab8",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:7dde8026c9295839942876d2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:7e0dafb4d0888e54daaccf15",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:80112038ed0ee3294f531180",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:80b941c7c1bb8ebf5d21ed81",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:80f488bb327657b2afecb1ad",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:81207668498cd040896aa9b0",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:81fbb13731adfb55cbf28434",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:83cd724ed7a67abf24771124",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:847b8a753094ff2b46fb8383",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:8597244df316052fd4a3a2a1",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:866c80f7d77d5654afd8b1e6",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:874aedf3171cfe9134373476",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:8861d36c88d37dc4bdc883c2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:88d2c727a03db96bd2c0b8c5",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:8b0acdc76ae6a7d5a361ae92",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:8cee2a2503c6b1f2c1df40bb",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:8d2da19629d8e74bb2bb7c09",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:8d6f60d5ff06a04ad320837a",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:8e254013349337c6a3d0eca2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:8e417f59b59047c9bd172364",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:8e5a4be6695fa48c35617bbf",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:8eb07987576ac5d04d425237",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:900b30a9ba179007f5a62eb6",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:90f52e45f38db85427fea832",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:933c50c7bb8bc54e073eeb00",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9427f61705c72821d6f517e3",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:943dbafead63c3d51490c87e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:94507decd7a7955d0567f47b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:94870d13490790c591b631df",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:948fd88e21f955ce3f5d6a55",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9527e1640149c961fb4d82d0",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:973daa043a8b5de6ceee847b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:99ba35fe6ea28910d131e176",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9a92f4e057a767854c73390d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9b06470a5139c49dbf90842d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9bcdcfb9e8b13b7ed6260c0b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9c072c4f5425f773a8fc67f1",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9c40e3ff0a5f1b5e6f2fb35d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9ca303ee2ec9a81bff854087",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9df3c581f9aede01269a051f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9e16034ff4c29d90e5c07800",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9e21e49eb6764b125bd43744",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9e23279fa836734f691599de",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9e9e03062394af882b2566e0",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9f4ba2f58c2162f3373962bf",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9f7dcf3d8d43ca6a0a21de39",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9f8d18e0ba80370d4ed0c6c7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9f9c46ad1de2743b14516b8e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:9fb66b09a068c5128786a450",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a015d00e0eafe947069574fe",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a0704a1a3e5fb666c5305fda",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a0f3646049c9aa66e580fa8e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a1442f9dfe73560be2f3a722",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a2589f08a8d7272e194b2cdb",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a3ca21239cd134b69bcec7fc",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a4d34b1fae21aab078d0ec15",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a4dfe9a15eada789522de845",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a4f8acd2fc83317b53bfb9ad",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a66927c804e534a27e935c78",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a69c8a1422a384001446dc03",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a6cd121fd7450b1768a24a46",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a7cbf34c10825f21fb78c61d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a8b5ff7b9ab4ba190c73935f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:a9411471b2f421ff86d37c5d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:aa879c6b2c5495872b3f73c6",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:abd293c44ba380db0d168694",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ac224472aa1632127b5ee53b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ac571944f2dc115664fb2931",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ac66bdd09991f65b95ccdfdf",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ac7e7104e430d38df61ef647",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ad0a5cda802a3046df6b043f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b0f0baf91920f0d0d68af538",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b2556c5f1a4e7da5c15292c2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b291dd6b303b7cc6fd1df243",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b2abf02205fad7b8bea55f16",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b4107896f4b76e2a9c31d82d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b49197e4289b96db69df6789",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b55fddfad726a348b52291bd",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b584b7b635cff65259453237",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b5dfbf9ac9dade1343fa3078",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b6663236557db364917b9d73",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:b6d33af8402126a8ac83e2a9",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ba0a3c3f0c5842f4af8614e9",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ba76d627c4386aa0a142b774",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:bb0990defe03a23229f053f8",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:bd6b2066909545beaa726bb7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:be2559e35ecfc46d3dca3a47",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:be36a8f2379e30423d260cfc",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c033efa7409fa0abb52ee728",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c0e5cf565894b8fd053c4b4d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c15da2db6ef01251ca2aa25d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c1c241935b594f9c5bb989d7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c1c6b5899ca2873fc3b1b50f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c25083e853ca3308c3d96ba8",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c33de67240367263345b236d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c394ec1ac3f8e4ed20d91d6e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c3a946bb8e20d5aead6a5b71",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c47408c0768b57fbb713e392",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c4fdc82b3211c9d916103403",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c57636efae75dcb6663a0eb5",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c57c99ff13ea5b4aa3b05b83",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c5d3ec9d55a65922ad1e25aa",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c5ede6b7c40a10926d5b1fb7",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c75a905887be38efbb8a7c62",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c79a599d05d0826639999c91",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c8786b13a986ca4f74e03739",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:c9c8f2d9cf403bd9518dd37c",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ca7aa8e35e56308c3718b645",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ca9fc2a0ffc39a58129492ed",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:cb6750cfb45da66c084da686",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:cbe2ee2e675ab8ee1ac7004b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:cbfc4ffee4ca28cfd49a00c9",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:cc2aa0e28d5b0a75d479241e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:cc9994e0ed79128653ca9db2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:cd7f2ddbb2139f1d189c2bb5",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:cda0895f6854762d6b0eaeb5",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:cf5ae6d60ceb6e0b144ae02e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d0da190cef15f836468e3ee1",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d15f2689b707bd4729cc2e56",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d1c88cf623ef5b64eba303e6",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d226844605121412ce0f495d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d25559c9e086ba9e303794db",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d2dd18f8b3efb0f4adb58795",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d373db8a3adc150444320046",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d476a9a36f39a8aef14eb69d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d49f8113ff09ed57680931fa",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d5582d7d9ae5b33e748fb3fa",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d55c1c2c8343c3fd6b6ad6aa",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d5bac2d08c4fca04cc9d828f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d5d5d786448cc1862b54b434",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d709873cb2a899f0cbb9d13f",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d848ce6a70257860a1aabb52",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:d88b431edd68a56c722fb2d5",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:da9ea6c64a00ed06739ca912",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:daeec77a119726692cc55c9b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:db971af680ae7473fcfb524e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:dc5c86b8051e5304b58f7e7b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:dc75966855a8882fb49ba7a8",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:de6d7048a0f6cde5270121e4",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:dee002ed6a980788267295a2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e05c78186cf9a213bab3293b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e1123e42462172c6b0b355fd",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e161401ce49fad3913c5e479",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e22020c0b0787903397e5495",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e2bbbbace1503ece17f340ec",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e4f09807799b180417c10f4d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e678aefaa7dbf72c794ca184",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e75cd08862a39bd73f0541cd",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e817c0697c5d84700a74f49b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e84eb32cddf7dda518cd002a",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e8b99969faa656f2d262dd32",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e952f677a44f06ec43ca1c87",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:e9d2b8716f7cda8d78592fb5",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ecb496c1772ec3d56250bc54",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:ef117526f79952da5f56633b",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f0b2cc022f3cb55aa03f16eb",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f0c4bbfb9ae16e068b8d7740",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f0c84c9a283a36785731773c",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f1ad623a87928fda9393e6f2",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f1d97aa904edc049dc887d9d",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f21ca5ee3100067b7d005089",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f2ff58eeefa3e663c060cda4",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f400dd93fe336a5cb4709744",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f4d07b9752957b3fd2bfc4f0",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f54e23540237300cc0781793",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f668aed432b98d812174a317",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f6ebe8d0daedfa36a7a3cee1",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f7a8c37d65cad7b63ebef3f4",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f7ac88bce0c9e2d0108d8999",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f9dfcefaeef66976cb3acca0",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:f9e18dc663e6395266243b49",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:fb15ff73bf44f8a8231dc899",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:fc0e9f4cb19aed29b5b99e38",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:fd7aea2e32425847197181ae",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:fda2a2ffe7455b502e5f6d1e",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:fddeab3b61f44e4d796214a0",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:fe0bfeb8411c4d354c69028a",
+      "status": "unmatched"
+    },
+    {
+      "reason": "no_unique_market_ticker",
+      "record_id": "oge-278t:fec9e51e5f8754b3902a7a46",
+      "status": "unmatched"
+    }
+  ]
 }

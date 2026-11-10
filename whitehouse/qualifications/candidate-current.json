@@ -4,11 +4,11 @@
   "annual_part7_overlap_count": 25,
   "base_transaction_count": 5693,
   "candidate_is_append_only": true,
-  "candidate_sha256": "86ba106dab749d46a3170e338c6a68ec6501be20c7677a9ac1c42838625b1c0c",
+  "candidate_sha256": "b5d09d245685724f53a60bc2946d7b468ff79e7d7a64638e1d8d4bcae8448dd2",
   "candidate_transaction_count": 7396,
-  "catalog_report_count": 81,
-  "catalog_sha256": "41feec7e6d8554593e669f7a44cab4a0f47c7d694e71a71c0e577bab757147e3",
-  "data_cutoff_at": "2026-11-09T02:01:42.093242+00:00",
+  "catalog_report_count": 82,
+  "catalog_sha256": "41cc9b0f6c408445e5df6151acad8adc5224034b75f8c40850d59ef1b9420180",
+  "data_cutoff_at": "2026-11-10T08:31:00.846478+00:00",
   "existing_transaction_mutation_count": 0,
   "extraction_failure_count": 0,
   "promoted_report_count": 38,
@@ -1718,9 +1718,9 @@
     "oge-278t:ff92b09ef985b0f6804ce92f",
     "oge-278t:ffa9df785a2abdbaf7e4566b"
   ],
-  "pure_oge_candidate_sha256": "42a455f6bc86519b8fd2d97f659d40df45bbc5de1622288a4ce2f6aaa2bd5366",
+  "pure_oge_candidate_sha256": "f816db0865869f7c3ae63a378670985b6dc8bf5003088ac536d2db1fef995635",
   "quarantined_row_count": 8222,
-  "report_count": 81,
+  "report_count": 82,
   "reports": [
     {
       "document_id": "wh-url:01475dee0bcffa4e79f7f58c",
@@ -86731,6 +86731,151 @@
       "source_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/President-Donald-J.-Trump-Periodic-Transaction-Report-11.14.25.pdf"
     },
     {
+      "document_id": "wh-url:ab2087e100328c68404b8a1e",
+      "document_reasons": [
+        "278t_form_title_not_verified",
+        "filed_at_invalid",
+        "filed_at_missing_or_invalid",
+        "filer_signature_unreadable_pdf_text",
+        "native_visible_cover_unproved",
+        "no_transaction_rows_found",
+        "pdf_filer_information_not_verified",
+        "pdf_identity_fields_missing",
+        "source_extraction_incomplete",
+        "transaction_table_not_found"
+      ],
+      "filed_at": null,
+      "identity_basis": null,
+      "matched_person_id": null,
+      "native_source_partition_binding": {
+        "coverage_complete": false,
+        "parser_version": "whitehouse-278t-native-bichrome-default/v1",
+        "policy_version": "source-native-bichrome-opaque-white/v1",
+        "projection_sha256": "30a3d24d6674e49488445800748b0644b17efe68bcb9de526a5dc55e05adffcd",
+        "schema_version": "native-source-partition-binding/v1",
+        "source_sha256": "2e667abb21d0d737f0860ba7ec18d5896e5974eec8895d21e451ee5718b010b2",
+        "unknown_regions": [
+          {
+            "page_number": 1,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 2,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 3,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 4,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 5,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 6,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 7,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 8,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 9,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 10,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 11,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 12,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 13,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 14,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 15,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 16,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 17,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          },
+          {
+            "page_number": 18,
+            "reasons": [
+              "native_document_paint_state_unsupported"
+            ]
+          }
+        ]
+      },
+      "parser_version": "whitehouse-278t-native-bichrome-default/v1",
+      "promoted_count": 0,
+      "quarantined_count": 0,
+      "retained_count": 0,
+      "retained_ids": [],
+      "rows": [],
+      "source_row_count": 0,
+      "source_sha256": "2e667abb21d0d737f0860ba7ec18d5896e5974eec8895d21e451ee5718b010b2",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/11/President-Donald-J.-Trump-Periodic-Transaction-Report-09.17.26.pdf"
+    },
+    {
       "document_id": "wh-url:ab8ac0312b14b12f6d0dca8b",
       "document_reasons": [],
       "filed_at": "2026-01-28",
@@ -110527,21 +110672,21 @@
     "fixed_option_rules_version": "oge-278t-fixed-options/v1",
     "native_endnote_classification_dependency_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "native_endnote_classification_policy_version": "whitehouse-native-endnote-classification/v1",
-    "native_source_partition_dependencies_sha256": "ef3fb2f31bf8a9667392427a931c52d9517cf1ac64147043e0e92c9f87875f12",
+    "native_source_partition_dependencies_sha256": "18d26cc9a6d4481bb30ba02f1daf88d687ec3948a50d8c9be0cb20036a3c2016",
     "native_source_partition_policy_version": [
       "source-native-bichrome-opaque-white/v1",
       "source-native-opacity-opaque-white/v1"
     ],
-    "oge_whitehouse_coverage_sha256": "52bd161f47c10d3204b49902f75b396dbcc3f83ffe745e1dfd36d35406ff0273",
+    "oge_whitehouse_coverage_sha256": "1342beabe33b3725746608d24438e9919c36c823e7b55e65f77e045bb8ee25c5",
     "reviewed_fact_corrections_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "whitehouse_annual_dedup_set_sha256": "86999a1ad0c36b50fa2ad6b4e5409fc50a81b339d03989cdb9a40aa50330feb3",
-    "whitehouse_annual_identity_sha256": "b0a6dcb28049fde3dcb60ac4129a04e40ce9ef1842afebfb266aa24237269c09",
-    "whitehouse_coverage_sha256": "21eb9d467c0d24a2f2341f2fef93f9b360e2fa8814209ba06c33b84ae33ca071",
-    "whitehouse_directory_sha256": "53dab65a0baafd766b9ba7a210900c9e476a9292e145a52f5da21060d9a62449",
+    "whitehouse_annual_identity_sha256": "6543c7785fe8889517acb7318f0801bcfc6ff769fec55e166199dca34ce49d47",
+    "whitehouse_coverage_sha256": "80bb2cafb18abbd08a4830ca597b13cbc4c4383c6ca20d3d1c5154e16771dfdd",
+    "whitehouse_directory_sha256": "954a66458da7dd8d774991cbc29b4701db35bd9737e15a38151dc66ca2d93a60",
     "whitehouse_extraction_failure_set_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "whitehouse_extraction_set_sha256": "c5ad27271609294ced96ac613f567bad98507bd5c784a9e54be67245bcdd44d9",
-    "whitehouse_extraction_status_sha256": "42501a319d8ecdbac6c07635c93a719bcb69256ab56676881c94197bbded7b76",
-    "whitehouse_fixed_option_projection_sha256": "284799fec17605ab1e26fa5dfb0203fa5234f69760d5d050aaa3c3f0ad3fa0de"
+    "whitehouse_extraction_set_sha256": "02b28009e8a2d54320e553063781083fa476eb422af0c76b2cc444a1df3ea84a",
+    "whitehouse_extraction_status_sha256": "98b652ff4d21b01cae93fd6a34da920c1042c91f27ec70ed4a0a67815487fa43",
+    "whitehouse_fixed_option_projection_sha256": "18609cee2632b0454b0ee0ef9e865b76238df8d0d77d8c2daff1cc2920680c3d"
   },
   "schema_version": "whitehouse-278t-candidate-conservation/v1",
   "source_id": "oge",
