@@ -188,9 +188,12 @@ jobs:
       - name: Verify v1 disclosure accounting
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
           PYTHONPATH: backend/src
         run: |
+          board_sha="$(python -c 'import json,os; print(json.load(open(os.environ["MAIN_ROOT"] + "/manifest.json", encoding="utf-8"))["board"])')"
           python -m unison_snapshot verify-publication-readiness \
+            --previous-board "$MAIN_ROOT/board/$board_sha.json" \
             --review-root "$REVIEW_ROOT" \
             --input "$RUNNER_TEMP/governed-disclosure.json" \
             --cutoff-audit "$RUNNER_TEMP/governed-cutoff.json" \
