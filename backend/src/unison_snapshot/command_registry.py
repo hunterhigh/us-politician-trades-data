@@ -74,6 +74,44 @@ COMMANDS = {'verify-senate-saved-replay': ('verify_senate_saved_replay',
                         'Extract archived White House public OGE forms into review-only evidence.')}
 
 
+COMMANDS.update({'prepare-publication': ('snapshot_cli', 'prepare publication'),
+ 'prepare-market-publication': ('market_cli', 'prepare market publication'),
+ 'verify-publication-readiness': ('snapshot_cli', 'verify publication readiness'),
+ 'discover-house-index': ('house_cli', 'discover house index'),
+ 'archive-house-holding-report': ('house_cli', 'archive house holding report'),
+ 'parse-house-holding-report': ('house_cli', 'parse house holding report'),
+ 'qualify-house-holding-report': ('house_cli', 'qualify house holding report'),
+ 'parse-house-ptr': ('house_cli', 'parse house ptr'),
+ 'qualify-house-ptr': ('house_cli', 'qualify house ptr'),
+ 'correct-reviewed-house-paper': ('house_cli', 'correct reviewed house paper'),
+ 'bridge-house-paper-batch': ('house_cli', 'bridge house paper batch'),
+ 'build-house-candidate': ('house_cli', 'build house candidate'),
+ 'build-senate-candidate': ('senate_cli', 'build senate candidate'),
+ 'build-disclosure-candidate': ('snapshot_cli', 'build disclosure candidate'),
+ 'build-alpaca-market-validation': ('market_cli', 'build alpaca market validation'),
+ 'build-twelve-data-supplement': ('market_cli', 'build twelve data supplement'),
+ 'discover-senate-members': ('senate_cli', 'discover senate members'),
+ 'discover-congress-senate-members': ('senate_cli', 'discover congress senate members'),
+ 'senate-efd-gate': ('senate_cli', 'senate efd gate'),
+ 'discover-senate-efd': ('senate_cli', 'discover senate efd'),
+ 'match-senate-catalog': ('senate_cli', 'match senate catalog'),
+ 'archive-senate-report-entrypoints': ('senate_cli', 'archive senate report entrypoints'),
+ 'extract-senate-report-entrypoints': ('senate_cli', 'extract senate report entrypoints'),
+ 'extract-senate-paper-pages': ('senate_cli', 'extract senate paper pages'),
+ 'plan-senate-amendment-backfill': ('senate_cli', 'plan senate amendment backfill'),
+ 'resolve-senate-amendment-backfill': ('senate_cli', 'resolve senate amendment backfill'),
+ 'activate-senate-amendment-supplement': ('senate_cli',
+                                          'activate senate amendment supplement'),
+ 'oge-gate': ('oge_cli', 'oge gate'),
+ 'discover-oge': ('oge_cli', 'discover oge'),
+ 'archive-oge-direct-pdfs': ('oge_cli', 'archive oge direct pdfs'),
+ 'extract-oge-direct-pdfs': ('oge_cli', 'extract oge direct pdfs'),
+ 'build-oge-candidate': ('oge_cli', 'build oge candidate'),
+ 'discover-house-members': ('house_cli', 'discover house members'),
+ 'suggest-house-identity': ('house_cli', 'suggest house identity'),
+ 'plan-house-ptr-sync': ('house_cli', 'plan house ptr sync')})
+
+
 def register(subparsers):
     for name, (_, description) in COMMANDS.items():
         # Actual arguments and --help belong to the selected implementation.
@@ -94,3 +132,13 @@ def dispatch(arguments):
     finally:
         sys.argv = previous
     return True
+
+
+def main():
+    import argparse
+    arguments = sys.argv[1:]
+    if dispatch(arguments):
+        return
+    parser = argparse.ArgumentParser(description="Snapshot production, public reading and official-source discovery")
+    register(parser.add_subparsers(dest="command", required=True))
+    parser.parse_args(arguments)

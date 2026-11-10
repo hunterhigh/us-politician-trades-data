@@ -1,6 +1,6 @@
 # 运行与恢复
 
-当前生效结果、待完成项及授权见 [status.md](status.md)；架构与分支见 [architecture.md](architecture.md)。源码在`codex/v1-closeout`候选分支，生产切换仍须用户确认一次。修改工作流、PR通过与实际部署分别表述。
+当前生效结果、待完成项及授权见 [status.md](status.md)，事实与消费边界见 [data-contract.md](data-contract.md)。集成源码在 `code`，生产数据在 `main`；PR293 已完成源码切换。开发分支和本机工作树不代表生产版本。修改工作流、PR通过与实际部署分别表述。
 
 ## 入口与环境
 
@@ -32,7 +32,7 @@ Secrets只放在GitHub `production` environment：`ALPACA_API_KEY_ID`、`ALPACA_
 
 OGE采集必须同时满足`OGE_COLLECTION_ENABLED`及`OGE_TERMS_ACKNOWLEDGED`；Senate使用既有同类授权门禁。变量必须在作业取得production环境后判断。行情还需`MARKET_DISTRIBUTION_AUTHORIZED`及对应供应商分发授权。Form 201需申请的原件仅记`request_required`，不自动申请。
 
-不新增付费资源、供应商或受限来源。现有公开GitHub部署、House公开采集和官方归档已获授权；2025 House PTR回填已从code启动，只处理固定2025年PTR，不扩年报或其他年份。production环境继续限制候选分支运行。来源门禁遵循[数据契约](data-contract.md)：Senate单独受阻可限期保旧发布。Senate不做403或访问绕行诊断，仅每日正常采集并自动补齐缺口。
+不新增付费资源、供应商或受限来源。现有公开GitHub部署、House公开采集和官方归档已获授权；2025 House PTR回填已从code启动，只处理固定2025年PTR，不扩年报或其他年份。production 环境按受控工作流的 `code` 分支边界运行。来源门禁遵循[数据契约](data-contract.md)：Senate单独受阻可限期保旧发布。Senate不做403或访问绕行诊断，仅每日正常采集并自动补齐缺口。
 
 ## 运行规则
 
@@ -59,7 +59,7 @@ OGE重复验证同一目录会更新成功观察时间，内容寻址原件的�
 
 House归档应按时间预算推进积压并保存检查点，不能永久停在每批10份；工作流合并及预算处理的落地情况见status。缓存可复用时不重新OCR。来源、版式或输出断言变动才重新判断资格，不能以反复验收替代核心改动。
 
-工作流入口为house、senate、oge、whitehouse、replay、market、publish、ci、health、rollback。market准备价格交接或执行许可内审计；publish重新冻结来源并零行情请求地组装，最终原子移动main与market。市场审计或单独账号查询不触发正式发布；来源更新可重新评估停发条件。
+工作流入口为house、senate、oge、whitehouse、replay、market、publish、ci、health、rollback。House 年报持仓重放统一使用 `replay` 的 `source=house, mode=holdings`，并保留原解析文件变化时的 `code` push 触发；不再使用独立的 house-holdings-replay 工作流。market准备价格交接或执行许可内审计；publish重新冻结来源并零行情请求地组装，最终原子移动main与market。市场审计或单独账号查询不触发正式发布；来源更新可重新评估停发条件。
 
 ## 发布与演练
 

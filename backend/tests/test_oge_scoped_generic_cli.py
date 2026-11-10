@@ -1,3 +1,4 @@
+from unison_snapshot.command_registry import main as entry_main
 """Per-report cache selection through the normal CLI.
 
 Generated native v2/v7 controls prove selection, not official accuracy. Other
@@ -17,7 +18,7 @@ import unittest
 from unittest.mock import patch
 
 import test_oge_owner_correction as sample
-from unison_snapshot import __main__ as cli
+from unison_snapshot.commands import oge_cli as cli
 from unison_snapshot.codec import encode
 from unison_snapshot.oge import build_catalog, parse_catalog_page, archive_catalog
 
@@ -89,7 +90,7 @@ class ScopedGenericCliTests(unittest.TestCase):
         if roots:
             args += ['--evidence-root', str(self.data['evidence_root'])]
         with patch.object(sys, 'argv', args + list(arguments)), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-            cli.main()
+            entry_main()
 
     def assert_rejected_without_writes(self, arguments, *, roots=True):
         self.output.write_bytes(b'candidate sentinel'); self.audit.write_bytes(b'audit sentinel')

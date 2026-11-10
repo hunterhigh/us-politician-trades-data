@@ -1,3 +1,4 @@
+from unison_snapshot.command_registry import main as entry_main
 """Explicit original-version selection through the normal candidate CLI.
 
 Generated native sources test selection, not official accuracy. A second SHA
@@ -17,7 +18,7 @@ from unittest.mock import patch
 
 from test_oge_scoped_generic_cli import make_mixed_inputs
 from test_oge_owner_correction import encoded
-from unison_snapshot import __main__ as cli
+from unison_snapshot.commands import oge_cli as cli
 from unison_snapshot.codec import encode
 from unison_snapshot.disclosure_status_oge import build_oge_status
 from unison_snapshot.oge_reports import parse_archived_pdf
@@ -77,7 +78,7 @@ class OgeSourceSelectionTests(unittest.TestCase):
         if roots:
             args += ['--evidence-root', str(self.data['evidence_root'])]
         with patch.object(sys, 'argv', args + list(arguments)), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-            cli.main()
+            entry_main()
 
     def rejected(self, flags=(), *, roots=True):
         self.output.write_bytes(b'candidate sentinel')

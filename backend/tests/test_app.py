@@ -1,3 +1,4 @@
+from unison_snapshot.command_registry import main as entry_main
 """Exercise the public CLI process, including its real-data fail-closed boundary."""
 import hashlib
 import json
@@ -19,7 +20,7 @@ BACKEND = Path(__file__).resolve().parents[1]
 
 class CliTests(unittest.TestCase):
     def test_market_commands_keep_v2_relations_and_renderer_with_one_processing_pass(self):
-        import unison_snapshot.__main__ as cli
+        from unison_snapshot.commands import market_cli as cli
         from test_oge_annual_approved_policy import complete_case
         from unison_snapshot.codec import digest, encode
         _, (candidate, _) = complete_case()  # Synthetic approved-policy contract.
@@ -47,7 +48,7 @@ class CliTests(unittest.TestCase):
                         patch.object(cli,"TwelveDataClient"), patch.object(cli,"load",side_effect=load), \
                         patch.object(cli,"build_market_validation",return_value=SimpleNamespace(snapshot=result,audit=counts)), \
                         patch.object(cli,"supplement_twelve_data",return_value=(result,counts)), redirect_stdout(StringIO()):
-                    cli.main()
+                    entry_main()
                 self.assertEqual(calls,[("process_snapshot","v2"),("render_dashboard","v2")])
                 self.assertEqual(process.call_count,1)
                 saved=json.loads(output.read_bytes())
@@ -68,7 +69,7 @@ class CliTests(unittest.TestCase):
                 self.assertIn("transaction_disclosure_relations",html.read_text(encoding="utf8"))
 
     def test_market_commands_validate_before_writing_any_outputs(self):
-        import unison_snapshot.__main__ as cli
+        from unison_snapshot.commands import market_cli as cli
 
         for command in ("build-alpaca-market-validation", "build-twelve-data-supplement"):
             with self.subTest(command=command), tempfile.TemporaryDirectory() as temp:
@@ -84,7 +85,7 @@ class CliTests(unittest.TestCase):
                         patch.object(cli, "build_market_validation", return_value=SimpleNamespace(snapshot=invalid, audit={})), \
                         patch.object(cli, "supplement_twelve_data", return_value=(invalid, {"accepted_count": 0})), \
                         redirect_stderr(StringIO()) as error, self.assertRaises(SystemExit) as stopped:
-                    cli.main()
+                    entry_main()
                 self.assertEqual(stopped.exception.code, 2)
                 self.assertIn("person", error.getvalue().lower())
                 self.assertFalse(output.exists())
@@ -101,11 +102,8 @@ class CliTests(unittest.TestCase):
     def test_help_documents_demo_only_publication(self):
         result = self.invoke("--help")
         self.assertEqual(result.returncode, 0)
-        self.assertIn("publish-demo", result.stdout)
         self.assertIn("prepare-publication", result.stdout)
-        self.assertIn("fetch-public", result.stdout)
         self.assertIn("discover-house-index", result.stdout)
-        self.assertIn("archive-house-ptr", result.stdout)
         self.assertIn("parse-house-ptr", result.stdout)
         self.assertNotIn("create-house-ptr-review", result.stdout)
         self.assertNotIn("promote-house-ptr-review", result.stdout)
@@ -114,9 +112,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("build-senate-candidate", result.stdout)
         self.assertIn("build-disclosure-candidate", result.stdout)
         self.assertIn("build-alpaca-market-validation", result.stdout)
-        self.assertIn("parse-senate-members", result.stdout)
         self.assertIn("discover-senate-members", result.stdout)
-        self.assertIn("parse-senate-search-page", result.stdout)
         self.assertIn("senate-efd-gate", result.stdout)
         self.assertIn("discover-senate-efd", result.stdout)
         self.assertIn("match-senate-catalog", result.stdout)
@@ -125,7 +121,6 @@ class CliTests(unittest.TestCase):
         self.assertIn("plan-senate-amendment-backfill", result.stdout)
         self.assertIn("resolve-senate-amendment-backfill", result.stdout)
         self.assertIn("activate-senate-amendment-supplement", result.stdout)
-        self.assertIn("archive-senate-paper-pages", result.stdout)
         self.assertIn("extract-senate-paper-pages", result.stdout)
         self.assertIn("oge-gate", result.stdout)
         self.assertIn("discover-oge", result.stdout)
@@ -207,16 +202,6 @@ class CliTests(unittest.TestCase):
                              'oge-278t-pdf/v8')
             self.assertEqual(json.loads((reuse/'oge-278t-pdf-v2.json').read_bytes()), old)
 
-    def test_real_input_fails_before_creating_repository(self):
-        with tempfile.TemporaryDirectory() as temp:
-            folder = Path(temp)
-            source = folder / "input.json"
-            source.write_text(json.dumps({"meta": dict(is_demo=False)}), encoding="utf-8")
-            result = self.invoke("publish-demo", "--input", str(source), "--store", str(folder / "repo.git"),
-                                 "--generated-at", "2026-09-18T00:01:00Z")
-            self.assertEqual(result.returncode, 2)
-            self.assertIn("Production admission", result.stderr)
-            self.assertFalse((folder / "repo.git").exists())
 
     def test_alpaca_validation_requires_environment_credentials(self):
         with tempfile.TemporaryDirectory() as temp:

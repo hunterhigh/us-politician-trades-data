@@ -1,3 +1,4 @@
+from unison_snapshot.command_registry import main as entry_main
 """Exercise HTTP failures and the real workflow shell against local Git remotes."""
 from io import BytesIO
 import json
@@ -14,7 +15,7 @@ from urllib.request import Request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 
-from unison_snapshot import __main__ as cli
+from unison_snapshot.commands import senate_cli as cli
 from unison_snapshot.senate import (
     HOME_URL, SEARCH_URL, SenateEfdClient, SenateHttpError,
 )
@@ -91,7 +92,7 @@ class SenateHttpFailureTests(unittest.TestCase):
                     'SENATE_EFD_COLLECTION_ENABLED': 'true',
                     'SENATE_EFD_TERMS_ACKNOWLEDGED': 'true'}), patch.object(
                         cli, 'discover_ptrs', side_effect=error), self.assertRaises(SystemExit) as result:
-                cli.main()
+                entry_main()
             self.assertEqual(result.exception.code, 2)
             self.assertEqual(discovery.read_bytes(), b'prior complete discovery')
             self.assertFalse((root / 'archive').exists())

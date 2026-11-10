@@ -1,3 +1,4 @@
+from unison_snapshot.command_registry import main as entry_main
 """Source availability isolation never admits invalid or incoherent data."""
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
@@ -13,7 +14,7 @@ from unittest.mock import patch
 from urllib.request import Request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
-from unison_snapshot import __main__ as cli
+from unison_snapshot.commands import senate_cli as cli
 from unison_snapshot.senate import HOME_URL, SenateEfdError, SenateHttpError, SenateTransportError
 from tests.test_disclosure_candidate import candidate
 from tests import test_senate_production_recovery as recovery
@@ -24,7 +25,7 @@ ROOT, step_script = recovery.ROOT, recovery.step_script
 def invoke(args):
     with patch.object(sys, 'argv', ['snapshot', *args]), redirect_stdout(StringIO()), redirect_stderr(StringIO()):
         try:
-            cli.main()
+            entry_main()
         except SystemExit as error:
             return error.code
     return 0

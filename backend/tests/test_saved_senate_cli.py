@@ -1,3 +1,4 @@
+from unison_snapshot.command_registry import main as entry_main
 import json
 from pathlib import Path
 import sys
@@ -6,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
-from unison_snapshot import __main__ as cli
+from unison_snapshot.commands import senate_cli as cli
 
 
 class SavedSenateCliTests(unittest.TestCase):
@@ -22,7 +23,7 @@ class SavedSenateCliTests(unittest.TestCase):
             result = {'report_count': 2, 'extraction_count': 2, 'failure_count': 0,
                       'transaction_count': 1, 'eligible_transaction_count': 1, 'quarantined_transaction_count': 0, 'scope': 'selected_fixed_reports_not_full_catalog'}
             with patch.object(sys, 'argv', args), patch.object(cli, 'extract_archived_paper_reports', return_value=result) as runner:
-                cli.main()
+                entry_main()
             self.assertEqual(runner.call_args.kwargs['selected_document_ids'], ['a', 'b'])
             self.assertEqual(runner.call_args.kwargs['cached_word_pages'], {'a': [], 'b': []})
             self.assertEqual(json.loads((root/'out.json').read_text()), result)
@@ -32,7 +33,7 @@ class SavedSenateCliTests(unittest.TestCase):
                 '--review-root', '.', '--output', 'unused.json', '--saved-word-pages', 'unused.json']
         with patch.object(sys, 'argv', args), patch.object(cli, 'extract_archived_paper_reports') as runner:
             with self.assertRaises(SystemExit) as error:
-                cli.main()
+                entry_main()
         self.assertEqual(error.exception.code, 2)
         runner.assert_not_called()
 

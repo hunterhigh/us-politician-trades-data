@@ -1,3 +1,4 @@
+from unison_snapshot.command_registry import main as entry_main
 """Candidate/status/publication owner-scope contract through normal CLIs.
 
 Generated source pages exercise integration; no official recognition claim.
@@ -29,7 +30,7 @@ def unknown_context(raw):
 class OwnerScopeCliTests(unittest.TestCase):
     def test_existing_v2_manual_overlay_keeps_raw_selection_separate(self):
         from unittest.mock import patch
-        from unison_snapshot import __main__ as cli
+        from unison_snapshot.commands import oge_cli as cli
         from unison_snapshot.oge_candidate import build_oge_candidate
         from test_oge_candidate import extraction, catalog, base
         raw = extraction()
@@ -55,7 +56,7 @@ class OwnerScopeCliTests(unittest.TestCase):
             before = path.read_bytes()
             with patch.object(sys, 'argv', args), patch.object(cli, 'build_oge_candidate',
                     wraps=build_oge_candidate) as receiver:
-                cli.main()
+                entry_main()
             self.assertEqual(receiver.call_args.args[1][0]['filed_at'], '2025-06-03')
             self.assertEqual(receiver.call_args.kwargs['source_extractions_by_document'][raw['document_id']], raw)
             candidate = json.loads((root / 'candidate.json').read_bytes())
