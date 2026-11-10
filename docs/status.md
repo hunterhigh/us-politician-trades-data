@@ -24,7 +24,7 @@ v1.1日期、稳定一周及定时检查已取消；本轮连续完成。两种�
 
 main为0013cec5：584人、27228交易、19499持仓，与4010b3f3逐对象一致。PR335–337完整CI通过；开口金额统一C：合格交易排除4→10、持仓79不变；37条纸表观察仍因其他原因隔离并列known_gaps，47条观察公开读取/v2渲染通过，前端/Skill未改。[发布](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42770458934)成功；[回退演练](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42777684194)通过，生产未动。
 
-OGE整合已成功：339份当前解析，待解析315→0、旧版保留4696→0；正式候选OGE5693笔、含白宫14155笔。453笔字段修订暂缓，历史对象完整不变；发布核对正分离当前资格与发布计数，并扩展OGE全量来源验证预算。PR339/340完整CI通过；[整合](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42782953671)。
+OGE整合已成功：339份当前解析，待解析315→0、旧版保留4696→0；正式候选OGE5693笔、含白宫14155笔。453笔字段修订暂缓，历史对象完整不变；发布计数与分类证明已修复（PR341完整CI通过），历史目录API v2/v3兼容正在核验；main待发布。PR339/340完整CI通过；[整合](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42782953671)。
 
 ## 待决事项
 

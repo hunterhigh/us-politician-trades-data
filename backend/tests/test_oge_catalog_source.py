@@ -90,6 +90,30 @@ class OgeCatalogSourceTests(unittest.TestCase):
         self.assertTrue(all((EVIDENCE, p['archive_path']) in self.calls for p in self.meta['pages']))
         self.assertEqual(self.objects, before)
 
+    def test_official_v2_archive_keeps_complete_raw_page_and_normalized_hash_checks(self):
+        path = (EVIDENCE, self.meta['archive_path'])
+        metadata = json.loads(self.objects[path])
+        metadata['source_url'] = 'https://extapps2.oge.gov/201/Presiden.nsf/API.xsp/v2/rest'
+        self.objects[path] = encoded(metadata)
+        before = deepcopy(self.objects)
+        catalog, archived, _ = self.load()
+        self.assertEqual(catalog, self.catalog)
+        self.assertEqual(archived, metadata)
+        self.assertEqual(self.objects, before)
+        page = (EVIDENCE, self.meta['pages'][0]['archive_path'])
+        self.objects[page] += b' '
+        with self.assertRaisesRegex(loader.OgeCatalogSourceError, 'raw page bytes'):
+            self.load()
+
+    def test_catalog_compatibility_does_not_accept_other_hosts_or_unrecognized_versions(self):
+        key = (EVIDENCE, self.meta['archive_path'])
+        for url in ('https://example.invalid/API.xsp/v2/rest',
+                    'https://extapps2.oge.gov/201/Presiden.nsf/API.xsp/v4/rest'):
+            with self.subTest(url=url):
+                self.objects[key] = encoded({**self.meta, 'source_url': url})
+                with self.assertRaisesRegex(loader.OgeCatalogSourceError, 'metadata differs'):
+                    self.load()
+
     def test_self_signed_normalized_and_repointed_metadata_cannot_replace_raw_catalog_identity(self):
         forged = deepcopy(self.catalog); forged['transactions'][0]['filer_name'] = 'Forged, Identity'
         raw = encoded(forged); digest = hashlib.sha256(raw).hexdigest()
