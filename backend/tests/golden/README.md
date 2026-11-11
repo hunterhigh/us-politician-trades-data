@@ -16,7 +16,8 @@ Senate 年报修订样本同时带入其原始年报作为资格判定上下文�
 python -m unittest discover -s backend/tests/golden -p test_golden.py
 ```
 
-有意修改解析或发布行为后，重新生成全部标准答案，并随 PR 提交：
+有意修改解析或发布行为后，在 ci.yml 固定的生产运行时重新生成全部标准答案，并随 PR 提交。
+纸质样本的 OCR 文字和置信度随 Tesseract 版本变化，标准答案使用该固定版本。
 
 ```sh
 python backend/tests/golden/run.py --regenerate
