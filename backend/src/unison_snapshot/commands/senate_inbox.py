@@ -64,7 +64,7 @@ def electronic_report(path, content, previous):
     label = datetime.strptime(match[1], '%m/%d/%Y').date().isoformat()
     amendment = (int(match[2]) if match[2] else 'unspecified' if 'Amendment' in title else None)
     heading = next(text for tag, text in parser.headings if tag == 'h2')
-    name = re.sub(r'^The Honorable\s+', '', heading).split(' (')[0].strip()
+    name = re.sub(r'^(?:The Honorable|Mr\.|Mrs\.|Ms\.|Dr\.)\s+', '', heading).split(' (')[0].strip()
     filed = next(text for text in parser.text_segments if re.fullmatch(r'Filed \d{2}/\d{2}/\d{4} @ .+', text))
     listed = _filed_date(filed)
     return {**previous, 'filer_name': name, 'portal_listed_date': listed,
