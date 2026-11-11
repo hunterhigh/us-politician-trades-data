@@ -175,7 +175,7 @@
       "source": "publication"
     }
   ],
-  "checked_at": "2026-11-11T22:03:25.758114+00:00",
+  "checked_at": "2026-11-11T23:54:12.659646+00:00",
   "integrity_failures": [
     {
       "category": "old_fact_delta",
@@ -200,9 +200,9 @@
       "number": 327
     }
   ],
-  "last_successful_publication_check_at": "2026-11-11T22:00:13Z",
+  "last_successful_publication_check_at": "2026-11-11T23:49:52Z",
   "publication": "held",
-  "published_at": "2026-11-11T21:09:00Z",
+  "published_at": "2026-11-11T22:58:53Z",
   "quality_complete": true,
   "quality_observed_scopes": [
     "quality:house_clerk:house_ptr",
@@ -213,34 +213,34 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "4382cde1edf069b9f8cf890713836a63a491abb6",
+  "quality_review_commit": "498c445f2d47151bf297c2eb144530943e76b850",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-11T22:03:25.355512+00:00",
+    "checked_at": "2026-11-11T23:54:12.366801+00:00",
     "checks": [
       {
-        "commit": "4c3c05d0ca7e3788fedb20bd930639d94d8f69a4",
+        "commit": "a746854038c0267147055f72cf2ca58ea3153341",
         "mode": "dashboard",
         "person_id": null,
         "snapshot_id": "ebe4acc03030683bb95780f9c74044f5509a5df6652cea730f67e602422cf79f",
         "status": "passed"
       },
       {
-        "commit": "4c3c05d0ca7e3788fedb20bd930639d94d8f69a4",
+        "commit": "a746854038c0267147055f72cf2ca58ea3153341",
         "mode": "person",
         "person_id": "house:M001157",
         "snapshot_id": "ebe4acc03030683bb95780f9c74044f5509a5df6652cea730f67e602422cf79f",
         "status": "passed"
       },
       {
-        "commit": "4c3c05d0ca7e3788fedb20bd930639d94d8f69a4",
+        "commit": "a746854038c0267147055f72cf2ca58ea3153341",
         "mode": "person",
         "person_id": "senate:W000805",
         "snapshot_id": "ebe4acc03030683bb95780f9c74044f5509a5df6652cea730f67e602422cf79f",
         "status": "passed"
       },
       {
-        "commit": "4c3c05d0ca7e3788fedb20bd930639d94d8f69a4",
+        "commit": "a746854038c0267147055f72cf2ca58ea3153341",
         "mode": "person",
         "person_id": "oge:076544f8ba0638cf",
         "snapshot_id": "ebe4acc03030683bb95780f9c74044f5509a5df6652cea730f67e602422cf79f",
@@ -252,9 +252,9 @@
       }
     ],
     "client_sha256": "3b59fcd5a45ceb72e7bb73a7ef5a5d483c60101e2f69486d7d2174421dde15ff",
-    "commit": "4c3c05d0ca7e3788fedb20bd930639d94d8f69a4",
+    "commit": "a746854038c0267147055f72cf2ca58ea3153341",
     "failed_snapshots": {},
-    "last_good_commit": "4c3c05d0ca7e3788fedb20bd930639d94d8f69a4",
+    "last_good_commit": "a746854038c0267147055f72cf2ca58ea3153341",
     "recovery": {
       "action": "none",
       "reason": "passed"
@@ -264,7 +264,7 @@
     "snapshot_id": "ebe4acc03030683bb95780f9c74044f5509a5df6652cea730f67e602422cf79f",
     "status": "passed"
   },
-  "snapshot_changed": true,
+  "snapshot_changed": false,
   "snapshot_id": "ebe4acc03030683bb95780f9c74044f5509a5df6652cea730f67e602422cf79f",
   "sources": {
     "house_clerk": {
@@ -283,13 +283,13 @@
       "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-11T12:48:26.239111+00:00",
-      "last_successful_collection_at": "2026-11-11T12:34:54.860076+00:00",
+      "last_attempt_at": "2026-11-11T23:21:09.281236+00:00",
+      "last_successful_collection_at": "2026-11-11T23:07:49.999530+00:00",
       "qualified_cutoff_at": "2026-11-11T12:34:54.860076+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/43018183911"
+      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/43116967022"
     },
     "senate_efd": {
       "detail": "Senate PTR files acquired manually in a browser and imported automatically.",
