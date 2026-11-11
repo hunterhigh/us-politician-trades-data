@@ -230,11 +230,11 @@ def archive_report(root: Path, discovery: dict, content: bytes, headers: dict[st
         ),
     }
     if acquisition:
-        metadata.update(acquisition=acquisition, headers={})
+        metadata.update(acquisition=acquisition, headers={}, artifact_role='manual_browser_artifact')
     encoded = json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     if metadata_path.exists():
         old = json.loads(metadata_path.read_text(encoding="utf-8"))
-        stable = set(metadata) - {"retrieved_at", "headers", "acquisition"}
+        stable = set(metadata) - {"retrieved_at", "headers", "acquisition", "artifact_role"}
         if any(old.get(key) != metadata[key] for key in stable):
             raise SenateEfdError("Archived Senate eFD report metadata conflicts with its hash")
     else:
