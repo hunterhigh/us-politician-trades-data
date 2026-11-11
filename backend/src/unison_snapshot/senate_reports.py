@@ -39,7 +39,6 @@ PAPER_INSPECTION_SCHEMA = "senate-efd-paper-ptr-inspection/v1"
 PAPER_PAGE_MANIFEST_SCHEMA = "senate-efd-paper-page-manifest/v1"
 PARSER_VERSION = "senate-efd-report-parser-2026-09-v2"
 MAX_ENTRYPOINT_BYTES = 25 * 1024 * 1024
-MAX_PAPER_PAGE_BYTES = 25 * 1024 * 1024
 _OFFICIAL_HOST = "efdsearch.senate.gov"
 _PAPER_MEDIA_HOST = "efd-media-public.senate.gov"
 _DISCOVERY_FIELDS = {
@@ -693,104 +692,6 @@ def parse_paper_viewer_manifest(metadata: dict, content: bytes) -> dict:
     }
 
 
-def _inspect_gif_page(content: bytes, headers: dict[str, str]) -> dict:
-    media_type = headers.get("content-type", "").split(";", 1)[0].strip().lower()
-    if media_type not in {"image/gif", "application/octet-stream"}:
-        raise SenateEfdError("Senate paper page has an unexpected content type")
-    if len(content) < 14 or content[:6] not in {b"GIF87a", b"GIF89a"}:
-        raise SenateEfdError("Senate paper page is not a valid GIF image")
-    width = int.from_bytes(content[6:8], "little")
-    height = int.from_bytes(content[8:10], "little")
-    if not 1 <= width <= 20000 or not 1 <= height <= 20000:
-        raise SenateEfdError("Senate paper page has invalid image dimensions")
-    return {
-        "sha256": hashlib.sha256(content).hexdigest(),
-        "byte_length": len(content),
-        "media_type": media_type,
-        "width": width,
-        "height": height,
-    }
-
-
-def archive_paper_viewer_pages(
-        root: Path, viewer_metadata: dict, viewer_content: bytes, *,
-        config: SenateSourceConfig | None = None, client=None) -> dict:
-    """Archive every page from one already archived official paper viewer."""
-
-    require_collection_enabled(config or SenateSourceConfig())
-    manifest = parse_paper_viewer_manifest(viewer_metadata, viewer_content)
-    wrapper = client or SenateEfdClient()
-    archived_pages = []
-    for page in manifest["pages"]:
-        page_number = page["page_number"]
-        source_url = page["source_url"]
-        folder = (root.resolve() / "senate_efd" / "paper_pages" /
-                  manifest["document_id"] / str(page_number))
-        existing_metadata = sorted(folder.glob("*.metadata.json")) if folder.exists() else []
-        if existing_metadata:
-            if len(existing_metadata) != 1:
-                raise SenateEfdError("Senate paper page has multiple archived versions")
-            try:
-                metadata = json.loads(existing_metadata[0].read_text(encoding="utf-8"))
-                image_path = root.resolve() / metadata["archive_path"]
-                archived_content = image_path.read_bytes()
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError):
-                raise SenateEfdError("Archived Senate paper page is incomplete") from None
-            if (metadata.get("schema_version") != "senate-efd-paper-page-archive/v1" or
-                    metadata.get("document_id") != manifest["document_id"] or
-                    metadata.get("entrypoint_source_sha256") != manifest["entrypoint_source_sha256"] or
-                    metadata.get("page_number") != page_number or
-                    metadata.get("page_count") != manifest["page_count"] or
-                    metadata.get("source_url") != source_url or
-                    metadata.get("sha256") != hashlib.sha256(archived_content).hexdigest()):
-                raise SenateEfdError("Archived Senate paper page does not match its viewer")
-            _inspect_gif_page(archived_content, {"content-type": metadata.get("media_type", "")})
-            archived_pages.append(metadata)
-            continue
-        request = urllib.request.Request(source_url, headers={
-            "Accept": "image/gif,image/*",
-            "Referer": viewer_metadata["document_url"],
-            "User-Agent": (
-                "unison-senate-evidence/0.1 "
-                "(+https://github.com/hunterhigh/us-politician-trades-data)"
-            ),
-        }, method="GET")
-        content, headers = wrapper._open(
-            request, expected_urls={source_url}, maximum=MAX_PAPER_PAGE_BYTES)
-        inspection = _inspect_gif_page(content, headers)
-        image_path = folder / f"{inspection['sha256']}.gif"
-        metadata_path = folder / f"{inspection['sha256']}.metadata.json"
-        _write_once(image_path, content)
-        metadata = {
-            "schema_version": "senate-efd-paper-page-archive/v1",
-            "source_id": "senate_efd",
-            "document_id": manifest["document_id"],
-            "entrypoint_source_sha256": manifest["entrypoint_source_sha256"],
-            "page_number": page_number,
-            "page_count": manifest["page_count"],
-            "source_url": source_url,
-            **inspection,
-            "archive_path": image_path.relative_to(root.resolve()).as_posix(),
-        }
-        _write_once(metadata_path, (json.dumps(
-            metadata, ensure_ascii=False, sort_keys=True,
-            separators=(",", ":")) + "\n").encode("utf-8"))
-        archived_pages.append(metadata)
-    completed = {
-        **manifest,
-        "evidence_complete": len(archived_pages) == manifest["page_count"],
-        "pages": archived_pages,
-    }
-    encoded = (json.dumps(completed, ensure_ascii=False, sort_keys=True,
-                          separators=(",", ":")) + "\n").encode("utf-8")
-    completed["manifest_sha256"] = hashlib.sha256(encoded).hexdigest()
-    manifest_path = (root.resolve() / "senate_efd" / "paper_pages" /
-                     manifest["document_id"] / "manifest.json")
-    _write_once(manifest_path, (json.dumps(completed, ensure_ascii=False, sort_keys=True,
-                                          separators=(",", ":")) + "\n").encode("utf-8"))
-    return completed
-
-
 def inspect_paper_entrypoint(metadata: dict, content: bytes) -> dict:
     """Classify a paper PTR entrypoint without assuming that it is the report."""
 
@@ -826,9 +727,6 @@ def inspect_paper_entrypoint(metadata: dict, content: bytes) -> dict:
 # Backward-compatible internal name for callers added with the initial
 # foundation.  It now has entrypoint semantics and never implies that viewer
 # page evidence is complete.
-inspect_paper_ptr = inspect_paper_entrypoint
-
-
 def extract_archived_report_batch(root: Path, batch: object, *, review_root: Path | None = None) -> dict:
     """Parse a collected entrypoint batch entirely from archived bytes."""
 

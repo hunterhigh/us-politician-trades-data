@@ -113,14 +113,6 @@ class GitStore:
             self.git("update-ref", "--stdin", data=transaction.encode())
             return commit
 
-    def rollback(self, target: str, *, expected_head: str) -> None:
-        self._commit(expected_head)
-        manifest = json.loads(self.read(target, "manifest.json"))
-        if manifest.get("is_demo") is not True:
-            raise ValueError("Rollback requires a published demo snapshot")
-        self.git("update-ref", "refs/heads/demo", target, expected_head)
-
-
 def assemble(store: GitStore, commit: str, *, mode: str = "dashboard", key: str | None = None) -> dict:
     """Reference test harness, NOT the counterpart's unprovided snapshot_repo.py."""
     manifest = json.loads(store.read(commit, "manifest.json"))

@@ -93,6 +93,7 @@ def _variant(correction, version):
 
 def fingerprint(extraction):
     value = deepcopy(extraction)
+    value.pop('recognized_source_row_counts', None)
     # Operational resume counters do not describe source facts or OCR geometry.
     if isinstance(value.get('ocr_checkpoint'), dict):
         value['ocr_checkpoint'].pop('created_shard_count', None)

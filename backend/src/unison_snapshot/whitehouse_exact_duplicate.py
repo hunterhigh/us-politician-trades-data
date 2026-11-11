@@ -124,10 +124,6 @@ class ExactDuplicateSources:
         self._policy_version = POLICY_VERSION
 
     @property
-    def pending_ids(self):
-        return set(self._pending)
-
-    @property
     def resolved_ids(self):
         return {entry['duplicate_fact']['id'] for context in self._contexts.values()
                 for entry in context['rows']}
