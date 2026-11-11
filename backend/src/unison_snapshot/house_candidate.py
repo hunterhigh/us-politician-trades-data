@@ -176,9 +176,6 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     native_account_unassessed_reports = 0
     revision_inputs = []
     revision_sources = []
-    contrast_sources = []
-    paper_owner_people = set()
-    restored_contrast_people = set()
     for path in paths:
         qualification = _read_json(path, "House qualification artifact")
         if qualification.get("schema_version") != QUALIFICATION_SCHEMA:
@@ -196,8 +193,6 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             paper_unknown_physical += paper_counts["unresolved_physical_slot_count"]
         paper_pending_count += _paper_pending_count(qualification)
         extraction_path = review_root / "house_clerk/extractions" / path.relative_to(review_root / "house_clerk/qualifications")
-        if 'source_bound_paper_owner_correction' in qualification:
-            paper_owner_people.add(identity.get('person_id'))
         if (qualification.get("native_account_context", {}).get("status") == "source_words_reproduced"
                 and not extraction_path.is_file()):
             raise HouseIndexError("House native account context requires its source extraction")
@@ -213,48 +208,13 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                 # because this additive display proof was not saved previously.
                 native_account_pending += sum(bool(r.get("subholding_of")) for r in extraction["transactions"])
             elif extraction.get("extraction_method") in {"native_pdf_text", "mixed_native_ocr"}:
-                from .house_ptr import qualify_automatic
                 source = extraction.get("source", {})
-                if evidence_root is not None:
-                    from .house_native_contrast import plan_house_native_contrast, PARSER_VERSIONS as CONTRAST_VERSIONS
-                    relative = source.get('archive_path')
-                    if not isinstance(relative, str):
-                        raise HouseIndexError('House native source plan requires archived metadata')
-                    plan = plan_house_native_contrast(evidence_root,
-                        Path(evidence_root) / Path(relative).with_suffix('.json'))
-                    if plan['parser_version'] in CONTRAST_VERSIONS and extraction.get('parser_version') != plan['parser_version']:
-                        raise HouseIndexError('House cached native version differs from current original source plan')
                 if (qualification.get("source_sha256") != extraction.get("source_sha256") or
                         qualification.get("document_id") != source.get("document_id") or
                         qualification.get("parser_version") != extraction.get("parser_version") or
                         extraction_path.stem != extraction.get("source_sha256") or
                         extraction_path.parent.name != str(source.get("document_id"))):
                     raise HouseIndexError("House native account document binding differs from qualification")
-                from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS
-                contrast = extraction.get('parser_version') in CONTRAST_VERSIONS
-                expected = qualify_automatic(extraction, identity,
-                    **({'evidence_root':evidence_root} if evidence_root is not None or contrast else {}))
-                if contrast:
-                    if qualification != expected:
-                        raise HouseIndexError('House contrast qualification differs from original source replay')
-                    contrast_sources.append((extraction, expected))
-                proof = expected.get("native_account_context", {})
-                if ("native_account_context" in qualification and
-                        qualification["native_account_context"] != proof):
-                    raise HouseIndexError("House native account receipt differs from source observations")
-                expected_rows = {r["id"]: r for r in expected["transactions"]}
-                raw_names = {r["extraction_id"]: r["asset_name"] for r in extraction["transactions"]}
-                if len(expected_rows) != len(rows) or set(expected_rows) != {r.get("id") for r in rows}:
-                    raise HouseIndexError("House native account qualification rows differ from source")
-                derived = []
-                for row in rows:
-                    projected = expected_rows[row["id"]]
-                    if (row.get("asset_name") not in {raw_names[row["id"]], projected["asset_name"]} or
-                            {k:v for k,v in row.items() if k != "asset_name"} !=
-                            {k:v for k,v in projected.items() if k != "asset_name"}):
-                        raise HouseIndexError("House native account projection changed financial facts or identity")
-                    derived.append(deepcopy(projected))
-                rows = derived
         if qualification.get("revision_observations") and extraction_path.is_file():
             revision_inputs.append((qualification, extraction_path))
         if extraction_path.is_file():
@@ -356,39 +316,6 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
         prior_transactions=base.get("transactions", []),
         evidence_root=evidence_root, review_root=review_root, state_status=state_status)
     transactions = revision_resolution["transactions"]
-    selected = {row['id']:row for row in transactions}
-    superseded_ids = {mapping['prior_transaction_id']
-                      for mapping in revision_resolution['replacements']}
-    for extraction, qualification in contrast_sources:
-        source = extraction['source']
-        raw_ids = {row['extraction_id'] for row in extraction['transactions']}
-        for prior in base.get('transactions', []):
-            if (prior.get('source_id') != 'house_clerk' or
-                    str(prior.get('filing_id')) != str(source['document_id']) or
-                    prior.get('verification_status') != 'official_matched'):
-                continue
-            identifier = prior.get('id')
-            if (prior.get('source_url') != source['source_url'] or identifier not in raw_ids or
-                    prior.get('person_id') != qualification['identity'].get('person_id')):
-                raise HouseIndexError('Existing House contrast fact has no unique current physical source row')
-            if identifier in superseded_ids:
-                continue
-            if identifier in selected:
-                from .house_native_contrast import represents_source_fact
-                if not represents_source_fact(selected[identifier], prior, extraction):
-                    fields = sorted(key for key in selected[identifier].keys() | prior.keys()
-                                    if selected[identifier].get(key) != prior.get(key))
-                    raise HouseIndexError(f'Changed House contrast fact {identifier} requires a separate source correction: {fields}')
-            selected[identifier] = deepcopy(prior)
-            person_id = prior['person_id']
-            if person_id not in identities:
-                # An existing fact may survive a newly unknown paint reading.
-                # Its source-bound official identity must survive with it even
-                # when this person has no newly qualified rows in any report.
-                identities[person_id] = {field: qualification['identity'].get(field)
-                                         for field in PERSON_FIELDS}
-                restored_contrast_people.add(person_id)
-    transactions = sorted(selected.values(), key=lambda row:row['id'])
     quarantined_count -= sum(len(q["quarantined"]) - len(revision_resolution["qualifications"].get(
         str(q.get("document_id")), q)["quarantined"]) for q, _ in revision_sources)
     for row in transactions:
@@ -416,16 +343,6 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     meta["subtitle"] = "House真实候选数据；其余披露来源和行情仍在回填"
     candidate["people"] = sorted((_person({"person_id": person_id, **identity})
                                   for person_id, identity in identities.items()), key=lambda row: row["id"])
-    for index, person in enumerate(candidate['people']):
-        if person['id'] not in paper_owner_people | restored_contrast_people:
-            continue
-        prior = [item for item in base.get('people', []) if item.get('id') == person['id']]
-        if prior:
-            fields = ('id', 'display_name', 'role', 'office_type', 'chamber', 'party', 'state', 'disclosure_authority')
-            if len(prior) != 1 or any(prior[0].get(key) != person.get(key) for key in fields):
-                mechanism = 'paper owner correction' if person['id'] in paper_owner_people else 'contrast retention'
-                raise HouseIndexError(f'House {mechanism} changed the existing person identity')
-            candidate['people'][index] = deepcopy(prior[0])
     candidate["transactions"] = sorted(transactions, key=lambda row: row["id"])
     from .house_ptr import revision_reference_dispositions
     revision_dispositions = [item for qualification, path in revision_inputs for item in

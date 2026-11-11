@@ -6,6 +6,8 @@
 
 公开生产数据从[main manifest](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)读取。[独立健康状态](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)保存采集、候选、发布与冒烟结果。客户端用法见`client/README.md`。
 
+House原件解析和资格判定在来源处理阶段执行；候选构建、处理状态及正式发布复用已保存的资格产物，移除常规报告的逐份重复重算。修订关联仍使用现有修订流程。
+
 House队列、OCR规划及计数用`house-review`；OGE不可变产物暂存、输入选择及白宫合并计数用`oge-review`。Senate名册更新保留采集成功水位和失败诊断；名册成功不能表示eFD恢复。发布探针及保存输入重放校验也使用正式命令。
 
 生产命令统一为`python -m unison_snapshot <命令>`，每个命令提供`--help`。例如：

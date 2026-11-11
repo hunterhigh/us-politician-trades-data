@@ -158,22 +158,7 @@ def _build_house_status(evidence_root: Path, review_root: Path,
             artifacts[kind][key] = value
             discovered.add(key[:2])
     from .house_source_revisions import resolve_source_bound_house_revisions
-    from .house_paper_owner_inputs import replay_house_paper_owner_correction
-    for key, qualification in artifacts['qualifications'].items():
-        if 'source_bound_paper_owner_correction' in qualification:
-            replay_house_paper_owner_correction(evidence_root, review_root,
-                qualification=qualification, extraction=artifacts['extractions'].get(key))
     from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS
-    for key, qualification in artifacts['qualifications'].items():
-        if qualification.get('parser_version') not in CONTRAST_VERSIONS:
-            continue
-        extraction = artifacts['extractions'].get(key)
-        if extraction is None:
-            raise ValueError('House contrast status requires its original selected extraction')
-        from .house_ptr import qualify_automatic
-        expected = qualify_automatic(extraction, qualification.get('identity', {}), evidence_root=evidence_root)
-        if qualification != expected:
-            raise ValueError('House contrast status qualification differs from complete original replay')
     revision_inputs = [(qualification, artifacts["extractions"][key])
         for key, qualification in artifacts["qualifications"].items()
         if key in artifacts["extractions"] and len(versions.get(key[:2], {})) == 1
