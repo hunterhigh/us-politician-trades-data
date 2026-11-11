@@ -152,7 +152,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-11T01:36:17.923656+00:00",
+  "checked_at": "2026-11-11T03:40:29.936672+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -166,9 +166,9 @@
       "number": 327
     }
   ],
-  "last_successful_publication_check_at": "2026-11-11T01:32:03Z",
+  "last_successful_publication_check_at": "2026-11-11T03:35:57Z",
   "publication": "sources_recovered",
-  "published_at": "2026-11-10T23:38:35Z",
+  "published_at": "2026-11-11T02:08:01Z",
   "quality_complete": false,
   "quality_observed_scopes": [
     "quality:house_clerk:house_ptr",
@@ -178,34 +178,34 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "389d6a05e1bc2e3a2109f7cbf5d58422893d98df",
+  "quality_review_commit": "be6f5b497608ce7dab584ecf12d99929d7b486f3",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-11T01:36:17.523180+00:00",
+    "checked_at": "2026-11-11T03:40:29.536052+00:00",
     "checks": [
       {
-        "commit": "888b6f692d7dca28dd341019e7b3252a950364ce",
+        "commit": "d275e5db18adc457bb52e5e4a3a6b7f2610dbbda",
         "mode": "dashboard",
         "person_id": null,
         "snapshot_id": "afc357104bcbed57bb5b09443c86a3b71f0b65a88781de353b3179e75cf02930",
         "status": "passed"
       },
       {
-        "commit": "888b6f692d7dca28dd341019e7b3252a950364ce",
+        "commit": "d275e5db18adc457bb52e5e4a3a6b7f2610dbbda",
         "mode": "person",
         "person_id": "house:M001157",
         "snapshot_id": "afc357104bcbed57bb5b09443c86a3b71f0b65a88781de353b3179e75cf02930",
         "status": "passed"
       },
       {
-        "commit": "888b6f692d7dca28dd341019e7b3252a950364ce",
+        "commit": "d275e5db18adc457bb52e5e4a3a6b7f2610dbbda",
         "mode": "person",
         "person_id": "senate:W000805",
         "snapshot_id": "afc357104bcbed57bb5b09443c86a3b71f0b65a88781de353b3179e75cf02930",
         "status": "passed"
       },
       {
-        "commit": "888b6f692d7dca28dd341019e7b3252a950364ce",
+        "commit": "d275e5db18adc457bb52e5e4a3a6b7f2610dbbda",
         "mode": "person",
         "person_id": "oge:076544f8ba0638cf",
         "snapshot_id": "afc357104bcbed57bb5b09443c86a3b71f0b65a88781de353b3179e75cf02930",
@@ -216,10 +216,10 @@
         "status": "passed"
       }
     ],
-    "client_sha256": "340b65d1bf1a1f68f5370cde267392e3faa975aae1dcba3b6d5c3b057133b55f",
-    "commit": "888b6f692d7dca28dd341019e7b3252a950364ce",
+    "client_sha256": "f24084f47dcf7ef0c0d087857a3ed75a96b5b20d94a9035dc35be05c82b5166a",
+    "commit": "d275e5db18adc457bb52e5e4a3a6b7f2610dbbda",
     "failed_snapshots": {},
-    "last_good_commit": "888b6f692d7dca28dd341019e7b3252a950364ce",
+    "last_good_commit": "d275e5db18adc457bb52e5e4a3a6b7f2610dbbda",
     "recovery": {
       "action": "none",
       "reason": "passed"
@@ -229,7 +229,7 @@
     "snapshot_id": "afc357104bcbed57bb5b09443c86a3b71f0b65a88781de353b3179e75cf02930",
     "status": "passed"
   },
-  "snapshot_changed": true,
+  "snapshot_changed": false,
   "snapshot_id": "afc357104bcbed57bb5b09443c86a3b71f0b65a88781de353b3179e75cf02930",
   "sources": {
     "house_clerk": {
@@ -248,13 +248,13 @@
       "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-10T22:11:54.198697+00:00",
-      "last_successful_collection_at": "2026-11-10T22:01:37.461093+00:00",
+      "last_attempt_at": "2026-11-11T02:35:20.856071+00:00",
+      "last_successful_collection_at": "2026-11-11T02:22:09.691543+00:00",
       "qualified_cutoff_at": "2026-11-10T22:01:37.461093+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42910116949"
+      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42944807514"
     },
     "senate_efd": {
       "detail": "Authorized eFD PTR catalog and a bounded batch of report entrypoint responses were archived. Transaction facts remain unpublished.",
