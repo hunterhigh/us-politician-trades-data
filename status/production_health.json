@@ -159,7 +159,7 @@
       "source": "publication"
     }
   ],
-  "checked_at": "2026-11-11T06:40:47.980559+00:00",
+  "checked_at": "2026-11-11T06:59:18.365038+00:00",
   "integrity_failures": [
     {
       "category": "old_fact_delta",
@@ -184,7 +184,7 @@
       "number": 290
     },
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "quality-summary:2026-W46",
       "number": 327
     }
