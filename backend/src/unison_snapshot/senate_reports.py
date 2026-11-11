@@ -175,7 +175,7 @@ class SenateReportClient:
 
 
 def archive_report(root: Path, discovery: dict, content: bytes, headers: dict[str, str],
-                   retrieved_at: str | None = None) -> dict:
+                   retrieved_at: str | None = None, *, acquisition: str | None = None) -> dict:
     """Archive the exact response from a catalog-approved report entrypoint.
 
     An electronic entrypoint normally contains the report itself.  A paper
@@ -229,10 +229,12 @@ def archive_report(root: Path, discovery: dict, content: bytes, headers: dict[st
             else "official_entrypoint_unparsed"
         ),
     }
+    if acquisition:
+        metadata.update(acquisition=acquisition, headers={}, artifact_role='manual_browser_artifact')
     encoded = json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     if metadata_path.exists():
         old = json.loads(metadata_path.read_text(encoding="utf-8"))
-        stable = set(metadata) - {"retrieved_at", "headers"}
+        stable = set(metadata) - {"retrieved_at", "headers", "acquisition", "artifact_role"}
         if any(old.get(key) != metadata[key] for key in stable):
             raise SenateEfdError("Archived Senate eFD report metadata conflicts with its hash")
     else:

@@ -1,0 +1,26 @@
+name: Receive Senate browser downloads
+on:
+  push:
+    branches: [senate-inbox]
+    paths: ['inbox/**', '!inbox/.gitkeep']
+permissions:
+  actions: write
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start the controlled import on code
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from urllib.request import Request, urlopen
+          payload = {'ref': 'code', 'inputs': {'mode': 'inbox'}}
+          request = Request('https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+
+              '/actions/workflows/senate.yml/dispatches', data=json.dumps(payload).encode(),
+              headers={'Authorization': 'Bearer '+os.environ['GH_TOKEN'],
+                       'Accept': 'application/vnd.github+json'}, method='POST')
+          with urlopen(request) as response:
+              print('Senate import dispatched:', response.status)
+          PY

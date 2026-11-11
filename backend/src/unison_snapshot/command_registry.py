@@ -2,7 +2,8 @@
 import importlib
 import sys
 
-COMMANDS = {'verify-senate-saved-replay': ('verify_senate_saved_replay',
+COMMANDS = {'senate-inbox': ('senate_inbox', 'Import manual browser downloads and maintain the weekly Senate Issue'),
+'verify-senate-saved-replay': ('verify_senate_saved_replay',
                                 'Check selected saved Senate replay conservation'),
  'publication-probes': ('publication_probes', 'Select fixed source-backed publication probes'),
  'oge-review': ('oge_review', 'Account for OGE and White House qualified source overlays'),

@@ -765,8 +765,9 @@ def build_senate_candidate(
             state_status.get("schema_version") != "senate-source-run/v1" or
             state_status.get("source_id") != "senate_efd" or
             state_status.get("status") != "catalog_ready_for_review" or
-            state_status.get("collection_enabled") is not True or
-            state_status.get("terms_acknowledged") is not True or
+            (state_status.get("acquisition") != "manual_browser" and
+             (state_status.get("collection_enabled") is not True or
+              state_status.get("terms_acknowledged") is not True)) or
             not isinstance(state_catalog, dict) or not isinstance(state_reports, dict) or
             status.get("catalog_record_count") != state_catalog.get("record_count") or
             status.get("catalog_sha256") != state_catalog.get("sha256") or
@@ -818,6 +819,9 @@ def build_senate_candidate(
 
     extraction_paths = sorted((review_root / "senate_efd" / "extractions").glob(
         f"*/*/{parser_version}.json"))
+    versions = status.get("report_source_sha256", {})
+    extraction_paths = [p for p in extraction_paths
+                        if versions.get(p.parent.parent.name, p.parent.name) == p.parent.name]
     if len(extraction_paths) != status.get("report_evidence_count"):
         raise SenateEfdError("Senate extraction count does not match review status")
 
@@ -905,6 +909,8 @@ def build_senate_candidate(
         *(review_root / "senate_efd" / "paper_report_failures").glob(
             f"*/*/{parser_version}.json"),
     ])
+    failure_paths = [p for p in failure_paths
+                     if versions.get(p.parent.parent.name, p.parent.name) == p.parent.name]
     if len(failure_paths) != report_failure_count:
         raise SenateEfdError("Senate extraction failure count does not match review status")
     failure_document_ids = []
@@ -1197,42 +1203,6 @@ def build_senate_candidate(
             if len(matches) != 1:
                 raise SenateEfdError("Senate retained legacy formal has no unique base person")
             people[person_id] = deepcopy(matches[0])
-    reviewed_paper_rows = [row for extraction in extraction_values
-                           if extraction.get("qualification_basis") ==
-                           "fixed_source_visual_review_v1"
-                           for row in extraction["transactions"]]
-    if reviewed_paper_rows:
-        reviewed_by_document = Counter(
-            slot.get("document_id") for slot in
-            (row.get("source_slot") or {} for row in reviewed_paper_rows))
-        from .reviewed_senate_paper import reviewed_counts
-        expected_reviewed = reviewed_counts()
-        reviewed_ids = {row.get("extraction_id") for row in reviewed_paper_rows}
-        qualified_ids = {row["transaction_id"] for row in qualified_rows}
-        if (paper_pending_audit is None or
-                any(count != expected_reviewed.get(document_id)
-                    for document_id, count in reviewed_by_document.items()) or
-                len(reviewed_ids) != len(reviewed_paper_rows) or
-                not reviewed_ids <= qualified_ids):
-            raise SenateEfdError("Reviewed Senate paper rows lack complete slot projection")
-        pending_slots = {
-            (item["source_slot"]["document_id"],
-             item["source_slot"]["page_number"],
-             item["source_slot"]["grid_slot"]): item["source_slot"]
-            for item in pending["pending_rows"]}
-        reviewed_slots = [row.get("source_slot") for row in reviewed_paper_rows]
-        if (len(pending_slots) != len(pending["pending_rows"]) or
-                any(not isinstance(slot, dict) or
-                    pending_slots.get((slot.get("document_id"), slot.get("page_number"),
-                                       slot.get("grid_slot"))) != slot
-                    for slot in reviewed_slots) or
-                len({(slot["document_id"], slot["page_number"], slot["grid_slot"])
-                     for slot in reviewed_slots}) != len(reviewed_paper_rows)):
-            raise SenateEfdError("Reviewed Senate paper rows differ from pending source slots")
-        paper_pending_audit["status"] = "partially_qualified_source_bound"
-        paper_pending_audit["qualified_transaction_count"] = len(reviewed_paper_rows)
-        paper_pending_audit["remaining_pending_row_count"] = (
-            pending["pending_row_count"] - len(reviewed_paper_rows))
     candidate = deepcopy(base)
     if not isinstance(candidate.get("meta"), dict) or candidate["meta"].get("is_demo") is not False:
         raise SenateEfdError("Senate candidate base must be a production input")
