@@ -40,6 +40,7 @@ def select(args):
             observation = read_checkpoint(review / 'house_clerk/paper_observations' / relative)
             dependencies.append(preserved_paper_materialization(metadata, value,
                 qualification or {}, observation or {}, require_current=False))
+        plan = None
         try:
             plan = None if paper else plan_house_native_contrast(evidence, metadata_path)
             version = version if paper else plan['parser_version'] or PARSER_VERSION
@@ -59,8 +60,15 @@ def select(args):
         disposition = target.select(value, failed, dependencies=dependencies,
             failure_target=ParserTarget(PARSER_RETRY_VERSION, {'source_sha256': sha}))
         if disposition == 'parse':
-            (retries if extraction.exists() or failure.exists() else pending).append(metadata_path)
-    selected = (pending + retries)[:int(args.batch_size)]
+            native = (value is not None and value.get('extraction_method') == 'native_pdf_text'
+                      or plan is not None and plan.get('route') == 'modern_native')
+            (retries if extraction.exists() or failure.exists() else pending).append((metadata_path, native))
+    selected = []
+    ocr_count = 0
+    for metadata_path, native in pending + retries:
+        if native or ocr_count < int(args.batch_size):
+            selected.append(metadata_path)
+            ocr_count += not native
     Path('.local').mkdir(exist_ok=True)
     Path('.local/parse-batch.txt').write_text(
         ''.join(f'{path}\n' for path in selected), encoding='utf-8')

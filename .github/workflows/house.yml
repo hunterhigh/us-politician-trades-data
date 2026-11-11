@@ -16,7 +16,7 @@ on:
         description: Time budget for draining the indexed archive queue
         default: '900'
       batch_size:
-        description: Maximum archived PTRs to parse in this run
+        description: Maximum OCR PTRs to parse; native PDF text reports are unlimited
         default: '25'
       paper_document_id:
         description: Optional existing paper report to replay
