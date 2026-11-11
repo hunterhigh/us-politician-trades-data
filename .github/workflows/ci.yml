@@ -43,7 +43,12 @@ jobs:
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
       - name: Compile, reconstruct demo and replay golden reports
-        run: python backend/scripts/verify.py
+        run: python backend/tests/golden/run.py --regenerate
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: production-golden-answers
+          path: backend/tests/golden/**/expected.json
+          retention-days: 1
       - name: Check frozen upstream processor contracts
         run: python -m unittest discover -s review-input/us-politician-trades-watch/tests -v
       - uses: ./.github/actions/setup-browser
