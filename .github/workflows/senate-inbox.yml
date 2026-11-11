@@ -2,7 +2,7 @@ name: Receive Senate browser downloads
 on:
   push:
     branches: [senate-inbox]
-    paths: ['inbox/**']
+    paths: ['inbox/**', '!inbox/.gitkeep']
 permissions:
   actions: write
 jobs:

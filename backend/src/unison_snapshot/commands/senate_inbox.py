@@ -153,7 +153,12 @@ def receive(args):
             groups[identifiers.pop()].append(p)
         else:
             result['unrecognized'].append({'files': [p.name], 'reason': '无法取得唯一 eFD 报告编号；请在文件名保留报告网址中的编号'})
+    batches = []
     for document_id, files in groups.items():
+        batches.extend((document_id, [p]) for p in files if p.suffix.lower() in {'.html', '.htm', '.pdf'})
+        images = [p for p in files if p.suffix.lower() not in {'.html', '.htm', '.pdf'}]
+        if images:batches.append((document_id, images))
+    for document_id, files in batches:
         names = [p.name for p in files]
         if document_id in ledger:
             result['duplicates'].append({'document_id': document_id, 'files': names})
