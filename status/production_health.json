@@ -175,7 +175,7 @@
       "source": "publication"
     }
   ],
-  "checked_at": "2026-11-11T14:10:57.212682+00:00",
+  "checked_at": "2026-11-11T14:12:02.962758+00:00",
   "integrity_failures": [
     {
       "category": "old_fact_delta",
@@ -195,14 +195,9 @@
   ],
   "issue_actions": [
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "quality-summary:2026-W46",
       "number": 327
-    },
-    {
-      "action": "closed",
-      "key": "source:senate_efd",
-      "number": 290
     }
   ],
   "last_successful_publication_check_at": "2026-11-11T13:22:03Z",
