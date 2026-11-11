@@ -37,7 +37,6 @@ REPORT_EXTRACTION_BATCH_SCHEMA = "senate-efd-report-extraction-batch/v1"
 ELECTRONIC_EXTRACTION_SCHEMA = "senate-efd-electronic-ptr-extraction/v1"
 PAPER_INSPECTION_SCHEMA = "senate-efd-paper-ptr-inspection/v1"
 PAPER_PAGE_MANIFEST_SCHEMA = "senate-efd-paper-page-manifest/v1"
-PAPER_PAGE_BATCH_SCHEMA = "senate-efd-paper-page-batch/v1"
 PARSER_VERSION = "senate-efd-report-parser-2026-09-v2"
 MAX_ENTRYPOINT_BYTES = 25 * 1024 * 1024
 MAX_PAPER_PAGE_BYTES = 25 * 1024 * 1024
@@ -790,59 +789,6 @@ def archive_paper_viewer_pages(
     _write_once(manifest_path, (json.dumps(completed, ensure_ascii=False, sort_keys=True,
                                           separators=(",", ":")) + "\n").encode("utf-8"))
     return completed
-
-
-def archive_review_paper_pages(
-        evidence_root: Path, review_root: Path, *, expected_documents: int,
-        expected_pages: int, config: SenateSourceConfig | None = None, client=None) -> dict:
-    """Archive the complete current-parser paper viewer set from immutable review inputs."""
-
-    try:
-        status = json.loads((review_root / "status" / "senate_efd.json").read_text(encoding="utf-8"))
-        parser_version = status["report_parser_version"]
-        inspections = []
-        for path in sorted((review_root / "senate_efd" / "paper_inspections").glob(
-                f"*/*/{parser_version}.json")):
-            item = json.loads(path.read_text(encoding="utf-8"))
-            if (item.get("schema_version") != PAPER_INSPECTION_SCHEMA or
-                    item.get("document_disposition") != "paper_viewer_requires_page_collection" or
-                    item.get("parser_version") != parser_version or
-                    path.parent.parent.name != item.get("document_id") or
-                    path.parent.name != item.get("source_sha256")):
-                raise SenateEfdError("Senate paper inspection does not match its review path")
-            inspections.append(item)
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError):
-        raise SenateEfdError("Senate paper review inputs are incomplete") from None
-    if (len(inspections) != expected_documents or expected_documents < 1 or expected_pages < 1 or
-            len({item["document_id"] for item in inspections}) != len(inspections)):
-        raise SenateEfdError("Senate paper viewer document count changed")
-    manifests = []
-    for item in inspections:
-        folder = evidence_root / "senate_efd" / "reports" / item["document_id"]
-        metadata_path = folder / f"{item['source_sha256']}.metadata.json"
-        content_path = folder / f"{item['source_sha256']}.html"
-        try:
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            content = content_path.read_bytes()
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-            raise SenateEfdError("Senate paper viewer evidence is incomplete") from None
-        if (metadata.get("document_id") != item["document_id"] or
-                metadata.get("sha256") != item["source_sha256"]):
-            raise SenateEfdError("Senate paper viewer review and evidence inputs differ")
-        manifests.append(archive_paper_viewer_pages(
-            evidence_root, metadata, content, config=config, client=client))
-    page_count = sum(item["page_count"] for item in manifests)
-    if page_count != expected_pages or not all(item["evidence_complete"] for item in manifests):
-        raise SenateEfdError("Senate paper viewer page count changed")
-    return {
-        "schema_version": PAPER_PAGE_BATCH_SCHEMA,
-        "source_id": "senate_efd",
-        "parser_version": parser_version,
-        "document_count": len(manifests),
-        "page_count": page_count,
-        "evidence_complete": True,
-        "documents": manifests,
-    }
 
 
 def inspect_paper_entrypoint(metadata: dict, content: bytes) -> dict:

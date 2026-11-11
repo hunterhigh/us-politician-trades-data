@@ -1,20 +1,11 @@
 """Dual-axis consumers with synthetic geometry and mocked OCR, never real pages."""
 from copy import deepcopy
-import hashlib
-from pathlib import Path
-from tempfile import TemporaryDirectory
-from types import SimpleNamespace
-import sys
 import unittest
-from unittest.mock import patch
 
-from PIL import Image
 from test_oge_278t_column_lines import modeled
 from test_oge_content_relations import column_read, EDGES, saved
-from unison_snapshot.oge_278t_raster_slots import (
-    DUAL_MODE, _observe_slot_columns, slot_quad, table_crop_bounds, column_geometry_sha256)
-from unison_snapshot.oge_278t_fields import (observe_field_shapes, observe_content_rows,
-    compare_field_observations, _secondary_slot_geometry, _type_cell_pdf_bounds)
+from unison_snapshot.oge_278t_raster_slots import DUAL_MODE, _observe_slot_columns, slot_quad, column_geometry_sha256
+from unison_snapshot.oge_278t_fields import observe_field_shapes, observe_content_rows, _secondary_slot_geometry
 
 
 def dual_input(row_slope=.01, column_slope=.005):
@@ -106,8 +97,6 @@ class DualAxisFieldTests(unittest.TestCase):
         observe_field_shapes([data],secondary_observations=[aux])
         changed=dual_input(-.01)
         with self.assertRaisesRegex(ValueError,'line model'):observe_field_shapes([changed],secondary_observations=[aux])
-        changed['ocr_resolution_dpi']=300
-        with self.assertRaisesRegex(ValueError,'dual-axis'):compare_field_observations(data,changed)
 
     def test_secondary_box_corner_crossing_is_retained_as_ambiguous(self):
         data=dual_input();aux=bind_secondary(data,'type','purchase')

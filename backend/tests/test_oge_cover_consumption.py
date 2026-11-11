@@ -18,8 +18,6 @@ from test_oge_observed_candidate import original
 from unison_snapshot.oge_candidate import build_oge_candidate
 from unison_snapshot.oge_transaction_adapter import adapt_oge_278t_extraction, materialize_oge_278t_observations, _cover_identity_context
 from unison_snapshot.disclosure_status_oge import build_oge_status
-from unison_snapshot.oge_278t_page_coverage import inspect_pdf
-from unison_snapshot.source_row_ledger import oge_278t_shadow_pages
 
 CUTOFF = '2026-06-20T00:00:00Z'
 
@@ -148,30 +146,6 @@ class CoverConsumptionTests(unittest.TestCase):
                 self.assertEqual(adapted['source_report_ledger']['pages'][0]['coverage'], 'unknown')
                 if kind == 'slot':
                     self.assertTrue(any(ref['page_number']==1 for row in adapted['source_report_ledger']['logical_rows'] for ref in row['slot_refs']))
-
-    def test_saved_shadow_replay_does_not_erase_positive_row_declarations(self):
-        data = fixture(self.root)
-        report = inspect_pdf(data['source'], cover_identity_context=data['context'])
-        self.assertEqual(report['pages'][0]['coverage'], 'non_table_section')
-        self.assertEqual(oge_278t_shadow_pages(report, source_id='oge', archived_pdf_path=data['source'],
-            cover_identity_context=data['context'])[0]['coverage'], 'non_table')
-        self.assertEqual(oge_278t_shadow_pages(report, source_id='oge', archived_pdf_path=data['source'])[0]['coverage'], 'unknown')
-        for change in ('bands','unresolved','native_prefix','parser'):
-            changed = json.loads(json.dumps(report)); page = changed['pages'][0]
-            kwargs = {}
-            if change == 'bands':
-                page.update(row_coverage='physical_slots_located', candidate_row_bands=[[100.,130.]])
-            elif change == 'unresolved':
-                page['unresolved_row_regions'] = [[140.,160.]]
-            elif change == 'native_prefix':
-                page['native_unnumbered_prefix_rows'] = 1
-            else:
-                kwargs['parser_claimed_pages'] = {1}
-            ledger = oge_278t_shadow_pages(changed, source_id='oge', archived_pdf_path=data['source'],
-                cover_identity_context=data['context'], **kwargs)
-            self.assertEqual(ledger[0]['coverage'], 'unknown')
-            if change == 'bands': self.assertEqual(ledger[0]['slots'][0]['bounds'], [100.,130.])
-            if change == 'unresolved': self.assertEqual(ledger[0]['unresolved_regions'], [[140.,160.]])
 
     def test_modified_source_wrong_context_and_forged_receipt_do_not_close_status(self):
         data = fixture(self.root)

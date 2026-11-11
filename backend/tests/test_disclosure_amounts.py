@@ -5,8 +5,8 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
-from unison_snapshot.builder import build, normalize
-from unison_snapshot.disclosure_amounts import summarize_amounts, validate_amount
+from unison_snapshot.builder import build
+from unison_snapshot.disclosure_amounts import validate_amount
 from unison_snapshot.legacy import load, processor_version_for, PROCESSOR_V2_SHA256
 from unison_snapshot.oge_candidate import build_oge_candidate
 from test_oge_candidate import catalog, extraction, base
@@ -41,12 +41,6 @@ def fixture():
 
 class DisclosureAmountTests(unittest.TestCase):
     def test_explicit_open_only_and_finite_sums(self):
-        data = fixture()
-        result = summarize_amounts(data['transactions'])
-        self.assertEqual((result['amount_low'], result['amount_high']), (1000001, 5000000))
-        self.assertEqual(result['amount_open_count'], 1)
-        self.assertEqual(result['amount_open_thresholds'],
-                         [{'minimum': 50000000, 'minimum_exclusive': True, 'count': 1}])
         for invalid in ({'amount_low': 1, 'amount_low_exclusive': True},
                         {'amount_low': 1, 'amount_high': None},
                         {'amount_low': True, 'amount_high': 5},

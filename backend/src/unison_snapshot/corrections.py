@@ -1,16 +1,10 @@
 """Source-bound corrections with atomic preconditions and a fixed action vocabulary."""
 from copy import deepcopy
-import hashlib
 import json
 from pathlib import Path
 from .content_integrity import content_boundary
 
 OPS = {'set_field', 'set_report', 'add_row', 'drop_row', 'quarantine', 'relate'}
-
-
-def correction_digest(value):
-    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
-        separators=(',', ':'), allow_nan=False).encode()).hexdigest()
 
 
 @content_boundary('snapshot_contract')

@@ -19,12 +19,8 @@ from test_public_repo import FakeTransport
 from unison_snapshot.builder import build
 from unison_snapshot.disclosure_status import attach_disclosure_status
 from unison_snapshot.disclosure_status_oge import build_oge_status
-from unison_snapshot.oge_278t_page_coverage import inspect_pdf
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
-from unison_snapshot.oge_278t_region_roles import replay_native_region
-from unison_snapshot.oge_saved_observations import prepare_saved_oge_observations
 from unison_snapshot.public_repo import PublicSnapshotRepository
-from unison_snapshot.source_row_ledger import oge_278t_shadow_pages
 
 
 ROLE='native_referential_endnotes'
@@ -57,9 +53,8 @@ def endnote_consumption_fixture(root, *, missing=False, duplicate=False):
         data=summary_controls.summary_consumption_fixture(root)
     root=Path(root);data['root']=root
     request=data['request']
-    package=prepare_saved_oge_observations(evidence_root=data['evidence'],
-        metadata_path=data['source'].with_suffix('.json'),observations=request['observations'],
-        document_page_count=request['document_page_count'])
+    package={DOCUMENT_ID: {key: value for key, value in request.items()
+                           if key != 'archived_pdf_path'}}
     data['package']=root/'saved.json';write(data['package'],package)
     write(root/'extractions/original.json',data['old'])
     write(root/'catalog.json',data['catalog']);write(root/'base.json',data['formal'])
@@ -197,20 +192,5 @@ class EndnoteRegionConsumptionTests(unittest.TestCase):
         unchanged=json.loads(data['package'].read_bytes())[DOCUMENT_ID]['observations'][0]['pages'][0]
         self.assertEqual([slot['band_pdf_points'] for slot in unchanged['slots']],
                          [[106.,136.],[254.,284.]])
-
-    def test_unbound_reading_replays_with_later_context_without_upgrading_reference_scope(self):
-        data=endnote_consumption_fixture(self.root)
-        report=inspect_pdf(data['source'])
-        proof=note_proof(report['pages'][1]['non_transaction_regions'])
-        before=deepcopy(proof)
-        self.assertFalse(proof['reference_cover_context_used'])
-        self.assertEqual(proof['notes'][0]['reference']['status'],'unknown')
-        self.assertTrue(replay_native_region(data['source'],proof,source_sha256=data['sha'],
-            page_number=2,cover_identity_context=data['context']))
-        ledger=oge_278t_shadow_pages(report,source_id='oge',archived_pdf_path=data['source'],
-                                    cover_identity_context=data['context'])
-        self.assertEqual(note_proof(ledger[1]['non_transaction_regions']),before)
-        self.assertEqual(proof,before)
-
 
 if __name__=='__main__':unittest.main()

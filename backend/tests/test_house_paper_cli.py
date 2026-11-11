@@ -1,3 +1,4 @@
+from unison_snapshot.command_registry import main as entry_main
 """Saved paper interpretation is reachable without enabling new OCR."""
 from contextlib import redirect_stdout
 import io
@@ -49,7 +50,7 @@ class HousePaperCliTests(unittest.TestCase):
         args = ["snapshot", "bridge-house-paper-batch", "--evidence-root", "e", "--review-root", "r",
                 "--parse-batch", "batch.txt", "--tesseract", "tesseract"]
         with patch.object(sys, "argv", args), redirect_stdout(io.StringIO()), patch(
-                "unison_snapshot.__main__.bridge_paper_batch", return_value={}) as bridge:
+                "unison_snapshot.commands.house_cli.bridge_paper_batch", return_value={}) as bridge:
             main()
         self.assertNotIn("materialize_saved", bridge.call_args.kwargs)
 

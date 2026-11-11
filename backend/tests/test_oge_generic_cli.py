@@ -1,3 +1,4 @@
+from unison_snapshot.command_registry import main as entry_main
 import json
 from pathlib import Path
 import sys
@@ -6,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
-from unison_snapshot import __main__ as cli
+from unison_snapshot.commands import oge_cli as cli
 from unison_snapshot.oge import OgeSourceConfig
 from unison_snapshot.oge_reports import archive_direct_pdf, parse_archived_pdf, load_reusable_extraction
 from test_oge_reports import record, Client, DOCUMENT_ID
@@ -31,7 +32,7 @@ class GenericOgeCliTests(unittest.TestCase):
                     '--audit-output', str(root/'audit.json')]
             for extra, owner in [([], 'Self'), (['--generic'], 'Undisclosed')]:
                 with self.subTest(owner=owner), patch.object(sys, 'argv', args+extra):
-                    cli.main()
+                    entry_main()
                 output = json.loads((root/'out.json').read_text(encoding='utf-8'))
                 self.assertEqual(len(output['transactions']), 1)
                 self.assertEqual(output['transactions'][0]['owner'], owner)
@@ -70,7 +71,7 @@ class GenericOgeCliTests(unittest.TestCase):
                     '--archive', str(root), '--output-dir', str(root/'extracted'),
                     '--output', str(root/'summary.json'), '--generic']
             with patch.object(sys, 'argv', args), patch.object(cli, 'parse_oge_archived_pdf', return_value=generic()) as parser:
-                cli.main()
+                entry_main()
             self.assertEqual(parser.call_args.kwargs, {'generic': True})
 
 

@@ -6,24 +6,11 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
-import tempfile
 
+from unison_snapshot.commands.overlay_whitehouse_annual_candidate import _write
 from unison_snapshot.alpaca_market import AlpacaMarketClient
 from unison_snapshot.reviewed_security_tickers import enrich_reviewed_tickers
 from unison_snapshot.whitehouse_annual_tickers import enrich_whitehouse_annual_tickers
-
-
-def _write(path: Path, value: dict) -> None:
-    raw = json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2,
-                     allow_nan=False).encode("utf-8") + b"\n"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.",
-                                     suffix=".tmp", delete=False) as handle:
-        handle.write(raw)
-        handle.flush()
-        os.fsync(handle.fileno())
-        temporary = Path(handle.name)
-    os.replace(temporary, path)
 
 
 def main() -> int:

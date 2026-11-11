@@ -224,24 +224,6 @@ def archive_document(root: Path, candidate: HouseFilingCandidate, content: bytes
     return metadata
 
 
-def archive_indexed_ptr(root: Path, year: int, index_sha: str, document_id: str,
-                        *, client: HouseDocumentClient | None = None) -> dict:
-    if not re.fullmatch(r"[0-9a-f]{64}", index_sha) or not re.fullmatch(r"[0-9]{1,20}", document_id):
-        raise HouseIndexError("Invalid House index hash or document ID")
-    index_path = root.resolve() / "house_clerk" / "index" / str(year) / f"{index_sha}.zip"
-    try:
-        index_content = index_path.read_bytes()
-    except OSError:
-        raise HouseIndexError("Archived House index is unavailable") from None
-    if hashlib.sha256(index_content).hexdigest() != index_sha:
-        raise HouseIndexError("Archived House index hash does not match its path")
-    matches = [row for row in parse_index(index_content, year) if row.document_id == document_id]
-    if len(matches) != 1 or matches[0].filing_type != "P":
-        raise HouseIndexError("Document is not a PTR in the archived House index")
-    content, headers = (client or HouseDocumentClient()).download(matches[0])
-    return archive_document(root, matches[0], content, headers)
-
-
 def archive_discovery(root: Path, year: int, content: bytes, headers: dict[str, str],
                       rows: list[HouseFilingCandidate], retrieved_at: str | None = None) -> dict:
     root = root.resolve()

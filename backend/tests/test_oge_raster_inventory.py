@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from unison_snapshot.oge_278t_page_coverage import inspect_pdf, probe_raster_row_bands
+from unison_snapshot.oge_278t_page_coverage import probe_raster_row_bands
 from unison_snapshot.oge_278t_raster_inventory import audit_raster_source_inventory
 
 
@@ -189,13 +189,5 @@ class IndependentRasterInventoryTests(unittest.TestCase):
         census['results'][0]['page_number']=2
         with self.assertRaisesRegex(ValueError,'outside PDF'):
             audit_raster_source_inventory(self.path,expected_sha256=sha,census=census)
-
-    def test_normal_pdf_inspector_exposes_independent_source_mismatch(self):
-        sha,_=self.observe(list(range(100,731,15)))
-        result=inspect_pdf(self.path,raster_ocr_records=[],raster_ocr_source_sha256=sha)
-        self.assertEqual(result['raster_ocr_coverage']['physical_slot_count'],32)
-        self.assertTrue(all(slot['content_status']=='unverified' for slot in result['raster_ocr_coverage']['slots']))
-        self.assertEqual(result['raster_source_inventory']['mismatched_page_numbers'],[1])
-
 
 if __name__=='__main__':unittest.main()

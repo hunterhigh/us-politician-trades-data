@@ -36,20 +36,6 @@ def _registered(extraction):
     return value
 
 
-def load_observations(path):
-    """Read shipped correction data or an explicit new human observation file."""
-    if not path.is_dir():
-        return json.loads(path.read_text(encoding='utf-8'))
-    observations = []
-    for file in sorted(path.glob('*.json')):
-        correction = load_correction(file)
-        if correction.get('profile') != PROFILE:
-            raise OgeCatalogError('OGE cover-date correction profile is unsupported')
-        observations.append(correction['observation'])
-    return {'schema_version': 'oge-manual-cover-date-observations/v1',
-            'status': 'observation_only', 'observations': observations}
-
-
 def apply_manual_cover_dates(extractions: list[dict], root: Path) -> list[dict]:
     """Resolve only the filing-date reason; leave all other evidence and rows intact."""
     selected: list[dict] = []

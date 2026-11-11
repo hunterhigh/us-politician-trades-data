@@ -113,30 +113,6 @@ def observe_pdf_text_objects(source: Path, *, expected_sha256: str, page_number:
                             "no slot assignment, financial qualification or source completeness is claimed"]}
 
 
-class TextObjectWordPage:
-    """Only the extract_words portion of the OcrPage/pdfplumber interface.
-
-    Source object runs are not split into words and do not have inferred line
-    IDs. In particular, a short dash must not be top-bucketed into another row.
-    """
-
-    def __init__(self, observation: dict):
-        if observation.get("schema_version") != "pdf-source-text-object-words/v1":
-            raise ValueError("unsupported source text-object observation")
-        self.width, self.height = observation["width"], observation["height"]
-        self._words = observation["words"]
-
-    def extract_words(self, **_kwargs):
-        # Serialization roundtrip prevents consumers mutating nested issues.
-        return json.loads(json.dumps(self._words, ensure_ascii=False))
-
-    def extract_text_lines(self):
-        raise ValueError("source text objects do not establish logical line order")
-
-    def extract_text(self):
-        raise ValueError("source text objects do not establish logical line order")
-
-
 def validate_saved_native_words(source: Path, *, expected_sha256: str,
                                 page_number: int, words: list[dict]) -> dict:
     """Validate exact native records in a mixed saved page, without line IDs.
