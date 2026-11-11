@@ -60,8 +60,13 @@ def select(args):
         disposition = target.select(value, failed, dependencies=dependencies,
             failure_target=ParserTarget(PARSER_RETRY_VERSION, {'source_sha256': sha}))
         if disposition == 'parse':
-            native = (value is not None and value.get('extraction_method') == 'native_pdf_text'
-                      or plan is not None and plan.get('route') == 'modern_native')
+            native = value is not None and value.get('extraction_method') == 'native_pdf_text'
+            if value is None and plan is not None:
+                import pdfplumber
+                from unison_snapshot.house_ptr import observe_native_word_pages, planned_ocr_pages
+                with pdfplumber.open(evidence / metadata['archive_path']) as document:
+                    pages = observe_native_word_pages(document, sha)
+                    native = any(page['words'] for page in pages) and not planned_ocr_pages(pages)
             (retries if extraction.exists() or failure.exists() else pending).append((metadata_path, native))
     selected = []
     ocr_count = 0
