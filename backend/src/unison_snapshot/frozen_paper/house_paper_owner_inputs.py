@@ -101,18 +101,3 @@ def replay_house_paper_owner_correction(evidence_root, review_root, *, qualifica
             qualification.get('materialized_extraction') != saved):
         raise ValueError('House paper owner correction differs from complete original replay')
     return result
-
-
-def represented_paper_owner_fact(projection, formal):
-    """Keep existing shard null omission and existing market enrichment only."""
-    if not isinstance(projection, dict) or not isinstance(formal, dict) or set(formal) - set(projection):
-        return None
-    missing = set(projection) - set(formal)
-    if any(key not in _NULLABLE or projection[key] is not None for key in missing):
-        return None
-    differences = [key for key in formal if projection[key] != formal[key]]
-    if differences:
-        from ..fact_policy.source_objects import _market_enrichment_only
-        if not _market_enrichment_only(formal, projection, differences):
-            return None
-    return deepcopy(formal)

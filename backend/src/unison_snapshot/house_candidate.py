@@ -197,26 +197,6 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
         paper_pending_count += _paper_pending_count(qualification)
         extraction_path = review_root / "house_clerk/extractions" / path.relative_to(review_root / "house_clerk/qualifications")
         if 'source_bound_paper_owner_correction' in qualification:
-            from .house_paper_owner_inputs import (replay_house_paper_owner_correction,
-                                                   represented_paper_owner_fact)
-            try:
-                replayed = replay_house_paper_owner_correction(evidence_root, review_root,
-                    qualification=qualification)
-            except (OSError, ValueError, KeyError, TypeError) as error:
-                raise HouseIndexError(f'House paper owner source replay failed: {error}') from error
-            old_rows = {row['id']: row for row in replayed['legacy_qualification']['transactions']}
-            current_rows = {row['id']: row for row in replayed['final_qualification']['transactions']}
-            derived = []
-            for row in rows:
-                prior = [item for item in base.get('transactions', []) if item.get('id') == row['id']]
-                if row['id'] in old_rows and prior:
-                    if (len(prior) != 1 or
-                            represented_paper_owner_fact(old_rows[row['id']], prior[0]) is None and
-                            represented_paper_owner_fact(current_rows[row['id']], prior[0]) is None):
-                        raise HouseIndexError('House paper owner correction cannot explain the complete existing fact')
-                    row = {**deepcopy(prior[0]), 'owner': current_rows[row['id']]['owner']}
-                derived.append(deepcopy(row))
-            rows = derived
             paper_owner_people.add(identity.get('person_id'))
         if (qualification.get("native_account_context", {}).get("status") == "source_words_reproduced"
                 and not extraction_path.is_file()):

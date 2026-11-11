@@ -19,7 +19,7 @@ runs:
         REVIEW_COMMIT: ${{ inputs.review-commit }}
         STATE_COMMIT: ${{ inputs.state-commit }}
       run: >-
-        python -m unison_snapshot publication-gate --repo . --repository "$GITHUB_REPOSITORY"
+        python -m unison_snapshot publication-gate --repo .
         --review-commit "$REVIEW_COMMIT" --state-commit "$STATE_COMMIT"
         --output "$RUNNER_TEMP/publication-source-gate.json" --require-preparation-ready
     - name: Build canonical disclosure projection from qualified sources
