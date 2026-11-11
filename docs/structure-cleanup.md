@@ -68,23 +68,3 @@ Paddle、TrOCR 在此基线已无源码、专用测试、依赖或工作流残�
 `operations.md` 已移除不存在的 `architecture.md` 链接和旧候选分支／首次切换描述。`house-holdings-replay.yml` 合入 `replay.yml` 的 `source=house, mode=holdings`，保留原 push 文件触发、运行容器、来源写锁、检查点循环及后续候选组装步骤；指定的四个工作流未改。
 
 额外检查：现有 339 个模块的 2,588 个唯一测试检查全部通过，无新增测试。先保存已通过检查，再把尚未完成项分成三个互不重叠的组运行；最初缺少 `fontTools` 的三个模块在本地隔离环境补齐锁定版本 `4.62.1` 后也全部通过。35 个保留 CLI 执行体及 45 个冻结实现的 AST 核对通过。合并持仓任务的步骤、容器、超时与并发配置与原工作流完全相同，其他 replay 任务原样保留；工作流语法检查通过（本机旧版 actionlint 的临时输入仅省略其尚不认识的既有 `queue: max` 字段，实际工作流保持该字段）。详细本机检查回执：`.local/structure-verification.json`。
-
-
-## 来源流程归并（本轮）
-
-基线为 `d9e96d3b07fe248c581323ef825671f2bee20e3e`。五个原候选模块继续提供兼容入口和来源规则，候选复制、数组装配、排序、元数据和来源健康更新统一由 `source_pipeline/candidates.py` 执行。年报覆盖也接入同一装配器；House／Senate 的版本选择共用流式 `ReportSelection`，排名字段、并列选择和修订规则由来源给出，保持 House 原有只保留最高版本的内存规模。
-
-reports、annual、members 的不可变写入、内容寻址归档、稳定元数据比较、JSON 编码、名册传输和 XML 外层检查合入 `source_pipeline/` 与 `source_transport.read_response`。来源层保留字段映射、地址与授权、大小限制、重试／错误类型、日期金额语义、版本／副本及资格规则。Senate 授权会话、原子与直接写入差异、首次元数据复用与本次观察元数据返回差异均保持。源码净变化包含新增共用实现，不只统计被删除的旧代码。
-
-| 本轮物理行数 | 整理前 | 整理后 | 变化 |
-| --- | ---: | ---: | ---: |
-| 源码（Python＋JS） | 71,603 | 71,582 | -21 |
-| 测试（Python） | 60,887 | 60,882 | -5 |
-
-未新增测试；删除的 5 行是要求退役 `architecture.md` 及固定文档清单的过期断言，其余命令边界检查保留。现有 339 个模块、2,588 个唯一检查均通过（全量运行中的文档清单失败，在清理过期断言后复查通过）；最后的流式年报选择及共用传输分别补跑受影响的 47、38 项现有检查通过。
-
-验收沿用上节固定的 evidence/review/state 与时间参数，基线代码另行从 d9e96d3b0 导出。候选、截点审计与完整快照共 5,218 个文件逐字节一致，18,777 个输入文件哈希和库存不变，候选 SHA-256 仍为 `076b8185524e9b3ca208c89532bd7666b934ffd999c838c815663f370ecec0fd`。该完整快照验收从冻结 review 中已保存的来源候选开始。
-
-额外直接重建：白宫 278-T（82 份报告）与白宫年报候选及其审计逐字节一致；Senate 的原有队列未就绪拒绝、退出码和错误输出一致。House、OGE 全量原件重放前后均未完成；对整理前进程的采样显示，其耗时位置在未修改的 pdfplumber／native PDF 字符对象展开层。已停止这些附加重放，不计入通过项，不改变解析规则或放宽门禁。采样栈保存在本机 `.local/house-replay-stack.json`、`.local/oge-replay-stack.json`。
-
-本轮回执为 `.local/structure-acceptance/common-receipt.json`、`.local/common-verification.json`；直接候选产物在 `.local/common-baseline/` 和 `.local/common-after/`。`fact_policy/`、`builder.py`、冻结识别实现、发布整合实现及所有工作流与本轮基线逐文件一致。未改变数据分支或发布引用。

@@ -1,15 +1,9 @@
 """Assemble automatically qualified House records into a frontend-compatible candidate input."""
 from __future__ import annotations
 
-from .source_pipeline.records import json_bytes
-
-from .source_pipeline.records import read_json
-from .source_pipeline.annual import ReportSelection
-
-from .source_pipeline.candidates import CandidatePlan, candidate_source, person_record
-
 from copy import deepcopy
 from pathlib import Path
+import json
 
 from .house import HouseIndexError
 from .house_ptr import OWNER_CODES, QUALIFICATION_SCHEMA
@@ -22,7 +16,13 @@ PERSON_FIELDS = ("official_name", "state", "party", "state_district", "evidence_
 
 
 def _read_json(path: Path, description: str) -> dict:
-    return read_json(path, description, HouseIndexError)
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        raise HouseIndexError(f"{description} is invalid") from None
+    if not isinstance(value, dict):
+        raise HouseIndexError(f"{description} must be an object")
+    return value
 
 
 def _short_name(value: str) -> str:
@@ -62,18 +62,20 @@ def _person(identity: dict) -> dict:
     if not isinstance(person_id, str) or not person_id.startswith("house:") or not isinstance(name, str):
         raise HouseIndexError("House candidate identity is incomplete")
     priority_reason = PRIORITY_PEOPLE.get(person_id)
-    return person_record(
-               person_id,
-               name,
-               _short_name(name),
-               'U.S. Representative',
-               'Congress',
-               'house_clerk',
-               chamber='House',
-               party=identity.get('party'),
-               priority=priority_reason is not None,
-               priority_reason=priority_reason,
-               state=identity.get('state'))
+    return {
+        "id": person_id,
+        "display_name": name,
+        "short_name": _short_name(name),
+        "role": "U.S. Representative",
+        "office_type": "Congress",
+        "chamber": "House",
+        "party": identity.get("party"),
+        "state": identity.get("state"),
+        "disclosure_authority": "house_clerk",
+        "priority": priority_reason is not None,
+        "priority_reason": priority_reason,
+        "portrait_url": None,
+    }
 
 
 def _paper_pending_count(qualification: dict) -> int:
@@ -147,7 +149,6 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             annual_transaction_inputs=annual_transaction_inputs,annual_transaction_audit=annual_transaction_audit)
 
 
-@candidate_source
 def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                            evidence_root: Path | None = None,
                            annual_transaction_inputs: list[dict] | None = None,
@@ -304,7 +305,7 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
         if len(holding_paths) != holding_summary.get("qualification_count"):
             raise HouseIndexError("House holding qualification count does not match its summary")
         holding_identities: dict[str, dict] = {}
-        latest = ReportSelection(keep_ties=False)
+        latest: dict[str, dict] = {}
         total_qualified = total_quarantined = 0
         for path in holding_paths:
             artifact = _read_json(path, "House holding qualification artifact")
@@ -345,12 +346,13 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             holding_identities[person_id] = stable_identity
             rank = (str(artifact.get("report_period_end", "")), str(source.get("filed_date", "")),
                     str(source.get("document_id", "")))
-            latest.add(person_id, rank, artifact)
+            if person_id not in latest or rank > latest[person_id]["rank"]:
+                latest[person_id] = {"rank": rank, "artifact": artifact}
         if total_qualified != holding_summary.get("qualified_holding_count") or \
                 total_quarantined != holding_summary.get("quarantined_row_count"):
             raise HouseIndexError("House holding row counts do not match their summary")
-        for person_id, selected in latest.groups.items():
-            artifact = selected[0]
+        for person_id, selected in latest.items():
+            artifact = selected["artifact"]
             # Never fall back to an older report when the latest known report is incomplete.
             if artifact.get("production_eligible") is True:
                 if artifact.get("holding_coverage"):
@@ -423,15 +425,17 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     if not isinstance(cutoff, str):
         raise HouseIndexError("House source state has no data cutoff")
 
-    candidate = yield CandidatePlan(base,
-        production=(HouseIndexError, "House candidate base must be a production input"),
-        metadata={"data_cutoff_at": cutoff,
-            "subtitle": "House真实候选数据；其余披露来源和行情仍在回填",
-            **({"holding_report_coverage": sorted(selected_holding_coverage, key=lambda r: r["person_id"])}
-               if selected_holding_coverage else {})},
-        drop_metadata=("holding_report_coverage",),
-        arrays={"people": (_person({"person_id": person_id, **identity})
-                           for person_id, identity in identities.items())}, sort={"people": "id"})
+    candidate = deepcopy(base)
+    meta = candidate.get("meta")
+    if not isinstance(meta, dict) or meta.get("is_demo") is not False:
+        raise HouseIndexError("House candidate base must be a production input")
+    meta["data_cutoff_at"] = cutoff
+    meta.pop("holding_report_coverage", None)
+    if selected_holding_coverage:
+        meta["holding_report_coverage"] = sorted(selected_holding_coverage, key=lambda r: r["person_id"])
+    meta["subtitle"] = "House真实候选数据；其余披露来源和行情仍在回填"
+    candidate["people"] = sorted((_person({"person_id": person_id, **identity})
+                                  for person_id, identity in identities.items()), key=lambda row: row["id"])
     for index, person in enumerate(candidate['people']):
         if person['id'] not in paper_owner_people | restored_contrast_people:
             continue
@@ -442,17 +446,15 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                 mechanism = 'paper owner correction' if person['id'] in paper_owner_people else 'contrast retention'
                 raise HouseIndexError(f'House {mechanism} changed the existing person identity')
             candidate['people'][index] = deepcopy(prior[0])
-    candidate = yield CandidatePlan(candidate, copy=False,
-        arrays={"transactions": transactions}, sort={"transactions": "id"})
+    candidate["transactions"] = sorted(transactions, key=lambda row: row["id"])
     from .house_ptr import revision_reference_dispositions
     revision_dispositions = [item for qualification, path in revision_inputs for item in
         revision_resolution["dispositions"].get(str(qualification["document_id"]),
             revision_reference_dispositions(qualification, _read_json(path, "House revision source"), candidate["transactions"]))]
     if len({row.get("id") for row in holdings}) != len(holdings):
         raise HouseIndexError("Qualified House holding IDs are missing or duplicated")
-    candidate = yield CandidatePlan(candidate, copy=False,
-        arrays={"reported_holdings": holdings, "security_market_data": []},
-        sort={"reported_holdings": "id"})
+    candidate["reported_holdings"] = sorted(holdings, key=lambda row: row["id"])
+    candidate["security_market_data"] = []
     health = candidate.get("source_health")
     if not isinstance(health, list):
         raise HouseIndexError("House candidate base has no source health array")
@@ -487,8 +489,10 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
         house_health["detail"] += f"; {native_account_pending} native account titles await saved source-word evidence; existing facts retained"
     if native_account_unassessed_reports:
         house_health["detail"] += f"; {native_account_unassessed_reports} native account display reports await missing source extraction; existing facts retained"
-    candidate = yield CandidatePlan(candidate, copy=False,
-        health=(house_health, HouseIndexError, "House candidate base has no source health array"))
+    candidate["source_health"] = [house_health if row.get("source_id") == "house_clerk" else row
+                                  for row in health]
+    if not any(row.get("source_id") == "house_clerk" for row in health):
+        candidate["source_health"].append(house_health)
     # Consume saved annual B observations in the actual source candidate call.
     # These decisions cannot replace PTRs or alter the holding report selector.
     from .house_annual_sections import consume_schedule_b_inputs
@@ -506,7 +510,8 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             if "source_word_pages" in observation:
                 import hashlib
                 pages = observation["source_word_pages"]
-                digest = hashlib.sha256(json_bytes(pages)).hexdigest()
+                digest = hashlib.sha256(json.dumps(pages, ensure_ascii=False,
+                    sort_keys=True, separators=(",", ":")).encode()).hexdigest()
                 if digest != observation.get("source_word_pages_sha256"):
                     raise HouseIndexError("House annual saved word pages digest differs")
                 payload["pages"] = pages

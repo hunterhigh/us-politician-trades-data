@@ -1,13 +1,12 @@
 """Official Congress.gov member history used to resolve Senate filer identities."""
 from __future__ import annotations
 
-from .source_pipeline.records import store_metadata, write_once as _shared_write_once, json_bytes
-
 from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
 import re
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -220,7 +219,9 @@ def build_congress_senate_roster(pages: list[bytes], congress: int = DEFAULT_CON
     if not normalized:
         raise CongressMemberError("Congress.gov snapshot contains no Senate members")
     normalized.sort(key=lambda member: member["person_id"])
-    fingerprint = json_bytes({'congress': congress, 'page_sha256': page_hashes, 'members': normalized})
+    fingerprint = json.dumps({
+        "congress": congress, "page_sha256": page_hashes, "members": normalized,
+    }, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     snapshot_sha = hashlib.sha256(fingerprint).hexdigest()
     return {
         "schema_version": "congress-senate-members/v1",
@@ -238,8 +239,16 @@ def build_congress_senate_roster(pages: list[bytes], congress: int = DEFAULT_CON
 
 
 def _write_once(path: Path, payload: bytes) -> None:
-    return _shared_write_once(path, payload, error=CongressMemberError,
-        conflict="Archived Congress.gov member content conflicts with its hash", atomic=True)
+    if path.exists():
+        if path.read_bytes() != payload:
+            raise CongressMemberError("Archived Congress.gov member content conflicts with its hash")
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp",
+                                     delete=False) as handle:
+        handle.write(payload)
+        temporary = Path(handle.name)
+    temporary.replace(path)
 
 
 def archive_congress_senate_roster(root: Path, pages: list[tuple[bytes, dict[str, str]]],
@@ -257,7 +266,8 @@ def archive_congress_senate_roster(root: Path, pages: list[tuple[bytes, dict[str
         page_metadata.append({"index": index, "sha256": page_sha, "headers": headers,
                               "archive_path": path.relative_to(root).as_posix()})
     roster_path = folder / "roster.json"
-    _write_once(roster_path, json_bytes(roster))
+    _write_once(roster_path, json.dumps(
+        roster, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
     metadata = {
         **roster["metadata"],
         "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
@@ -265,11 +275,19 @@ def archive_congress_senate_roster(root: Path, pages: list[tuple[bytes, dict[str
         "roster_path": roster_path.relative_to(root).as_posix(),
     }
     metadata_path = folder / "metadata.json"
-    return store_metadata(metadata_path, metadata,
-        stable=("source_id", "source_url", "congress", "sha256", "page_sha256",
-                "source_record_count", "record_count", "roster_path"),
-        error=CongressMemberError, invalid="Archived Congress.gov member metadata is invalid",
-        conflict="Archived Congress.gov member metadata conflicts", writer=_write_once)
+    if metadata_path.exists():
+        try:
+            existing = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            raise CongressMemberError("Archived Congress.gov member metadata is invalid") from None
+        stable = ("source_id", "source_url", "congress", "sha256", "page_sha256",
+                  "source_record_count", "record_count", "roster_path")
+        if any(existing.get(field) != metadata[field] for field in stable):
+            raise CongressMemberError("Archived Congress.gov member metadata conflicts")
+        return existing
+    _write_once(metadata_path, json.dumps(
+        metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    return metadata
 
 
 def discover_congress_senate_members(root: Path, api_key: str, *,

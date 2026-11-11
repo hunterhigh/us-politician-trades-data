@@ -17,14 +17,3 @@ def read_with_retry(operation, *, sleeper=None):
             if not transient or attempt == 2:
                 raise
             sleeper(2 ** attempt)
-
-
-def read_response(request, opener, *, timeout, maximum, expected_url, unexpected):
-    """Read a bounded exact-destination response; callers own retries and source checks."""
-    with opener(request, timeout=timeout) as response:
-        if response.status != 200 or response.geturl() != expected_url:
-            raise unexpected
-        content = response.read(maximum + 1)
-        headers = {name.lower(): value for name, value in response.headers.items()
-                   if name.lower() in {"etag", "last-modified", "content-type"}}
-    return content, headers

@@ -1,14 +1,12 @@
 """House annual-report holdings: official archive, strict extraction and qualification."""
 from __future__ import annotations
 
-from .source_transport import read_response
-
-from .source_pipeline.records import archive_record
-
 from datetime import datetime, timezone
 import hashlib
+import json
 from pathlib import Path
 import re
+import tempfile
 import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
@@ -71,9 +69,12 @@ class HouseFinancialDocumentClient:
         request = urllib.request.Request(candidate.document_url, headers={
             "Accept": "application/pdf", "User-Agent": "unison-house-holdings/0.1"}, method="GET")
         try:
-            content, headers = read_response(request, urllib.request.urlopen,
-                timeout=self.timeout, maximum=MAX_PDF_BYTES, expected_url=candidate.document_url,
-                unexpected=HouseIndexError('House holding report returned an unexpected response'))
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                if response.status != 200 or response.geturl() != candidate.document_url:
+                    raise HouseIndexError("House holding report returned an unexpected response")
+                content = response.read(MAX_PDF_BYTES + 1)
+                headers = {name.lower(): value for name, value in response.headers.items()
+                           if name.lower() in {"etag", "last-modified", "content-type"}}
         except urllib.error.HTTPError as exc:
             raise HouseIndexError(f"House holding report returned HTTP {exc.code}") from None
         except (urllib.error.URLError, TimeoutError):
@@ -90,23 +91,49 @@ def archive_financial_document(root: Path, candidate: HouseFilingCandidate, cont
                                                     candidate.document_id)):
         raise HouseIndexError("House holding report is not a supported index-confirmed filing")
     validate_pdf(content)
-    return archive_record(root, ('house_clerk', 'financial-reports', candidate.filing_year, candidate.document_id), content, '.pdf',
-        lambda sha, target, root: {
-            "source_id": "house_clerk", "source_url": candidate.document_url,
-            "document_id": candidate.document_id, "filing_type": candidate.filing_type,
-            "report_type": SUPPORTED_REPORT_TYPES[candidate.filing_type],
-            "filer_name": candidate.filer_name, "state_district": candidate.state_district,
-            "filing_year": candidate.filing_year, "filed_date": candidate.filed_date,
-            "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
-            "sha256": sha, "byte_length": len(content), "headers": headers,
-            "archive_path": target.relative_to(root).as_posix(),
-            "verification_status": "official_raw_unparsed",
-        },
-        error=HouseIndexError, collision='Archived House holding report hash collision',
-        stable=("source_id", "source_url", "document_id", "filing_type", "report_type",
-                      "filing_year", "sha256", "byte_length", "archive_path", "verification_status"),
-        invalid='Archived House holding metadata is invalid',
-        conflict='Archived House holding metadata conflicts with its content')
+    root = root.resolve()
+    sha = hashlib.sha256(content).hexdigest()
+    folder = root / "house_clerk" / "financial-reports" / str(candidate.filing_year) / candidate.document_id
+    target = folder / f"{sha}.pdf"
+    folder.mkdir(parents=True, exist_ok=True)
+    if target.exists() and target.read_bytes() != content:
+        raise HouseIndexError("Archived House holding report hash collision")
+    if not target.exists():
+        with tempfile.NamedTemporaryFile(dir=folder, prefix=f".{sha}.", suffix=".tmp",
+                                         delete=False) as handle:
+            handle.write(content)
+            temporary = Path(handle.name)
+        temporary.replace(target)
+    metadata = {
+        "source_id": "house_clerk", "source_url": candidate.document_url,
+        "document_id": candidate.document_id, "filing_type": candidate.filing_type,
+        "report_type": SUPPORTED_REPORT_TYPES[candidate.filing_type],
+        "filer_name": candidate.filer_name, "state_district": candidate.state_district,
+        "filing_year": candidate.filing_year, "filed_date": candidate.filed_date,
+        "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
+        "sha256": sha, "byte_length": len(content), "headers": headers,
+        "archive_path": target.relative_to(root).as_posix(),
+        "verification_status": "official_raw_unparsed",
+    }
+    meta_path = target.with_suffix(".json")
+    if meta_path.exists():
+        try:
+            existing = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            raise HouseIndexError("Archived House holding metadata is invalid") from None
+        stable = ("source_id", "source_url", "document_id", "filing_type", "report_type",
+                  "filing_year", "sha256", "byte_length", "archive_path", "verification_status")
+        if any(existing.get(field) != metadata[field] for field in stable):
+            raise HouseIndexError("Archived House holding metadata conflicts with its content")
+        return existing
+    encoded = json.dumps(metadata, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":")).encode("utf-8")
+    with tempfile.NamedTemporaryFile(dir=folder, prefix=f".{sha}.", suffix=".tmp",
+                                     delete=False) as handle:
+        handle.write(encoded)
+        temporary = Path(handle.name)
+    temporary.replace(meta_path)
+    return metadata
 
 
 def archive_indexed_financial_report(root: Path, year: int, index_sha: str, document_id: str,
@@ -140,6 +167,7 @@ def _value(value: str) -> tuple[int, int | None] | None:
         exact = int(match.group(1).replace(",", ""))
         return exact, exact
     return None
+
 
 
 def _asset_code_close(raw: str) -> re.Match[str] | None:

@@ -1,16 +1,15 @@
 """Strict parsing and identity matching for the official Senate roster XML."""
 from __future__ import annotations
 
-from .source_pipeline.members import download_roster, roster_xml, ascii_words
-
-from .source_pipeline.records import store_metadata, write_once as _shared_write_once, json_bytes
-
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import hashlib
+import json
 from pathlib import Path
 import re
+import tempfile
 import time
+import unicodedata
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -37,10 +36,30 @@ class SenateMemberClient:
         self.sleeper = sleeper or time.sleep
 
     def download(self) -> tuple[bytes, dict[str, str]]:
-        return download_roster(MEMBERS_URL,
-            {"Accept": 'application/xml,text/xml;q=0.9,*/*;q=0.8', "User-Agent": 'unison-senate-identity/0.2 (+https://github.com/hunterhigh/us-politician-trades-data)'},
-            timeout=self.timeout, limit=MAX_MEMBERS_BYTES, error=SenateRosterError, label='Senate member roster',
-            retry_delays=self.retry_delays, opener=self.opener, sleeper=self.sleeper)
+        request = urllib.request.Request(MEMBERS_URL, headers={
+            "Accept": "application/xml,text/xml;q=0.9,*/*;q=0.8",
+            "User-Agent": "unison-senate-identity/0.2 (+https://github.com/hunterhigh/us-politician-trades-data)",
+        }, method="GET")
+        attempts = len(self.retry_delays) + 1
+        for attempt in range(attempts):
+            try:
+                with self.opener(request, timeout=self.timeout) as response:
+                    if response.status != 200 or response.geturl() != MEMBERS_URL:
+                        raise SenateRosterError("Senate member roster returned an unexpected response")
+                    content = response.read(MAX_MEMBERS_BYTES + 1)
+                    headers = {name.lower(): value for name, value in response.headers.items()
+                               if name.lower() in {"etag", "last-modified", "content-type"}}
+                    break
+            except urllib.error.HTTPError as exc:
+                if exc.code not in {403, 429, 500, 502, 503, 504} or attempt == attempts - 1:
+                    raise SenateRosterError(f"Senate member roster returned HTTP {exc.code}") from None
+            except (urllib.error.URLError, TimeoutError):
+                if attempt == attempts - 1:
+                    raise SenateRosterError("Senate member roster is unavailable") from None
+            self.sleeper(self.retry_delays[attempt])
+        if len(content) > MAX_MEMBERS_BYTES:
+            raise SenateRosterError("Senate member roster exceeds its size limit")
+        return content, headers
 
 
 @dataclass(frozen=True)
@@ -65,8 +84,13 @@ def _text(fields: dict[str, ET.Element], name: str) -> str:
 
 
 def parse_members(content: bytes) -> list[SenateMember]:
-    root = roster_xml(content, limit=MAX_MEMBERS_BYTES, error=SenateRosterError,
-        source='Senate', require_bytes=True)
+    if (not isinstance(content, bytes) or len(content) > MAX_MEMBERS_BYTES or
+            b"<!DOCTYPE" in content.upper() or b"<!ENTITY" in content.upper()):
+        raise SenateRosterError("Invalid Senate member roster")
+    try:
+        root = ET.fromstring(content)
+    except ET.ParseError:
+        raise SenateRosterError("Senate member roster XML is invalid") from None
     if root.tag != "contact_information" or root.attrib:
         raise SenateRosterError("Senate member roster has an unexpected root")
 
@@ -151,11 +175,19 @@ def archive_members(root: Path, content: bytes, headers: dict[str, str], roster:
     if xml_path.exists() and xml_path.read_bytes() != content:
         raise SenateRosterError("Archived Senate member roster hash collision")
     def write_once(path: Path, payload: bytes) -> None:
-        return _shared_write_once(path, payload, error=SenateRosterError,
-            conflict="Archived Senate roster content conflicts with its hash", prefix=f".{sha}.")
+        if path.exists():
+            if path.read_bytes() != payload:
+                raise SenateRosterError("Archived Senate roster content conflicts with its hash")
+            return
+        with tempfile.NamedTemporaryFile(dir=folder, prefix=f".{sha}.", suffix=".tmp",
+                                         delete=False) as handle:
+            handle.write(payload)
+            temporary = Path(handle.name)
+        temporary.replace(path)
 
     write_once(xml_path, content)
-    roster_bytes = json_bytes(roster)
+    roster_bytes = json.dumps(roster, ensure_ascii=False, sort_keys=True,
+                              separators=(",", ":")).encode("utf-8")
     write_once(roster_path, roster_bytes)
     metadata = {
         "source_id": "senate_members",
@@ -167,10 +199,18 @@ def archive_members(root: Path, content: bytes, headers: dict[str, str], roster:
         "archive_path": xml_path.relative_to(root).as_posix(),
         "roster_path": roster_path.relative_to(root).as_posix(),
     }
-    return store_metadata(metadata_path, metadata,
-        stable=("source_id", "source_url", "sha256", "record_count", "archive_path", "roster_path"),
-        error=SenateRosterError, invalid="Archived Senate member metadata is invalid",
-        conflict="Archived Senate member metadata conflicts with its content", writer=write_once)
+    if metadata_path.exists():
+        try:
+            existing = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            raise SenateRosterError("Archived Senate member metadata is invalid") from None
+        stable = ("source_id", "source_url", "sha256", "record_count", "archive_path", "roster_path")
+        if any(existing.get(field) != metadata[field] for field in stable):
+            raise SenateRosterError("Archived Senate member metadata conflicts with its content")
+        return existing
+    write_once(metadata_path, json.dumps(metadata, ensure_ascii=False, sort_keys=True,
+                                         separators=(",", ":")).encode("utf-8"))
+    return metadata
 
 
 def discover_members(root: Path, *, client: SenateMemberClient | None = None) -> dict:
@@ -181,7 +221,8 @@ def discover_members(root: Path, *, client: SenateMemberClient | None = None) ->
 
 
 def _ascii_words(value: str) -> list[str]:
-    return ascii_words(value)
+    normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii").lower()
+    return re.findall(r"[a-z]+", normalized)
 
 
 def _name_key(value: str) -> tuple[str, str] | None:

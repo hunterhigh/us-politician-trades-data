@@ -1,17 +1,12 @@
 """Build a frontend-compatible Senate candidate from production review artifacts."""
 from __future__ import annotations
 
-from .source_pipeline.records import json_bytes
-
-from .source_pipeline.records import read_json
-
-from .source_pipeline.candidates import CandidatePlan, candidate_source, person_record
-
 from collections import Counter
 from copy import deepcopy
 from datetime import datetime
 from html.parser import HTMLParser
 import hashlib
+import json
 from pathlib import Path
 import re
 from urllib.parse import urlsplit
@@ -270,11 +265,19 @@ def _resolve_amendments(extractions: list[dict], identity_by_document: dict[str,
 
 
 def _read_json(path: Path, description: str) -> dict:
-    return read_json(path, description, SenateEfdError)
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        raise SenateEfdError(f"{description} is invalid") from None
+    if not isinstance(value, dict):
+        raise SenateEfdError(f"{description} must be an object")
+    return value
 
 
 def _canonical_sha256(value: object) -> str:
-    return hashlib.sha256(json_bytes(value)).hexdigest()
+    return hashlib.sha256(json.dumps(
+        value, ensure_ascii=False, sort_keys=True,
+        separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
 def _load_active_amendment_supplement(review_root: Path, parser_version: str) -> dict:
@@ -369,16 +372,20 @@ def _person(identity: dict) -> dict:
     if person_id == "senate:B001277" and display_name.casefold() == "richard blumenthal":
         display_name = "Richard Blumenthal"
     short_name = official_name.split(" (", 1)[0].strip()
-    return person_record(
-               person_id,
-               display_name,
-               short_name,
-               'U.S. Senator',
-               'Congress',
-               'senate_efd',
-               chamber='Senate',
-               party=identity.get('party'),
-               state=identity.get('state'))
+    return {
+        "id": person_id,
+        "display_name": display_name,
+        "short_name": short_name,
+        "role": "U.S. Senator",
+        "office_type": "Congress",
+        "chamber": "Senate",
+        "party": identity.get("party"),
+        "state": identity.get("state"),
+        "disclosure_authority": "senate_efd",
+        "priority": False,
+        "priority_reason": None,
+        "portrait_url": None,
+    }
 
 
 class _ExchangeCellSegments(HTMLParser):
@@ -688,7 +695,6 @@ def _legacy_grid_protection(extraction: dict, identity: dict, base: dict) -> dic
             "source_field_corrections": corrections}
 
 
-@candidate_source
 def build_senate_candidate(
         review_root: Path, state_status: dict, base: dict,
         evidence_root: Path | None = None) -> tuple[dict, dict]:
@@ -1227,13 +1233,15 @@ def build_senate_candidate(
         paper_pending_audit["qualified_transaction_count"] = len(reviewed_paper_rows)
         paper_pending_audit["remaining_pending_row_count"] = (
             pending["pending_row_count"] - len(reviewed_paper_rows))
-    candidate = yield CandidatePlan(base,
-        production=(SenateEfdError, "Senate candidate base must be a production input"),
-        metadata={"data_cutoff_at": cutoff,
-                  "subtitle": "Senate PTR真实候选；其他来源和行情仍在回填"},
-        arrays={"people": people, "transactions": transactions,
-                "reported_holdings": [], "security_market_data": []},
-        sort={"transactions": "id"})
+    candidate = deepcopy(base)
+    if not isinstance(candidate.get("meta"), dict) or candidate["meta"].get("is_demo") is not False:
+        raise SenateEfdError("Senate candidate base must be a production input")
+    candidate["meta"]["data_cutoff_at"] = cutoff
+    candidate["meta"]["subtitle"] = "Senate PTR真实候选；其他来源和行情仍在回填"
+    candidate["people"] = [people[key] for key in sorted(people)]
+    candidate["transactions"] = sorted(transactions, key=lambda item: item["id"])
+    candidate["reported_holdings"] = []
+    candidate["security_market_data"] = []
     source_health = {
         "source_id": "senate_efd",
         "source": "U.S. Senate eFD",
@@ -1254,8 +1262,13 @@ def build_senate_candidate(
                    f"{report_failure_count} reports retained as extraction failures; "
                    "0 reports pending extraction."),
     }
-    candidate = yield CandidatePlan(candidate, copy=False,
-        health=(source_health, SenateEfdError, "Senate candidate base has no source health array"))
+    health = candidate.get("source_health")
+    if not isinstance(health, list):
+        raise SenateEfdError("Senate candidate base has no source health array")
+    candidate["source_health"] = [source_health if item.get("source_id") == "senate_efd" else item
+                                  for item in health]
+    if not any(item.get("source_id") == "senate_efd" for item in health):
+        candidate["source_health"].append(source_health)
     # Annual holdings are a separate archived source path. Reapply them on
     # every PTR refresh so the scheduled PTR producer cannot erase holdings.
     from .senate_annual import overlay_annual_candidate

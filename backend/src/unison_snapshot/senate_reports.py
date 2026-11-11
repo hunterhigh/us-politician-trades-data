@@ -7,8 +7,6 @@ trusted, so parser changes can always be replayed offline.
 """
 from __future__ import annotations
 
-from .source_pipeline.records import archive_record, write_once as _shared_write_once
-
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from html.parser import HTMLParser
@@ -17,6 +15,7 @@ import json
 from pathlib import Path
 from .content_integrity import integrity_error, verified_original_hash
 import re
+import tempfile
 from typing import Iterable
 from urllib.parse import urlsplit
 import urllib.request
@@ -55,8 +54,16 @@ _EXPECTED_COLUMNS = (
 
 
 def _write_once(path: Path, payload: bytes) -> None:
-    return _shared_write_once(path, payload, error=SenateEfdError,
-        conflict="Archived Senate eFD report conflicts with immutable content", atomic=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        if path.read_bytes() != payload:
+            raise SenateEfdError("Archived Senate eFD report conflicts with immutable content")
+        return
+    with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False) as handle:
+        handle.write(payload)
+        temporary = Path(handle.name)
+    temporary.replace(path)
 
 
 def _canonical_discovery(value: object) -> dict:
@@ -187,39 +194,51 @@ def archive_report(root: Path, discovery: dict, content: bytes, headers: dict[st
         raise SenateEfdError("Senate eFD report retrieval timestamp is invalid") from None
     if parsed_timestamp.tzinfo is None or parsed_timestamp.utcoffset() is None:
         raise SenateEfdError("Senate eFD report retrieval timestamp must include a timezone")
-    return archive_record(root, ('senate_efd', 'reports', source["document_id"]), content,
-        '.' + inspection['extension'], lambda sha, document_path, root: {
-            "schema_version": REPORT_ARCHIVE_SCHEMA,
-            "source_id": "senate_efd",
-            "document_id": source["document_id"],
-            "document_url": source["document_url"],
-            "access_method": source["access_method"],
-            "filer_name": source["filer_name"],
-            "office": source["office"],
-            "portal_listed_date": source["portal_listed_date"],
-            "report_label_date": source["report_label_date"],
-            "report_amendment_number": source["report_amendment_number"],
-            "retrieved_at": timestamp,
-            "sha256": sha,
-            "byte_length": len(content),
-            "media_kind": inspection["media_kind"],
-            "media_type": inspection["media_type"],
-            "artifact_role": "entrypoint_response",
-            "evidence_complete": False,
-            "headers": {key.lower(): value for key, value in headers.items()
-                             if key.lower() in {"content-type", "etag", "last-modified"}},
-            "archive_path": document_path.relative_to(root.resolve()).as_posix(),
-            "parser_version": PARSER_VERSION,
-            "verification_status": (
-                "official_viewer_unresolved"
-                if source["access_method"] == "paper_ptr" and inspection["media_kind"] == "html"
-                else "official_entrypoint_unparsed"
-            ),
-        },
-        error=SenateEfdError, collision="Archived Senate eFD report conflicts with immutable content",
-        stable=lambda metadata: set(metadata) - {"retrieved_at", "headers"},
-        conflict="Archived Senate eFD report metadata conflicts with its hash",
-        metadata_suffix=".metadata.json", writer=_write_once, reuse_existing=False, encode_first=True)
+    sha = inspection["sha256"]
+    folder = root.resolve() / "senate_efd" / "reports" / source["document_id"]
+    document_path = folder / f"{sha}.{inspection['extension']}"
+    metadata_path = folder / f"{sha}.metadata.json"
+    _write_once(document_path, content)
+    normalized_headers = {
+        key.lower(): value for key, value in headers.items()
+        if key.lower() in {"content-type", "etag", "last-modified"}
+    }
+    metadata = {
+        "schema_version": REPORT_ARCHIVE_SCHEMA,
+        "source_id": "senate_efd",
+        "document_id": source["document_id"],
+        "document_url": source["document_url"],
+        "access_method": source["access_method"],
+        "filer_name": source["filer_name"],
+        "office": source["office"],
+        "portal_listed_date": source["portal_listed_date"],
+        "report_label_date": source["report_label_date"],
+        "report_amendment_number": source["report_amendment_number"],
+        "retrieved_at": timestamp,
+        "sha256": sha,
+        "byte_length": len(content),
+        "media_kind": inspection["media_kind"],
+        "media_type": inspection["media_type"],
+        "artifact_role": "entrypoint_response",
+        "evidence_complete": False,
+        "headers": normalized_headers,
+        "archive_path": document_path.relative_to(root.resolve()).as_posix(),
+        "parser_version": PARSER_VERSION,
+        "verification_status": (
+            "official_viewer_unresolved"
+            if source["access_method"] == "paper_ptr" and inspection["media_kind"] == "html"
+            else "official_entrypoint_unparsed"
+        ),
+    }
+    encoded = json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    if metadata_path.exists():
+        old = json.loads(metadata_path.read_text(encoding="utf-8"))
+        stable = set(metadata) - {"retrieved_at", "headers"}
+        if any(old.get(key) != metadata[key] for key in stable):
+            raise SenateEfdError("Archived Senate eFD report metadata conflicts with its hash")
+    else:
+        _write_once(metadata_path, encoded)
+    return metadata
 
 
 def _archived_entrypoints(root: Path) -> list[dict]:

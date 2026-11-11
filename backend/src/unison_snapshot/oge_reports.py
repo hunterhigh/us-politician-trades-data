@@ -1,15 +1,14 @@
 """Archive and parse public OGE 278-T PDFs without automating Form 201."""
 from __future__ import annotations
 
-from .source_pipeline.records import archive_record, write_once as _shared_write_once, json_bytes
-
 from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
-from .source_transport import read_response, read_with_retry, TRANSPORT_ERRORS
+from .source_transport import read_with_retry, TRANSPORT_ERRORS
 from .content_integrity import content_boundary
 import re
+import tempfile
 import urllib.error
 from urllib.parse import unquote, urlsplit
 import urllib.request
@@ -199,9 +198,12 @@ class OgePdfClient:
             "User-Agent": "unison-oge-evidence/0.1 (+https://github.com/hunterhigh/us-politician-trades-data)",
         }, method="GET")
         def receive():
-            content, headers = read_response(request, self.opener.open,
-                timeout=self.timeout, maximum=MAX_PDF_BYTES, expected_url=url,
-                unexpected=OgeCatalogError('OGE 278-T returned an unexpected response'))
+            with self.opener.open(request, timeout=self.timeout) as response:
+                if response.status != 200 or response.geturl() != url:
+                    raise OgeCatalogError("OGE 278-T returned an unexpected response")
+                content = response.read(MAX_PDF_BYTES + 1)
+                headers = {name.lower(): value for name, value in response.headers.items()
+                           if name.lower() in {"etag", "last-modified", "content-type"}}
             return content, headers
         try:
             content, headers = read_with_retry(receive)
@@ -223,8 +225,16 @@ def _validate_pdf(content: bytes) -> None:
 
 
 def _write_once(path: Path, content: bytes) -> None:
-    return _shared_write_once(path, content, error=OgeCatalogError,
-        conflict="Archived OGE report conflicts with its hash", atomic=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        if path.read_bytes() != content:
+            raise OgeCatalogError("Archived OGE report conflicts with its hash")
+        return
+    with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False) as handle:
+        handle.write(content)
+        temporary = Path(handle.name)
+    temporary.replace(path)
 
 
 def archive_direct_pdf(root: Path, record: dict, config: OgeSourceConfig, *,
@@ -235,27 +245,39 @@ def archive_direct_pdf(root: Path, record: dict, config: OgeSourceConfig, *,
     require_collection_enabled(config)
     record = _validate_direct_record(record)
     content, headers = (client or OgePdfClient()).download(record["document_url"])
-    return archive_record(root, ('oge', 'reports', record["source_document_id"]), content, '.pdf',
-        lambda sha, pdf_path, base: {
-            "schema_version": REPORT_ARCHIVE_SCHEMA,
-            "source_id": "oge",
-            "document_id": record["source_document_id"],
-            "document_url": record["document_url"],
-            "filer_name": record["filer_name"],
-            "agency": record["agency"],
-            "position_title": record["position_title"],
-            "catalog_added_date": record["catalog_added_date"],
-            "amended_label": record.get("amended_label"),
-            "pending_final_oge_disposition": record.get("pending_final_oge_disposition") is True,
-            "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
-            "sha256": sha,
-            "byte_length": len(content),
-            "headers": headers,
-            "archive_path": pdf_path.relative_to(base).as_posix(),
-        },
-        error=OgeCatalogError, collision="Archived OGE report conflicts with its hash",
-        stable=lambda metadata: set(metadata) - {"retrieved_at"},
-        conflict="Archived OGE report metadata conflicts with its PDF", writer=_write_once, encode_first=True)
+    sha = hashlib.sha256(content).hexdigest()
+    base = root.resolve()
+    folder = base / "oge" / "reports" / record["source_document_id"]
+    pdf_path = folder / f"{sha}.pdf"
+    metadata_path = folder / f"{sha}.json"
+    _write_once(pdf_path, content)
+    metadata = {
+        "schema_version": REPORT_ARCHIVE_SCHEMA,
+        "source_id": "oge",
+        "document_id": record["source_document_id"],
+        "document_url": record["document_url"],
+        "filer_name": record["filer_name"],
+        "agency": record["agency"],
+        "position_title": record["position_title"],
+        "catalog_added_date": record["catalog_added_date"],
+        "amended_label": record.get("amended_label"),
+        "pending_final_oge_disposition": record.get("pending_final_oge_disposition") is True,
+        "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
+        "sha256": sha,
+        "byte_length": len(content),
+        "headers": headers,
+        "archive_path": pdf_path.relative_to(base).as_posix(),
+    }
+    encoded = json.dumps(metadata, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":")).encode("utf-8")
+    if metadata_path.exists():
+        existing = json.loads(metadata_path.read_text(encoding="utf-8"))
+        stable = set(metadata) - {"retrieved_at"}
+        if any(existing.get(field) != metadata[field] for field in stable):
+            raise OgeCatalogError("Archived OGE report metadata conflicts with its PDF")
+        return existing
+    _write_once(metadata_path, encoded)
+    return metadata
 
 
 def archive_direct_batch(root: Path, catalog: dict, config: OgeSourceConfig, *, limit: int,
@@ -482,6 +504,15 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
     return transactions, quarantined
 
 
+
+
+
+
+
+
+
+
+
 def _extract_borderless_transaction_tables(page) -> list[list[list[object]]]:
     """Recover current Integrity.gov tables that only draw horizontal rules."""
 
@@ -651,6 +682,8 @@ def _read_archived_source(root: Path, metadata_path: Path) -> tuple[dict, Path, 
     if metadata.get("sha256") != source_sha or metadata.get("byte_length") != len(content):
         raise OgeCatalogError("OGE 278-T bytes do not match archive metadata")
     return metadata, pdf_path, source_sha
+
+
 
 
 def selected_parser_version(metadata: dict, pdf_path: Path, source_sha: str, *, generic=False):
@@ -920,6 +953,7 @@ def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False
     return correct_extraction(result,correction) if correction else result
 
 
+
 def _native_amendment_context(observation: dict, source_url: str) -> dict:
     """Interpret a report reference, never a filer signature or an effective date."""
     from .oge_278t_page_coverage import interpret_native_exhibit_page
@@ -935,7 +969,8 @@ def _native_amendment_context(observation: dict, source_url: str) -> dict:
     result = {"schema_version": "oge-278t-amendment-reference-context/v1",
               "source_sha256": observation["source_sha256"], "page_number": observation["page_number"],
               "page_text": text, "page_text_sha256": observation["page_text_sha256"],
-              "source_observation_canonical_sha256": hashlib.sha256(json_bytes(observation)).hexdigest(),
+              "source_observation_canonical_sha256": hashlib.sha256(json.dumps(observation,
+                  ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
               "context_role": "original_report_reference_not_filer_signature_or_amendment_effective_date"}
     amount_only = all(re.search(pattern, text, re.I) for pattern in (
         r"AMENDMENT\s+TO", r"PERIODIC\s+TRANSACTION\s+REPORT",
@@ -1037,7 +1072,8 @@ def _native_original_printed_anchors(pdf: Path, sha: str, numbers: list[int]) ->
                         "word_box": [word[k] for k in ("x0", "top", "x1", "bottom")],
                         "number_header_word_index": header_index,
                         "number_header_box": [header[k] for k in ("x0", "top", "x1", "bottom")],
-                        "source_words_canonical_sha256": hashlib.sha256(json_bytes(words)).hexdigest(),
+                        "source_words_canonical_sha256": hashlib.sha256(json.dumps(words, ensure_ascii=False,
+                            sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
                         "basis": "literal_native_printed_marker_under_same_page_number_header_not_ordinal"})
     return found
 
@@ -1161,7 +1197,8 @@ def _native_exhibit_target(label: dict, targets: list[dict], filer_name: str, *,
             "archive_metadata_sha256":hashlib.sha256(meta_path.read_bytes()).hexdigest(),
             **({"owner_scope_basis":"source_page_parser_role_replay_not_cache_supplied_default",
                 "owner_scope_explicit":explicit_owner,
-                "owner_scope_page_rows_sha256":hashlib.sha256(json_bytes(native_rows)).hexdigest()} if verify_owner_scope else {}),
+                "owner_scope_page_rows_sha256":hashlib.sha256(json.dumps(native_rows,ensure_ascii=False,
+                    sort_keys=True,separators=(",",":")).encode()).hexdigest()} if verify_owner_scope else {}),
             "source_label_word_indices":label["word_indices"],"source_label_raw":label["text"]})
     if len(matches)!=1:
         return {"status":"pending","reasons":["replacement_original_source_or_unique_row_unverified"],

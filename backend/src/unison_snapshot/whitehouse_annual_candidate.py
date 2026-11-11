@@ -1,11 +1,6 @@
 """Overlay complete White House annual filer-reported holdings on OGE data."""
 from __future__ import annotations
 
-from .source_pipeline.records import json_bytes
-
-from .source_pipeline.annual import project_row
-from .source_pipeline.candidates import CandidatePlan, candidate_source, person_record
-
 from copy import deepcopy
 import hashlib
 import json
@@ -26,13 +21,14 @@ def _person(report: dict) -> dict:
         raise OgeCatalogError("White House annual report has no position")
     identity = {"filer_name": report["filer_reported_name"],
                 "agency": "White House Office", "position_title": position.strip()}
-    person = person_record(
-                 _person_id(_identity_key(identity)),
-                 identity['filer_name'],
-                 _short_name(identity['filer_name']),
-                 identity['position_title'],
-                 identity['agency'],
-                 'oge')
+    person = {
+        "id": _person_id(_identity_key(identity)),
+        "display_name": identity["filer_name"], "short_name": _short_name(identity["filer_name"]),
+        "role": identity["position_title"], "office_type": identity["agency"],
+        "chamber": None, "party": None, "state": None,
+        "disclosure_authority": "oge", "priority": False,
+        "priority_reason": None, "portrait_url": None,
+    }
     if set(person) != FIELDS["people"]:
         raise OgeCatalogError("White House annual person contract changed")
     return person
@@ -73,7 +69,6 @@ def annual_identity_people(annual: dict) -> list[dict]:
     return [_person(rows[0]) for _, rows in sorted(by_filer.items())]
 
 
-@candidate_source
 def _overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> tuple[dict, dict]:
     """Add complete reports and source-bound partial rows; keep Unknown unchanged."""
     path = review_root / "whitehouse/annual/filer-reported-current.json"
@@ -121,9 +116,15 @@ def _overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> 
     if any(len(rows) != 1 for rows in by_filer.values()):
         raise OgeCatalogError("White House annual report versions require resolution")
 
-    result = yield CandidatePlan(candidate,
-        remove_prefixes={"transactions": "wh-annual-tx:", "reported_holdings": "wh-annual:"},
-        prune_people=True)
+    result = deepcopy(candidate)
+    result["transactions"] = [row for row in result["transactions"]
+                              if not str(row.get("id", "")).startswith("wh-annual-tx:")]
+    result["reported_holdings"] = [row for row in result["reported_holdings"]
+                                   if not str(row.get("id", "")).startswith("wh-annual:")]
+    retained_people = {row["person_id"] for row in result["transactions"]}
+    retained_people.update(row["person_id"] for row in result["reported_holdings"])
+    result["people"] = [person for person in result["people"]
+                        if person["id"] in retained_people]
     existing_by_name: dict[tuple[str, str], list[dict]] = {}
     for person in result.get("people", []):
         key = _first_last(person.get("display_name") or "")
@@ -160,16 +161,19 @@ def _overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> 
         if report is None or row.get("source_sha256") != report.get("source_sha256") or (
                 row.get("source_url") != report.get("source_url")):
             raise OgeCatalogError("White House annual holding is not bound to its report")
-        fact = project_row(row, {'id': 'row_id', 'filing_id': 'document_id', 'owner': 'asset_owner', 'asset_name': 'asset_name', 'report_period_end': 'report_period_end', 'value_low': 'value_low', 'value_high': 'value_high', 'source_url': 'source_url'},
-                   person_id=person_by_document[row['document_id']],
-                   ticker=None,
-                   ticker_mapping_basis=None,
-                   instrument_type=_instrument(row['asset_name'], None),
-                   filed_at=report['filing_date'] + 'T00:00:00Z',
-                   change_from_prior='unknown',
-                   source_id='oge',
-                   source='U.S. Office of Government Ethics',
-                   verification_status='official_matched')
+        fact = {
+            "id": row["row_id"], "filing_id": row["document_id"],
+            "person_id": person_by_document[row["document_id"]],
+            "owner": row["asset_owner"], "asset_name": row["asset_name"],
+            "ticker": None, "ticker_mapping_basis": None,
+            "instrument_type": _instrument(row["asset_name"], None),
+            "report_period_end": row["report_period_end"],
+            "filed_at": report["filing_date"] + "T00:00:00Z",
+            "value_low": row["value_low"], "value_high": row["value_high"],
+            "change_from_prior": "unknown", "source_id": "oge",
+            "source": "U.S. Office of Government Ethics",
+            "source_url": row["source_url"], "verification_status": "official_matched",
+        }
         if set(fact) != FIELDS["reported_holdings"] or fact["id"] in prior_ids:
             raise OgeCatalogError("White House annual holding conflicts with candidate")
         prior_ids.add(fact["id"])
@@ -181,27 +185,30 @@ def _overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> 
         if report is None or row.get("source_sha256") != report.get("source_sha256") or (
                 row.get("source_url") != report.get("source_url")):
             raise OgeCatalogError("White House annual transaction is not bound to its report")
-        fact = project_row(row, {'id': 'row_id', 'filing_id': 'document_id', 'owner': 'asset_owner', 'asset_name': 'asset_name', 'transaction_type': 'transaction_type', 'transaction_date': 'transaction_date', 'amount_low': 'amount_low', 'amount_high': 'amount_high', 'source_url': 'source_url'},
-                   person_id=person_by_document[row['document_id']],
-                   ticker=None,
-                   ticker_mapping_basis=None,
-                   instrument_type=_instrument(row['asset_name'], None),
-                   option_type=None,
-                   strike_price=None,
-                   expiration_date=None,
-                   filed_at=report['filing_date'] + 'T00:00:00Z',
-                   position_effect='unknown',
-                   position_effect_basis=None,
-                   source_id='oge',
-                   source='U.S. Office of Government Ethics',
-                   verification_status='official_matched')
+        fact = {
+            "id": row["row_id"], "filing_id": row["document_id"],
+            "person_id": person_by_document[row["document_id"]],
+            "owner": row["asset_owner"], "asset_name": row["asset_name"],
+            "ticker": None, "ticker_mapping_basis": None,
+            "instrument_type": _instrument(row["asset_name"], None),
+            "option_type": None, "strike_price": None, "expiration_date": None,
+            "transaction_type": row["transaction_type"],
+            "transaction_date": row["transaction_date"],
+            "filed_at": report["filing_date"] + "T00:00:00Z",
+            "amount_low": row["amount_low"], "amount_high": row["amount_high"],
+            "position_effect": "unknown", "position_effect_basis": None,
+            "source_id": "oge", "source": "U.S. Office of Government Ethics",
+            "source_url": row["source_url"], "verification_status": "official_matched",
+        }
         if set(fact) != FIELDS["transactions"] or fact["id"] in prior_transaction_ids:
             raise OgeCatalogError("White House annual transaction conflicts with candidate")
         prior_transaction_ids.add(fact["id"])
         added_transactions.append(fact)
-    result = yield CandidatePlan(result, copy=False, arrays={"people": people},
-        append={"reported_holdings": added, "transactions": added_transactions},
-        sort={"people": "id", "reported_holdings": "id", "transactions": "id"})
+    result["people"] = sorted(people.values(), key=lambda row: row["id"])
+    result["reported_holdings"] = sorted([*result["reported_holdings"], *added],
+                                          key=lambda row: row["id"])
+    result["transactions"] = sorted([*result["transactions"], *added_transactions],
+                                    key=lambda row: row["id"])
     for health in result["source_health"]:
         if health.get("source_id") == "oge":
             health["detail"] = health["detail"].split("; White House annual:", 1)[0]
@@ -211,8 +218,10 @@ def _overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> 
                                  f"{partial_count} partial filer-reported reports, "
                                  f"{len(added)} holdings and "
                                  f"{len(added_transactions)} transactions")
-    result = yield CandidatePlan(result, copy=False,
-        normalization=(normalize, OgeCatalogError, "White House annual candidate changed during normalization"))
+    normalized = normalize(result, allow_production=True,
+                           allow_market=bool(result["security_market_data"]))
+    if normalized != result:
+        raise OgeCatalogError("White House annual candidate changed during normalization")
     return result, {
         "annual_status": "included",
         "annual_review_sha256": hashlib.sha256(raw).hexdigest(),
@@ -227,7 +236,6 @@ def _overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> 
     }
 
 
-@candidate_source
 def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, dict]:
     """Consume qualified OGE annual rows in the existing annual overlay.
 
@@ -261,7 +269,7 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
                 native_cover_observation=bundle.get("native_cover_observation"),
                 archived_pdf_path=bundle.get("archived_pdf_path"),
                 verify_transaction_blank_slots=bundle.get("verify_transaction_blank_slots", False)))
-    result = yield CandidatePlan(candidate)
+    result = deepcopy(candidate)
     people = {row["id"]: row for row in result["people"]}
     prior = {row["id"]: row for row in result["reported_holdings"]}
     transactions = {row["id"]: row for row in result["transactions"]}
@@ -361,13 +369,10 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
         if any(row.get("person_id") == person_id and row.get("report_period_end") == extraction.get("report_period_end")
                and row.get("filing_id") != document_id for row in prior.values()):
             report_reasons.append("existing_annual_report_version_relationship_unresolved")
-        source = person_record(
-                     person_id,
-                     archive['filer_name'],
-                     _short_name(archive['filer_name']),
-                     archive['position_title'],
-                     archive['agency'],
-                     'oge')
+        source = {"id": person_id, "display_name": archive["filer_name"], "short_name": _short_name(archive["filer_name"]),
+            "role": archive["position_title"], "office_type": archive["agency"], "chamber": None,
+            "party": None, "state": None, "disclosure_authority": "oge", "priority": False,
+            "priority_reason": None, "portrait_url": None}
         index_by_object = {id(row): index for index, row in enumerate(extraction["holdings"])}
         prepared = []
         prepared_transactions = []
@@ -382,20 +387,14 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
                 identifier = decision["candidate_id"]
                 if decision["disposition"] == "qualified" and not reasons:
                     title = row.get("account_context", {}).get("title")
-                    fact = project_row(row, {'owner': 'owner', 'transaction_type': 'transaction_type', 'transaction_date': 'transaction_date', 'amount_low': 'amount_low', 'amount_high': 'amount_high'},
-                               id=identifier,
-                               filing_id=document_id,
-                               person_id=person_id,
-                               asset_name=f"{row['asset_name']} — {title}" if title else row['asset_name'],
-                               ticker=None,
-                               ticker_mapping_basis=None,
-                               instrument_type=_instrument(row['asset_name'], None),
-                               filed_at=filing_day + 'T00:00:00Z',
-                               source_id='oge',
-                               source='U.S. Office of Government Ethics',
-                               source_url=extraction['source_url'],
-                               verification_status='official_matched',
-                               **({'amount_low_exclusive': row['amount_low_exclusive']} if 'amount_low_exclusive' in row else {}))
+                    fact = {"id": identifier, "filing_id": document_id, "person_id": person_id,
+                        "owner": row["owner"], "asset_name": f"{row['asset_name']} — {title}" if title else row["asset_name"],
+                        "ticker": None, "ticker_mapping_basis": None, "instrument_type": _instrument(row["asset_name"], None),
+                        "transaction_type": row["transaction_type"], "transaction_date": row["transaction_date"],
+                        "filed_at": filing_day + "T00:00:00Z", "amount_low": row["amount_low"], "amount_high": row["amount_high"],
+                        **({"amount_low_exclusive": row["amount_low_exclusive"]} if "amount_low_exclusive" in row else {}),
+                        "source_id": "oge", "source": "U.S. Office of Government Ethics", "source_url": extraction["source_url"],
+                        "verification_status": "official_matched"}
                     # Public readers materialize optional nulls. New facts use
                     # that same projection so repeat qualification is stable.
                     for field in FIELDS["transactions"]:
@@ -412,7 +411,8 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
                         "status": "possible_ptr_overlap" if possible else "cross_report_relationship_unconfirmed"}
                     fields = ('source_id','filing_id','source_url','source_sha256','section','page_number',
                               'printed_row_number','report_period_end','source_row_identity_sha256')
-                    relation["source_binding_sha256"] = hashlib.sha256(json_bytes({key: relation[key] for key in fields})).hexdigest()
+                    relation["source_binding_sha256"] = hashlib.sha256(json.dumps({key: relation[key] for key in fields},
+                        ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
                     prepared_transactions.append((fact, relation))
                 row_audit.append({"candidate_id": identifier, "section": "part7", "disposition": decision["disposition"],
                     "reasons": sorted(set(reasons)), "source_row_identity_sha256": decision["source_row_identity_sha256"]})
@@ -431,21 +431,15 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
             reasons.extend(report_reasons + holding_reasons)
             if decision["disposition"] == "qualified" and not reasons:
                 title = row.get("account_context", {}).get("title")
-                fact = project_row(row, {'owner': 'owner', 'report_period_end': 'report_period_end', 'value_low': 'value_low', 'value_high': 'value_high'},
-                           id=identifier,
-                           filing_id=document_id,
-                           person_id=person_id,
-                           asset_name=f"{row['asset_name']} — {title}" if title else row['asset_name'],
-                           ticker=None,
-                           ticker_mapping_basis=None,
-                           instrument_type=_instrument(row['asset_name'], None),
-                           filed_at=ledger['filing_date_evidence']['date'] + 'T00:00:00Z',
-                           change_from_prior='unknown',
-                           source_id='oge',
-                           source='U.S. Office of Government Ethics',
-                           source_url=extraction['source_url'],
-                           verification_status='official_matched',
-                           **({'value_low_exclusive': row['value_low_exclusive']} if 'value_low_exclusive' in row else {}))
+                fact = {"id": identifier, "filing_id": document_id, "person_id": person_id,
+                    "owner": row["owner"], "asset_name": f"{row['asset_name']} — {title}" if title else row["asset_name"],
+                    "ticker": None, "ticker_mapping_basis": None, "instrument_type": _instrument(row["asset_name"], None),
+                    "report_period_end": row["report_period_end"],
+                    "filed_at": ledger["filing_date_evidence"]["date"] + "T00:00:00Z",
+                    "value_low": row["value_low"], "value_high": row["value_high"],
+                    **({"value_low_exclusive": row["value_low_exclusive"]} if "value_low_exclusive" in row else {}),
+                    "change_from_prior": "unknown", "source_id": "oge", "source": "U.S. Office of Government Ethics",
+                    "source_url": extraction["source_url"], "verification_status": "official_matched"}
                 if set(fact) != FIELDS["reported_holdings"] | ({"value_low_exclusive"} if "value_low_exclusive" in row else set()):
                     raise OgeCatalogError("OGE annual holding projection fields changed")
                 prepared.append((fact, reasons))
@@ -565,15 +559,15 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
             "formal_field_corrections_applied": [],
             "approved_policy": {"part7": "independent_disclosure_rows/v1",
                 "holdings": "complete_sections_official_unknown_value_gap/v1"}})
-    result = yield CandidatePlan(result, copy=False,
-        arrays={"reported_holdings": prior, "transactions": transactions})
+    result["reported_holdings"] = sorted(prior.values(), key=lambda row: row["id"])
+    result["transactions"] = sorted(transactions.values(), key=lambda row: row["id"])
     if relations:
         result["meta"]["transaction_disclosure_relations"] = sorted(relations.values(), key=lambda row: row["transaction_id"])
     if coverages:
         result["meta"]["holding_report_coverage"] = sorted(coverages.values(), key=lambda row: (row["source_id"], row["person_id"]))
     else:
         result["meta"].pop("holding_report_coverage", None)
-    result = yield CandidatePlan(result, copy=False, arrays={"people": people})
+    result["people"] = sorted(people.values(), key=lambda row: row["id"])
     return result, {"schema_version": "oge-annual-candidate-audit/v1", "reports": reports,
                     "added_holding_count": sum(row["added_holding_count"] for row in reports),
                     "added_transaction_count": sum(row["added_transaction_count"] for row in reports)}
