@@ -36,6 +36,8 @@ concurrency:
 jobs:
   source:
     if: inputs.mode == 'inbox'
+    outputs:
+      imported: ${{ steps.receive.outputs.imported }}
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -108,6 +110,30 @@ jobs:
         run: |
           python -m unison_snapshot senate-inbox finish --review-root "$REVIEW_ROOT" \
             --result "$RUNNER_TEMP/senate-import.json" --outcome "$IMPORT_OUTCOME"
+  publish:
+    needs: [source, annual]
+    if: >-
+      always() &&
+      ((needs.source.result == 'success' && needs.source.outputs.imported != '0') ||
+       needs.annual.result == 'success')
+    permissions:
+      actions: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start the existing publisher on code
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from urllib.request import Request, urlopen
+          request = Request('https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+
+              '/actions/workflows/publish.yml/dispatches', data=json.dumps({'ref':'code'}).encode(),
+              headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],
+                       'Accept':'application/vnd.github+json', 'Content-Type':'application/json'}, method='POST')
+          with urlopen(request) as response:
+              print('Publication dispatched:', response.status)
+          PY
   annual:
     if: github.event_name == 'workflow_dispatch' && inputs.mode == 'annual'
     environment: production
