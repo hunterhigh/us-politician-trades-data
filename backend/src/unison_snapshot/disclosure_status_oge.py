@@ -864,30 +864,6 @@ def _apply_source_interpretation(record, audit, *, review, evidence, catalog_rec
         catalog_record=catalog_record, transactions=transactions)
     if raw is None:
         return
-    if record.get('historical_source_interpretation_binding') is not None:
-        old = record['historical_source_interpretation_binding']
-        current = record['source_interpretation_binding']
-        def rebind(value):
-            if isinstance(value, dict):
-                return current if value == old else {key: rebind(item) for key, item in value.items()}
-            if isinstance(value, list):
-                return [rebind(item) for item in value]
-            return value
-        # Only proof references are translated, after exact original replay;
-        # persisted qualification and all financial objects stay untouched.
-        audit = rebind(audit)
-    classification = _native_classification_state(record, audit, raw, review=review,
-        evidence=evidence, catalog_record=catalog_record, transactions=transactions)
-    if classification is not None:
-        record['_native_classification_deferred_ids'] = classification['source_deferred_ids']
-    try:
-        _apply_selected_owner_interpretation(record, audit, raw, review=review,
-            evidence=evidence, catalog_record=catalog_record, transactions=transactions)
-        if classification is not None:
-            _finish_native_classification(record, audit, classification)
-    finally:
-        record.pop('_native_classification_deferred_ids', None)
-
 
 def _apply_selected_owner_interpretation(record, audit, raw, *, review, evidence,
                                          catalog_record, transactions):

@@ -23,6 +23,7 @@ def configure_prepare_publication(parser):
     prepare.add_argument("--market-commit")
     prepare.add_argument("--market-pages-file", type=Path)
     prepare.add_argument("--disclosure-status-input", type=Path)
+    prepare.add_argument("--publication-changes", type=Path)
     prepare.add_argument("--consumer-validation-file", type=Path,
                          help="Reuse successful rendering of these exact bytes by the pinned processor")
 
@@ -52,6 +53,13 @@ def execute_prepare_publication(args):
         bundle = attach_disclosure_status(
             bundle, status_input["scopes"], transactions=payload["transactions"],
             provenance=status_input["provenance"])
+    if args.publication_changes:
+        changes = args.publication_changes.read_bytes()
+        sha = digest(changes)
+        bundle.files[f"status/{sha}.json"] = changes
+        bundle.manifest['publication_changes'] = {
+            'schema_version': 'publication-changes/v1', 'sha256': sha, 'byte_length': len(changes)}
+        bundle.files['manifest.json'] = encode(bundle.manifest)
     result = materialize(args.root, bundle)
     print(json.dumps({"changed": result.changed, "business_changed": result.business_changed,
                       "snapshot_id": bundle.manifest["snapshot_id"],
@@ -64,15 +72,12 @@ def configure_verify_publication_readiness(parser):
     readiness.add_argument("--input", type=Path, required=True)
     readiness.add_argument("--cutoff-audit", type=Path,
                            help="Audit produced with this exact disclosure candidate")
-    readiness.add_argument("--previous-board", type=Path,
-                           help="Fixed published board for unchanged deferred OGE facts")
     readiness.add_argument("--output", type=Path)
 
 
 def execute_verify_publication_readiness(args):
     result = validate_publication(args.review_root, args.input,
-                                  cutoff_audit_path=args.cutoff_audit,
-                                  previous_board_path=args.previous_board)
+                                  cutoff_audit_path=args.cutoff_audit)
     if args.output:
         _write_atomic(args.output, result)
     print(json.dumps({**result, "status": "ready",

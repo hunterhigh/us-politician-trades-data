@@ -1,8 +1,8 @@
 """Gate each source against its own collection and qualified waterlines."""
 from datetime import datetime,timedelta,timezone
 from .content_integrity import content_boundary
-from .source_freshness import (collection_at, maximum_age, source_blocked,
-                               source_unavailable, timestamp, senate_grace_allowed)
+from .source_freshness import (collection_at, maximum_age,
+                               source_unavailable, timestamp)
 
 SOURCES=('house_clerk','senate_efd','oge')
 MAX_AGE=timedelta(hours=48)
@@ -28,13 +28,6 @@ def evaluate(candidates,statuses,*,now=None,senate_days=None):
         waterlines[source]={'collection_at':collection,'qualified_at':qualified,
                            'max_age_hours':age_limit.total_seconds()/3600,
                            'unavailable':source_unavailable(status)}
-        blocked=source_blocked(status)
-        grace_source=source=='senate_efd' and senate_grace_allowed(status)
-        if blocked and not grace_source:blockers.append({'source':source,'reason':'source_blocked'})
-        ready_health=health[0].get('status') in {'ok','partial'} or (
-            source=='senate_efd' and health[0].get('status')=='stale' and health[0].get('stale') is True)
-        if not ready_health:
-            blockers.append({'source':source,'reason':'qualified_source_not_ready'})
         for phase,value in [('collection',collection),('qualified',qualified)]:
             if value is None:
                 blockers.append({'source':source,'reason':phase+'_waterline_missing'});continue
