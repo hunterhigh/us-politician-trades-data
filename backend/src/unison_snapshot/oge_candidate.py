@@ -161,7 +161,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             validate_generic_table_interpretation(extraction)
         observed = document_id in saved or document_id in exhibits
         amount_recompute = document_id in saved and saved[document_id].get('field_interpretation_mode') is not None
-        retained = [row for row in base.get("transactions", []) if (visible or document_id in exhibits or
+        retained = [row for row in base.get("transactions", []) if (document_id in exhibits or
                     amount_recompute or
                     document_id in native_views and native_views[document_id].get("native_exhibit_preserved_target_ids") or
                     observed and "source_rows" not in extraction) and
