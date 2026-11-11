@@ -20,20 +20,6 @@ ALLOWED_BASES = {
 }
 
 
-def is_allowed_ticker_upgrade(before: dict, after: dict) -> bool:
-    """Return true only for a first, source-preserving annual ticker mapping."""
-    if (not str(before.get("id") or "").startswith(ANNUAL_TRANSACTION_PREFIX) or
-            before.get("ticker") is not None or
-            before.get("ticker_mapping_basis") is not None or
-            not isinstance(after.get("ticker"), str) or
-            not TICKER.fullmatch(after["ticker"]) or
-            after.get("ticker_mapping_basis") not in ALLOWED_BASES):
-        return False
-    keys = before.keys() | after.keys()
-    return all(before.get(key) == after.get(key)
-               for key in keys - {"ticker", "ticker_mapping_basis"})
-
-
 def _previous_mappings(previous: dict | None) -> dict[str, dict]:
     if previous is None:
         return {}

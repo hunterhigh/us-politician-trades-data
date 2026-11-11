@@ -10,9 +10,7 @@ import test_oge_source_quad_cells as source_quad_tests
 from test_oge_saved_observations_cli import normal_fixture
 from unison_snapshot.oge_278t_fields import LEGACY_AMOUNT_INTERPRETATION_MODE
 from unison_snapshot.oge_reports import PARSER_VERSION
-from unison_snapshot.oge_saved_observations import (
-    _request, load_saved_oge_observations, prepare_saved_oge_observations,
-)
+from unison_snapshot.oge_saved_observations import _request, load_saved_oge_observations
 from unison_snapshot.oge_transaction_adapter import (
     _source_content_relations, materialize_oge_278t_observations,
 )
@@ -51,9 +49,8 @@ class SavedSourceQuadContractTests(unittest.TestCase):
                 with patch('unison_snapshot.oge_saved_observations._source',
                            return_value=(metadata,source,2)), patch(
                            'unison_snapshot.pdf_text_objects.render_pdf_text_objects', return_value=render):
-                    package = prepare_saved_oge_observations(evidence_root=self.root,
-                        metadata_path=self.root/'metadata.json', observations=[primary],
-                        secondary_observations=[reading])
+                    package = {document: {'observations': [primary],
+                        'document_page_count': 2, 'secondary_observations': [reading]}}
                     target=self.root/'saved.json'; target.write_text(json.dumps(package))
                     loaded=load_saved_oge_observations(target,evidence_root=self.root,extractions=[extraction])
                 self.assertEqual(set(package[document]),

@@ -6,7 +6,6 @@ only re-renders the bound PDF and checks saved evidence; it never starts OCR.
 from __future__ import annotations
 import hashlib
 import io
-import json
 import re
 
 MODE="source_binary_owner_components/v1"
@@ -128,20 +127,6 @@ def _inputs(pdf_bytes,observation,selections):
                     primary_ocr_engine=page.get("ocr_engine"),native_image_size=list(native.size),
                     native_pixels_sha256=hashlib.sha256(np.asarray(native).tobytes()).hexdigest())
                 yield key,proof,crop
-
-
-def observe_owner_component_readings(pdf_bytes,observation,selections,*,recognize,engine,engine_version):
-    """Explicit bounded producer; caller owns the installed independent engine."""
-    if (not isinstance(selections,list) or not 0<len(selections)<=3 or len(set(selections))!=len(selections)
-            or engine!="rapidocr-onnxruntime" or not isinstance(engine_version,str)):
-        raise ValueError("House independent owner selection/engine invalid")
-    readings=[]
-    for key,proof,crop in _inputs(pdf_bytes,observation,selections):
-        raw,score=recognize(crop)
-        readings.append({**proof,"second_ocr_engine":engine,"second_engine_version":engine_version,
-            "second_ocr_raw":raw,"second_recognition_score":score})
-    return {"schema_version":"house-paper-key-field-reread/v1","source_sha256":observation["source_sha256"],
-        "qualification_status":"unverified_shadow_only","rereads":readings}
 
 
 def verified_owner_readings(pdf_bytes,observation,field_reread):

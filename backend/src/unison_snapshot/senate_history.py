@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 import tempfile
 
-from .senate_candidate import AMENDMENT_COMPARE_RULE_VERSION, compare_amendment_pair
+from .senate_candidate import AMENDMENT_COMPARE_RULE_VERSION, compare_amendment_pair, _canonical_sha256
 from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA, REPORT_EXTRACTION_BATCH_SCHEMA
 
 
@@ -36,12 +36,6 @@ def _date(value: object) -> datetime | None:
     except ValueError:
         return None
     return parsed if parsed.strftime("%Y-%m-%d") == value else None
-
-
-def _canonical_sha256(value: object) -> str:
-    return hashlib.sha256(json.dumps(
-        value, ensure_ascii=False, sort_keys=True,
-        separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
 def _plan_sha256(plan: dict) -> str:

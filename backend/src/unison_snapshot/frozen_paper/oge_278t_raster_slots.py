@@ -335,10 +335,6 @@ def _oge_2024_column_geometry(page) -> dict:
             "edges_pdf_points": edges, "weak_rule_observations": confirmations}
 
 
-def _oge_2024_column_edges(page) -> list[float] | None:
-    return _oge_2024_column_geometry(page)["edges_pdf_points"]
-
-
 def _scanline_intervals(selected, *, first: int, scale_y: float) -> list[dict]:
     """Losslessly group observed scanlines; these intervals grant no support."""
     intervals = []

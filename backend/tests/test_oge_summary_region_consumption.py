@@ -24,12 +24,10 @@ from test_oge_summary_region import summary_pdf
 from unison_snapshot.disclosure_status_oge import build_oge_status
 from unison_snapshot.oge_candidate import build_oge_candidate
 from unison_snapshot.oge_reports import parse_table_rows, selected_parser_version
-from unison_snapshot.oge_278t_page_coverage import inspect_pdf
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
 from unison_snapshot.oge_transaction_adapter import (
     _cover_identity_context, adapt_oge_278t_extraction, materialize_oge_278t_observations,
 )
-from unison_snapshot.source_row_ledger import oge_278t_shadow_pages
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -103,18 +101,8 @@ class SummaryRegionConsumptionTests(unittest.TestCase):
 
     def test_mixed_summary_reaches_shadow_materializer_candidate_status_without_whole_page_exemption(self):
         data=summary_consumption_fixture(self.root);before=deepcopy(data['old']);raw=data['source'].read_bytes()
-        report=inspect_pdf(data['source'],cover_identity_context=data['context'])
-        mixed=report['pages'][1]
-        self.assertEqual(len(mixed['non_transaction_regions']),1)
-        proof=mixed['non_transaction_regions'][0]
-        self.assertEqual((proof['status'],proof['page_number']),('observed',2))
-        self.assertFalse(proof['financial_fact_qualification'])
-        self.assertEqual(proof['page_coverage'],'partial')
-        shadow=oge_278t_shadow_pages(report,source_id='oge',archived_pdf_path=data['source'],
-                                    cover_identity_context=data['context'])
-        self.assertEqual(shadow[1]['non_transaction_regions'],[proof])
-        self.assertNotEqual(shadow[1]['coverage'],'non_table')
         materialized=self.materialize(data);receipt=materialized['observation_receipt']
+        proof=receipt['non_transaction_regions'][0]
         self.assertEqual(receipt['non_transaction_regions'],[proof])
         self.assertFalse(receipt['coverage_complete'])
         adapted=adapt_oge_278t_extraction(materialized,data['record'],

@@ -91,18 +91,6 @@ def _numeric_crop(image,box):
     return ImageOps.expand(image.crop(tuple(box)).convert("RGB"),border=8,fill="white")
 
 
-def saved_segmented_date(image,*,page_sha256,page_number,grid_slot,date_box_px,reads,engine,mode="two_slashes"):
-    """Bind existing numeric reads to the source cell; never runs an OCR model."""
-    cell=image.crop(tuple(date_box_px)).convert("RGB")
-    return {"schema_version":SCHEMA,"page_sha256":page_sha256,"page_number":page_number,
-        "grid_slot":grid_slot,"date_box_px":date_box_px,
-        "date_grayscale_sha256":hashlib.sha256(cell.convert("L").tobytes()).hexdigest(),
-        "geometry":segment_geometry(cell,mode),
-        **({"geometry_mode":mode} if mode!="two_slashes" else {}),"numeric_reads":[{**r,
-            "input_pixels_sha256":hashlib.sha256(_numeric_crop(cell,r["box_px"]).tobytes()).hexdigest()}
-            for r in reads],"engine":engine}
-
-
 def interpret_segmented_date(image,record,*,page_sha256,page_number,grid_slot,date_box_px):
     if (not isinstance(record,dict) or record.get("schema_version")!=SCHEMA or
             any(record.get(k)!=v for k,v in [("page_sha256",page_sha256),("page_number",page_number),

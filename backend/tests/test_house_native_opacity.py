@@ -2,7 +2,6 @@
 from copy import deepcopy
 import hashlib
 import json
-from pathlib import Path
 import unittest
 from unittest.mock import patch
 import pdfplumber
@@ -11,8 +10,7 @@ import test_house_native_contrast as contrast
 from test_house_ptr import IDENTITY
 from unison_snapshot.house import HouseIndexError
 from unison_snapshot.house_ptr import parse_archived_pdf, parse_word_pages, qualify_automatic
-from unison_snapshot.house_native_contrast import (OPACITY_PARSER_VERSION, PARSER_VERSION,
-    plan_house_native_contrast, replay_native_contrast)
+from unison_snapshot.house_native_contrast import OPACITY_PARSER_VERSION, PARSER_VERSION, plan_house_native_contrast
 
 def transform(raw,kind):
     d=pymupdf.open(stream=raw,filetype='pdf');p=d[0]
@@ -107,7 +105,6 @@ class HouseNativeOpacityTests(unittest.TestCase):
                 self.assertFalse(q['coverage_complete'])
                 self.assertEqual(q['qualification']['zero_transaction_document_count'],0)
                 saved=json.loads(json.dumps(current))
-                self.assertEqual(replay_native_contrast(saved,root),saved)
                 self.assertEqual(qualify_automatic(saved,IDENTITY,evidence_root=root),q)
                 self.assertEqual([d['raw_row_id'] for d in q['native_contrast_dispositions']],
                     [r['extraction_id'] for r in raw['transactions']])
@@ -130,7 +127,6 @@ class HouseNativeOpacityTests(unittest.TestCase):
         with pdfplumber.open(io.BytesIO(content)) as pdf:
             old,_=module._build(metadata,pdf,module._inventory(pdf,metadata['sha256']))
         self.assertEqual(old['parser_version'],PARSER_VERSION)
-        self.assertEqual(replay_native_contrast(old,root),old)
         with self.assertRaises(HouseIndexError):qualify_automatic(old,IDENTITY,evidence_root=root)
 
     def test_transparent_stroke_cannot_supply_raw_grid_and_slots_do_not_merge(self):

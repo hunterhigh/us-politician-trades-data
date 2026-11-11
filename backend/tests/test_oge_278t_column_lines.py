@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import tempfile
 import unittest
-from unittest.mock import Mock,patch
+from unittest.mock import patch
 try:
  import numpy as np
  from PIL import Image
@@ -14,8 +14,7 @@ except ImportError:
 from test_oge_content_relations import saved,column_read,EDGES
 from unison_snapshot.oge_278t_raster_slots import (column_edges_at_y,column_crop_bounds,column_geometry_sha256,
  _observe_slot_columns,_oge_2024_image_grid)
-from unison_snapshot.oge_278t_fields import (_word_evidence,_complete_secondary_geometry,observe_field_shapes,
- compare_field_observations,observe_content_rows)
+from unison_snapshot.oge_278t_fields import _word_evidence, _complete_secondary_geometry, observe_field_shapes, observe_content_rows
 
 
 def modeled(slope=.01):
@@ -115,10 +114,6 @@ class ColumnLineContractTests(unittest.TestCase):
   out=observe_content_rows([base],document_page_count=2)
   self.assertEqual(out['source_report_ledger']['logical_row_count'],0)
   self.assertIn('source_words_outside_column_model_domain',out['slot_content'][0]['relation_evidence']['blocking_reasons'])
-
- def test_comparison_rejects_changed_slope_or_coordinate_frame(self):
-  a=modeled();b=modeled(.005);b['ocr_resolution_dpi']=300
-  with self.assertRaises(ValueError):compare_field_observations(a,b)
 
  def test_zero_slope_preserves_field_shapes_and_legacy_has_no_new_model_keys(self):
   old=observe_field_shapes([saved()]);new=observe_field_shapes([modeled(0)])

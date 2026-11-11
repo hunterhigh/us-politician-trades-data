@@ -55,11 +55,6 @@ def profile_for(document_id, source_url, source_sha256, *, mode=None):
     return None
 
 
-def source_profiles(*, mode=None):
-    return [deepcopy(c['source_profile']) for c in profiles()
-        if mode is None or c['output_mode'] == mode]
-
-
 def person_for_id(person_id):
     matches = [c['person'] for c in profiles() if c['person']['id'] == person_id]
     if not matches:

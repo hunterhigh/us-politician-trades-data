@@ -12,10 +12,7 @@ import hashlib
 import re
 from urllib.parse import quote, urlsplit, urlunsplit
 
-from .whitehouse_disclosures import (
-    INDEX_SCHEMA, PAGE_URL, WhiteHouseDisclosureClient, WhiteHouseDisclosureError,
-    _label_kind, _pdf_url,
-)
+from .whitehouse_disclosures import INDEX_SCHEMA, PAGE_URL, WhiteHouseDisclosureError, _label_kind, _pdf_url
 
 
 SCHEMA = "whitehouse-public-iri-link-recovery/v1"
@@ -112,27 +109,3 @@ def recover_official_iri_links(index: dict) -> tuple[dict, dict]:
     return expanded, audit
 
 
-def verify_recovered_pdfs(audit: dict, *,
-                          client: WhiteHouseDisclosureClient | None = None) -> dict:
-    """Optional one-time read-only audit of recovered official PDF URLs."""
-    if not isinstance(audit, dict) or audit.get("schema_version") != SCHEMA:
-        raise WhiteHouseDisclosureError("Unicode recovery audit is invalid")
-    result = dict(audit)
-    rows = []
-    for item in audit["rows"]:
-        record = dict(item)
-        if record["status"] == "pending_pdf_download":
-            try:
-                content, headers = (client or WhiteHouseDisclosureClient()).download_pdf(
-                    record["retrieval_url"])
-                record.update({"status": "official_pdf_verified",
-                               "pdf_sha256": hashlib.sha256(content).hexdigest(),
-                               "pdf_byte_length": len(content),
-                               "content_type": headers.get("content-type")})
-            except WhiteHouseDisclosureError as exc:
-                record.update({"status": "download_failed", "reason": str(exc)})
-        rows.append(record)
-    result["rows"] = rows
-    result["official_pdf_verified_count"] = sum(
-        row["status"] == "official_pdf_verified" for row in rows)
-    return result

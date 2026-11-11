@@ -13,8 +13,7 @@ import pymupdf
 from test_house_ptr import fixture_pages, cross_page_fixture_pages, zero_transaction_pages, META, IDENTITY
 from unison_snapshot.house import HouseIndexError
 from unison_snapshot.house_ptr import parse_archived_pdf, parse_word_pages, qualify_automatic
-from unison_snapshot.house_native_contrast import (PARSER_VERSION, plan_house_native_contrast,
-    replay_native_contrast)
+from unison_snapshot.house_native_contrast import PARSER_VERSION, plan_house_native_contrast
 
 
 class HouseNativeContrastTests(unittest.TestCase):
@@ -111,7 +110,6 @@ class HouseNativeContrastTests(unittest.TestCase):
                     self.assertEqual(next(t for t in q['transactions'] if t['asset_name'] == 'Example Corp.')['id'], source_row['extraction_id'])
                     self.assertTrue(any(p['word_aliases'] for p in report['native_contrast_observation']['pages']))
                 saved = json.loads(json.dumps(report))
-                self.assertEqual(replay_native_contrast(saved, root), saved)
                 self.assertEqual(qualify_automatic(saved, IDENTITY, evidence_root=root), q)
 
     def test_missing_anchor_keeps_raw_slots_and_does_not_merge_good_row(self):
@@ -164,17 +162,6 @@ class HouseNativeContrastTests(unittest.TestCase):
         for forged in variants:
             with self.subTest(forged=variants.index(forged)), self.assertRaises(HouseIndexError):
                 qualify_automatic(forged, IDENTITY, evidence_root=root)
-        pdf = root/report['source']['archive_path']
-        original = pdf.read_bytes()
-        pdf.write_bytes(original+b'changed')
-        with self.assertRaises(HouseIndexError):
-            replay_native_contrast(report, root)
-        pdf.write_bytes(original)
-        path = self.meta(root, report)
-        meta = json.loads(path.read_text(encoding='utf-8')); meta['filer_name'] = 'Different'
-        path.write_text(json.dumps(meta), encoding='utf-8')
-        with self.assertRaises(HouseIndexError):
-            replay_native_contrast(report, root)
 
     def test_budgets_stop_before_ordinary_word_geometry_materialization(self):
         root, _, report = self.source('white')

@@ -8,7 +8,6 @@ import sys
 import tempfile
 import unittest
 
-import pymupdf
 
 from test_oge_cover_consumption import fixture, write, DOCUMENT_ID, CUTOFF
 from test_oge_content_relations import saved
@@ -17,9 +16,7 @@ from unison_snapshot.builder import build
 from unison_snapshot.disclosure_status import attach_disclosure_status
 from unison_snapshot.public_repo import PublicSnapshotRepository
 from unison_snapshot.oge_reports import parse_archived_pdf
-from unison_snapshot.oge_saved_observations import (
-    load_saved_oge_observations, prepare_saved_oge_observations,
-)
+from unison_snapshot.oge_saved_observations import load_saved_oge_observations
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -115,9 +112,6 @@ class SavedOgeNormalCliTests(unittest.TestCase):
 
     def test_portable_preparation_and_explicit_generic_use_existing_materializer(self):
         data = self.data
-        portable = prepare_saved_oge_observations(evidence_root=data['evidence'],
-            metadata_path=data['source'].with_suffix('.json'), **data['request'])
-        self.assertEqual(portable, {DOCUMENT_ID: data['request']})
         bound = load_saved_oge_observations(data['package'], evidence_root=data['evidence'], extractions=[data['old']])
         self.assertEqual(bound[DOCUMENT_ID]['archived_pdf_path'], str(data['source'].resolve()))
         generic = parse_archived_pdf(data['evidence'], data['source'].with_suffix('.json'), generic=True)
@@ -217,27 +211,6 @@ class SavedOgeNormalCliTests(unittest.TestCase):
         self.assertNotEqual(process.returncode, 0)
         self.assertTrue(marker.exists(), process.stderr)
         self.assertEqual(before_pair, [(root/name).read_bytes() for name in ('candidate.json', 'audit.json')])
-
-    def test_actual_page_count_can_exceed_selected_render_page_budget(self):
-        data = self.data
-        document = pymupdf.open(data['source'])
-        for _ in range(10):
-            document.new_page(width=792, height=792)
-        raw = document.tobytes(); document.close()
-        import hashlib
-        sha = hashlib.sha256(raw).hexdigest()
-        source = data['source'].with_name(sha+'.pdf'); source.write_bytes(raw)
-        metadata = {**data['metadata'], 'sha256': sha, 'byte_length': len(raw),
-                    'archive_path': source.relative_to(data['evidence']).as_posix()}
-        write(source.with_suffix('.json'), metadata)
-        observation = deepcopy(data['request']['observations'][0]); observation['source_sha256'] = sha
-        portable = prepare_saved_oge_observations(evidence_root=data['evidence'],
-            metadata_path=source.with_suffix('.json'), observations=[observation])
-        self.assertEqual(portable[DOCUMENT_ID]['document_page_count'], 12)
-        with self.assertRaisesRegex(ValueError, 'page count'):
-            prepare_saved_oge_observations(evidence_root=data['evidence'],
-                metadata_path=source.with_suffix('.json'), observations=[observation], document_page_count=2)
-
 
 if __name__ == '__main__':
     unittest.main()

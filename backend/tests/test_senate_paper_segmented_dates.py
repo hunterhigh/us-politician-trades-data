@@ -8,9 +8,20 @@ try:
 except ImportError:
     Image=ImageDraw=ImageFont=None
 from unison_snapshot.senate import SenateEfdError
-from unison_snapshot.senate_paper_dates import segment_geometry,saved_segmented_date,interpret_segmented_date
+from unison_snapshot.senate_paper_dates import segment_geometry,interpret_segmented_date, _numeric_crop
 from unison_snapshot.senate_paper import parse_paper_grid_observations
 from tests.test_senate_paper_grid import inputs
+
+
+def date_record(image, *, page_sha256, page_number, grid_slot, date_box_px, reads, engine, mode="two_slashes"):
+    cell=image.crop(tuple(date_box_px)).convert("RGB")
+    return {"schema_version":"senate-source-segmented-date/v1", "page_sha256":page_sha256,
+        "page_number":page_number, "grid_slot":grid_slot, "date_box_px":date_box_px,
+        "date_grayscale_sha256":hashlib.sha256(cell.convert("L").tobytes()).hexdigest(),
+        "geometry":segment_geometry(cell,mode),
+        **({"geometry_mode":mode} if mode!="two_slashes" else {}),
+        "numeric_reads":[{**r, "input_pixels_sha256":hashlib.sha256(
+            _numeric_crop(cell,r["box_px"]).tobytes()).hexdigest()} for r in reads], "engine":engine}
 
 
 def fixture(text="7/9/26"):
@@ -19,7 +30,7 @@ def fixture(text="7/9/26"):
     geometry=segment_geometry(image)
     reads=[{"role":role,"box_px":box,"text":raw,"confidence":.99}
         for role,box,raw in zip(["month","day","year"],geometry.get("numeric_component_boxes_px",[]),["7","9","26"])]
-    record=saved_segmented_date(image,page_sha256="a"*64,page_number=2,grid_slot=1,date_box_px=[0,0,260,90],reads=reads,
+    record=date_record(image,page_sha256="a"*64,page_number=2,grid_slot=1,date_box_px=[0,0,260,90],reads=reads,
                                engine={"name":"synthetic_reader_contract"})
     return image,record
 
@@ -121,7 +132,7 @@ class SenateSegmentedDatesTests(unittest.TestCase):
         self.assertEqual(len(joined["slashes"]),2)
         reads=[{"role":role,"box_px":box,"text":text,"confidence":.99} for role,box,text in zip(
             ["month","day","year"],joined["numeric_component_boxes_px"],["7","9","26"])]
-        record=saved_segmented_date(image,page_sha256="a"*64,page_number=2,grid_slot=1,date_box_px=[0,0,260,90],
+        record=date_record(image,page_sha256="a"*64,page_number=2,grid_slot=1,date_box_px=[0,0,260,90],
             reads=reads,engine={"name":"synthetic"},mode="disconnected_strokes")
         self.assertEqual(read(image,record)["complete_date_text"],"7/9/26")
 
@@ -132,7 +143,7 @@ class SenateSegmentedDatesTests(unittest.TestCase):
         self.assertEqual(geometry["status"],"source_prefix_slash")
         reads=[{"role":role,"box_px":box,"text":text,"confidence":.99} for role,box,text in zip(
             ["month","remainder"],geometry["numeric_component_boxes_px"],["7","9/26"])]
-        record=saved_segmented_date(image,page_sha256="a"*64,page_number=2,grid_slot=1,date_box_px=[0,0,260,90],
+        record=date_record(image,page_sha256="a"*64,page_number=2,grid_slot=1,date_box_px=[0,0,260,90],
             reads=reads,engine={"name":"synthetic"},mode="prefix_slash")
         self.assertEqual(read(image,record)["complete_date_text"],"7/9/26")
         for raw in ["926","9-26","9/2G","9/26/27"]:

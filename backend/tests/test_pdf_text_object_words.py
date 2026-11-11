@@ -6,7 +6,7 @@ from contextlib import closing
 
 import pypdfium2 as pdfium
 
-from unison_snapshot.pdf_text_object_words import observe_pdf_text_objects, TextObjectWordPage, validate_saved_native_words
+from unison_snapshot.pdf_text_object_words import observe_pdf_text_objects, validate_saved_native_words
 from unison_snapshot.ocr_geometry import OcrPage, OcrGeometryError
 from copy import deepcopy
 from test_pdf_text_objects import source_pdf
@@ -90,9 +90,3 @@ class SourceTextObjectWordsTests(unittest.TestCase):
             x = observe_pdf_text_objects(path, expected_sha256=sha, page_number=1)
             self.assertEqual(x["words"][0]["text"], "ALPHA 7/11/2025")
             self.assertEqual(x["words"][1]["text"], "LATER OBJECT AT EARLIER Y")
-            page = TextObjectWordPage(x)
-            words = page.extract_words()
-            words[0]["observation_issues"].append("EDIT")
-            self.assertNotIn("EDIT", page.extract_words()[0]["observation_issues"])
-            with self.assertRaisesRegex(ValueError, "logical line"): page.extract_text()
-            with self.assertRaisesRegex(ValueError, "logical line"): page.extract_text_lines()

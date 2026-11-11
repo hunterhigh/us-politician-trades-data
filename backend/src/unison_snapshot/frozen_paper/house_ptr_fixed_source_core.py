@@ -17,13 +17,6 @@ def canonical_sha256(value: object) -> str:
     return hashlib.sha256(canonical_json(value)).hexdigest()
 
 
-def review_slot(item: dict) -> tuple[int, int]:
-    page, band = item.get("page"), item.get("band")
-    if type(page) is not int or type(band) is not int or page < 1 or band < 1:
-        raise ValueError("fixed House paper review has an invalid slot")
-    return page, band
-
-
 def paper_disclosure_id(source_sha256: str, page: int, band: int) -> str:
     """Existing printed-row identity; shared by reviewed and automatic paper paths."""
     fingerprint = f"{source_sha256}:{page}:{band}"

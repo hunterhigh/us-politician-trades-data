@@ -36,11 +36,6 @@ MAX_PROOF_BYTES = 64 * 1024 * 1024
 BLOCKER = 'native_bichrome_row_visibility_unknown'
 
 
-def is_native_contrast(value):
-    """Recognize explicit source-bound families without changing old versions."""
-    return (value.get('parser_version') if isinstance(value, dict) else value) in PARSER_VERSIONS
-
-
 class SourceInventoryUnavailable(HouseIndexError):
     """No new source absence/visibility claim is available."""
 
@@ -494,11 +489,6 @@ def _replay(extraction, evidence_root):
     if fresh != extraction:
         raise HouseIndexError('House native contrast saved projection differs from original source')
     return fresh, runtime
-
-
-def replay_native_contrast(extraction, evidence_root):
-    """Rebuild all words, paint, original rows and effective rows from source."""
-    return _replay(extraction, evidence_root)[0]
 
 
 def bounded_legacy_unknown(archive_root, metadata_path):

@@ -147,22 +147,6 @@ def _request(observations, secondary, page_count, sha, *, field_interpretation_m
     return request
 
 
-def prepare_saved_oge_observations(*, evidence_root, metadata_path, observations,
-                                   secondary_observations=None, document_page_count=None,
-                                   field_interpretation_mode=None) -> dict:
-    """Return the existing document-to-kwargs mapping without machine paths."""
-    _bounded({"observations": observations, "secondary_observations": secondary_observations})
-    metadata, source, count = _source(evidence_root, metadata_path)
-    if document_page_count is not None and (
-            type(document_page_count) is not int or document_page_count != count):
-        raise ValueError("Saved OGE page count differs from archived original")
-    result = {metadata["document_id"]: _request(
-        observations, secondary_observations, count, metadata["sha256"],
-        field_interpretation_mode=field_interpretation_mode, source_pdf_path=source)}
-    _bounded(result)
-    return result
-
-
 def load_saved_oge_observations(path, *, evidence_root, extractions) -> dict:
     """Bind a portable selection to the chosen extraction and archived original."""
     if evidence_root is None:

@@ -1,4 +1,3 @@
-import hashlib
 import importlib.util
 import io
 import json
@@ -8,12 +7,8 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
-from unison_snapshot.whitehouse_disclosures import (
-    WhiteHouseDisclosureError, parse_disclosure_index,
-)
-from unison_snapshot.whitehouse_iri_links import (
-    recover_official_iri_links, verify_recovered_pdfs,
-)
+from unison_snapshot.whitehouse_disclosures import parse_disclosure_index
+from unison_snapshot.whitehouse_iri_links import recover_official_iri_links
 
 
 PATH = "/wp-content/uploads/2025/11/Example-Ada-Periodic-Transaction-Report\u2013-06.13.25.pdf"
@@ -31,15 +26,6 @@ def index(href=SOURCE_HREF):
     return parse_disclosure_index(html)
 
 
-class FakeClient:
-    def __init__(self):
-        self.urls = []
-
-    def download_pdf(self, url):
-        self.urls.append(url)
-        return b"%PDF-1.7\nexample\n%%EOF", {"content-type": "application/pdf"}
-
-
 class UnicodeLinkTests(unittest.TestCase):
     def test_exact_iri_encoding_recovers_official_link_without_guessing(self):
         original = index()
@@ -55,12 +41,6 @@ class UnicodeLinkTests(unittest.TestCase):
         self.assertEqual(report["classification_status"], "official_iri_encoded_pdf_pending")
         self.assertEqual(audit["source_page_sha256"], original["page_sha256"])
         self.assertEqual(audit["rows"][0]["status"], "pending_pdf_download")
-        client = FakeClient()
-        verified = verify_recovered_pdfs(audit, client=client)
-        self.assertEqual(client.urls, [ENCODED_URL])
-        self.assertEqual(verified["official_pdf_verified_count"], 1)
-        self.assertEqual(verified["rows"][0]["pdf_sha256"], hashlib.sha256(
-            b"%PDF-1.7\nexample\n%%EOF").hexdigest())
 
     def test_replacement_character_and_nonofficial_hosts_remain_quarantined(self):
         for href in (SOURCE_HREF.replace("\u2013", "\ufffd"),
@@ -70,10 +50,6 @@ class UnicodeLinkTests(unittest.TestCase):
                 expanded, audit = recover_official_iri_links(index(href))
                 self.assertEqual(expanded["quarantine_count"], 1)
                 self.assertEqual(audit["recovered_url_count"], 0)
-
-    def test_invalid_audit_fails_closed(self):
-        with self.assertRaises(WhiteHouseDisclosureError):
-            verify_recovered_pdfs({"schema_version": "wrong"})
 
     def test_sync_cli_uses_one_expanded_index_for_batch_and_review(self):
         backend = Path(__file__).resolve().parents[1]

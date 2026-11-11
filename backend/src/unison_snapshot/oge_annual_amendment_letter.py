@@ -61,16 +61,6 @@ def _signature_regions(path, expected_sha, words):
                                 max(c["x1"] for c in chars),max(c["bottom"] for c in chars)])
         return regions
 
-def observe_amendment_letter(pdf_path, tsv_path, *, archive_metadata):
-    """Package existing single-page typed OCR; no recognition is run here."""
-    image, _, width, height = _source_image(pdf_path, archive_metadata["sha256"])
-    raw = Path(tsv_path).read_bytes()
-    return {"schema_version": SCHEMA, "source_document_id": archive_metadata["document_id"],
-            "source_sha256": archive_metadata["sha256"], "page_number": 1, "dpi": 200,
-            "image_size": list(image.size), "page_size": [width, height],
-            "image_pixels_sha256": _sha(image.tobytes()), "raw_tsv": raw.decode("utf-8"),
-            "raw_tsv_sha256": _sha(raw), "method": "saved_tesseract_eng_psm3_tsv"}
-
 def _words(observation):
     words = []
     lines = observation["raw_tsv"].splitlines()

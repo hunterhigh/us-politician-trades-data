@@ -3,9 +3,7 @@
 Generated source pixels and construction-controlled saved words/TSV exercise
 source replay and qualification, not OCR accuracy. No recognizer is invoked.
 """
-from copy import deepcopy
 import hashlib
-import json
 import math
 import os
 from pathlib import Path
@@ -14,7 +12,6 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
 
 import numpy as np
 
@@ -25,7 +22,6 @@ from unison_snapshot.oge_278t_raster_slots import DUAL_MODE, observe_raster_slot
 from unison_snapshot.oge_278t_source_quad_cells import (
     observe_saved_source_quad_cells, source_quad_cell,
 )
-from unison_snapshot.oge_saved_observations import prepare_saved_oge_observations
 from unison_snapshot.oge_transaction_adapter import materialize_oge_278t_observations
 from unison_snapshot.pdf_text_objects import render_pdf_text_objects
 
@@ -130,32 +126,6 @@ class SavedPrintedNumberIngestionTests(unittest.TestCase):
                 self.assertFalse(value['observation_receipt']['coverage_complete'])
                 self.assertTrue(any('printed_number_reading_unresolved' in row.get('reasons', [])
                                     for row in value['observation_receipt']['rows']))
-
-    def test_date_content_crop_wrong_source_and_annotations_remain_rejected_before_replay(self):
-        variants = []
-        date = deepcopy(self.number)
-        date['schema_version'] = 'oge-278t-date-column-observation/v1'
-        date['source_quad_input']['field'] = 'transaction_date'
-        variants.append(date)
-        content = deepcopy(self.number)
-        content['source_quad_input']['content_crop_mode'] = 'source_quad_isolated_number_ink/v1'
-        variants.append(content)
-        wrong = deepcopy(self.number)
-        wrong['source_sha256'] = '0' * 64
-        variants.append(wrong)
-        annotated = deepcopy(self.number)
-        annotated['source_quad_input']['saved_pages'][0]['render_receipt'][
-            'annotation_count_excluded_from_all_renders'] = 1
-        variants.append(annotated)
-        with patch('unison_snapshot.oge_278t_source_quad_cells.validate_source_quad_reading',
-                   side_effect=AssertionError('unsupported input must fail before source replay')):
-            for reading in variants:
-                with self.subTest(inputs=reading['source_quad_input']):
-                    with self.assertRaises(ValueError):
-                        prepare_saved_oge_observations(evidence_root=self.data['evidence'],
-                            metadata_path=self.data['metadata_path'], observations=[self.unknown],
-                            secondary_observations=[reading])
-
 
 if __name__ == '__main__':
     unittest.main()

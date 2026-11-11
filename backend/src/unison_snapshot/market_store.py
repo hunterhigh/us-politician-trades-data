@@ -7,7 +7,6 @@ from pathlib import Path
 import json
 import math
 import re
-import tempfile
 from urllib.parse import urlsplit
 
 from .codec import bucket, digest, encode
@@ -366,16 +365,9 @@ def load_published_market_cache(main_root: Path, market_root: Path,
     return PublishedMarketCache(rows, start, as_of, mappings, full_refresh)
 
 
-def _atomic(path: Path, content: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.",
-                                     suffix=".tmp", delete=False) as handle:
-        handle.write(content)
-        temporary = Path(handle.name)
-    temporary.replace(path)
-
-
 def materialize_market(root: Path, bundle: MarketBundle) -> MarketMaterializeResult:
+    from .materialize import _atomic
+
     root = root.resolve()
     root.mkdir(parents=True, exist_ok=True)
     if any(not (MUTABLE.fullmatch(path) or IMMUTABLE.fullmatch(path)
