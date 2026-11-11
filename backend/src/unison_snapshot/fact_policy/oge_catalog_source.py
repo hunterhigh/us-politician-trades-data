@@ -12,10 +12,15 @@ import re
 import subprocess
 
 from .source_objects import InventoryError
-from ..oge import (API_URL, MAX_CATALOG_ROWS, MAX_RESPONSE_BYTES, OgeCatalogError,
+from ..oge import (MAX_CATALOG_ROWS, MAX_RESPONSE_BYTES, OgeCatalogError,
                    SCHEMA as CATALOG_SCHEMA, parse_catalog_page, build_catalog)
 from ..oge_reports import (MAX_PDF_BYTES, REPORT_ARCHIVE_SCHEMA, _validate_pdf,
                            collapse_direct_catalog_records)
+
+CATALOG_API_URLS = frozenset({
+    'https://extapps2.oge.gov/201/Presiden.nsf/API.xsp/v2/rest',
+    'https://extapps2.oge.gov/201/Presiden.nsf/API.xsp/v3/rest',
+})
 
 MAX_JSON_BYTES = 16 * 1024 * 1024
 MAX_SOURCE_PATHS = 128
@@ -92,7 +97,7 @@ def load_fixed_oge_catalog(sources, evidence_commit, review_commit):
 def _load_catalog_archive(sources, evidence_commit, digest):
     archive = _object(sources, evidence_commit, f'oge/catalog/{digest}.json')
     _need(archive.get('schema_version') == 'oge-catalog-archive/v1'
-          and archive.get('source_id') == 'oge' and archive.get('source_url') == API_URL
+          and archive.get('source_id') == 'oge' and archive.get('source_url') in CATALOG_API_URLS
           and archive.get('sha256') == digest
           and archive.get('archive_path') == f'oge/catalog/{digest}.json'
           and archive.get('normalized_archive_path') == f'oge/catalog/normalized/{digest}.json',

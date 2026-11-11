@@ -1,10 +1,10 @@
 # v1 状态
 
-2026-11-10：v1已替代35项，由PR293启用；旧文档在archive/pre-v1-docs。
+2026-11-11：v1已替代35项，由PR293启用；旧文档在archive/pre-v1-docs。
 
 ## 有效决定
 
-House/OGE水位48小时；Senate宽限30天（`SENATE_MAX_STALE_DAYS`），20天提醒，超过停发。各来源独立真实截止，保留Senate旧事实并展示缺口；来源告警保持，正式恢复后关闭发布窗口告警。Senate仅每日正常采集、自动补缺，不诊断访问。允许告警Issue、内容失败回退；网络仅重试。回填限2025 House PTR及归档年报持仓；五来源共用版本重跑，不以旧版替代当前解析。见[契约](data-contract.md)。
+House/OGE水位48小时；Senate宽限30天（`SENATE_MAX_STALE_DAYS`），20天提醒，超过停发。各来源独立真实截止，保留Senate旧事实并展示缺口；来源告警保持，正式恢复后关闭发布窗口告警。Senate仅每日正常采集、自动补缺，不诊断访问。允许告警Issue、内容失败回退；网络仅重试。回填限2025 House PTR及归档年报持仓；五来源共用版本重跑，不以旧版替代当前解析。新记录无唯一代码时ticker为空并显示未匹配；历史ticker绑定独立于当前行情资格。见[契约](data-contract.md)。
 
 v1.1日期、稳定一周及定时检查已取消；本轮连续完成。两种方法未推进同一验收项即记待决、继续独立步骤；仅产品范围、付费或删除生产数据须询问。用户接受src 69,492、tests 59,137行，瘦身结束。
 
@@ -22,12 +22,11 @@ v1.1日期、稳定一周及定时检查已取消；本轮连续完成。两种�
 
 ## 当前结果
 
-main为0013cec5：584人、27228交易、19499持仓，与4010b3f3逐对象一致。PR335–337完整CI通过；开口金额统一C：合格交易排除4→10、持仓79不变；37条纸表观察仍因其他原因隔离并列known_gaps，47条观察公开读取/v2渲染通过，前端/Skill未改。[发布](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42770458934)成功；[回退演练](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42777684194)通过，生产未动。
+OGE正式恢复：[发布](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42803803623)将main从0013cec5推进至9271e760，原件差异证明、远端回读及两个前端检查全部通过；后续自动发布已推进至888b6f69。正式快照仍为584人、27228交易、19499持仓。
 
-OGE正式5693笔未变。PR331/332共用重跑已合入；339份当前解析已保存（319新版、20当前校验），解析失败/原件待解析均0，资格整合见待决。3115行YAML接受，不再压缩；[健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)。三份长表按ID+哈希重试，纸表同错不重跑。
+339份OGE已整合当前解析，待解析315→0、旧版保留4696→0；已核对正式main及其固定review：OGE官网交易5693→5693，含白宫14155→14155，无交易增删。537笔Endnote误判Bond按原件更正为Unspecified；453笔缺证明的字段修订隔离，历史完整对象不变，不计作新版重新合格。PR339/340/341/343完整CI通过；[整合](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42782953671)。开口金额仍排除10笔交易、79笔持仓；回退演练已通过，见契约与operations。
 
 ## 待决事项
 
-OGE整合：全量重跑、名称兼容两次后，ARI无唯一活跃SIP匹配（oge-278t:15141742f9a9d3d335e4cb1e）；review待解析315份、旧正式4696笔未迁移。判断历史ticker绑定耦合当前行情资格，建议分离后整合，不猜继任、不改旧事实。按规则停止；已撤提前检查、恢复正常采集。[失败](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42602307345)。
 
 Manning 20026638身份：已试官方名册、Clerk个人页，缺可重放历史身份原件；8行继续隔离，建议取得118届官方名册后再绑定，不推断；20029046另有未解修订关系。

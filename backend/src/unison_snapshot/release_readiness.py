@@ -34,8 +34,103 @@ def _zero(value: dict, keys: tuple[str, ...], label: str) -> None:
         raise ReleaseReadinessError(f"{label} still has inconsistent source state: {nonzero}")
 
 
+def _oge_publication_accounting(review, status, source, previous_board):
+    """Distinguish current requalification from unchanged historical facts."""
+    published = (_count(status, 'publication_transaction_count', 'OGE status')
+                 if 'publication_transaction_count' in status else
+                 _count(status, 'qualified_transaction_count', 'OGE status'))
+    qualified = status.get('qualified_transaction_count')
+    if qualified is not None:
+        if _count(status, 'qualified_transaction_count', 'OGE status') != published:
+            raise ReleaseReadinessError('OGE qualification and publication totals disagree')
+        return published, {'publication_transaction_count': published,
+                           'current_qualified_transaction_count': qualified,
+                           'historical_unchanged_transaction_count': 0}
+    _zero(status, ('pending_extraction_count', 'retained_prior_qualified_transaction_count'), 'OGE status')
+    audit = _read(review / 'oge/qualifications/current.json', 'OGE qualification audit')
+    direct = _count(status, 'oge_direct_publication_transaction_count', 'OGE status')
+    current = _count(status, 'oge_direct_qualified_transaction_count', 'OGE status')
+    overlays = sum(_count(status, key, 'OGE status') for key in (
+        'whitehouse_public_qualified_transaction_count',
+        'whitehouse_public_qualified_annual_transaction_count'))
+    if (audit.get('schema_version') != 'oge-candidate-audit/v1' or current > direct or
+            audit.get('promoted_transaction_count') != direct or
+            audit.get('current_qualified_transaction_count') != current or
+            audit.get('extraction_count') != status.get('extraction_count') or
+            direct + overlays != published):
+        raise ReleaseReadinessError('OGE current and publication subtotals are inconsistent')
+    reports = audit.get('reports')
+    if not isinstance(reports, list) or len(reports) != status['extraction_count']:
+        raise ReleaseReadinessError('OGE qualification report inventory is missing')
+    actual = {row["id"]: row for row in source["transactions"]}
+    deferred = {}; documents = set(); promoted = requalified = 0
+    for report in reports:
+        document = report.get('document_id')
+        if not isinstance(document, str) or document in documents:
+            raise ReleaseReadinessError('OGE qualification report inventory is duplicated')
+        documents.add(document)
+        promoted += _count(report, 'promoted_count', 'OGE qualification report')
+        def ids(value, key):
+            rows = value.get(key, [])
+            if (not isinstance(rows, list) or any(not isinstance(row, str) or not row for row in rows)
+                    or len(rows) != len(set(rows))):
+                raise ReleaseReadinessError('OGE qualification row IDs are invalid')
+            return set(rows)
+        classification = report.get('native_classification', {})
+        owner = report.get('owner_scope_decisions', {})
+        default = report.get('default_owner_conservation', {})
+        isolated = ids(classification, 'deferred_ids') | ids(owner, 'deferred_ids') | ids(default, 'deferred_ids')
+        if 'native_classification' in report:
+            eligible = ids(classification, 'qualified_ids')
+            if eligible & isolated:
+                raise ReleaseReadinessError('OGE current and deferred row IDs overlap')
+            for identifier in eligible:
+                if identifier not in actual or actual[identifier].get('filing_id') != document:
+                    raise ReleaseReadinessError('OGE current row ID is not in its published report')
+            requalified += len(eligible)
+        elif 'owner_scope_current_qualified_ids' in report:
+            requalified += len(ids(report, 'owner_scope_current_qualified_ids'))
+        elif 'default_owner_conservation' in report:
+            requalified += (report['promoted_count'] - len(ids(default, 'retained_ids'))
+                            + len(ids(default, 'current_ids')))
+        else:
+            requalified += report['promoted_count']
+        for identifier in isolated:
+            if identifier in deferred and deferred[identifier] != document:
+                raise ReleaseReadinessError('OGE deferred row belongs to multiple reports')
+            deferred[identifier] = document
+    if promoted != direct or requalified != current or len(deferred) != direct - current:
+        raise ReleaseReadinessError('OGE deferred row IDs do not conserve publication counts')
+    if previous_board is None:
+        if not (review / '.git').exists():
+            raise ReleaseReadinessError('OGE deferred facts require the previous published board')
+        from .published_source import published_main
+        import subprocess
+        try:
+            previous = published_main(review)['board'].get('transactions')
+        except (ValueError, OSError, subprocess.SubprocessError) as error:
+            raise ReleaseReadinessError('Cannot read the previous published board: ' + str(error)) from error
+    else:
+        previous = _read(previous_board, 'previous published board').get('transactions')
+    if not isinstance(previous, list):
+        raise ReleaseReadinessError('Previous published board transactions are invalid')
+    old = {row['id']: row for row in previous}
+    actual = {row['id']: row for row in source['transactions']}
+    if len(old) != len(previous) or len(actual) != len(source['transactions']):
+        raise ReleaseReadinessError('OGE historical fact inventory repeats an ID')
+    for identifier, document in deferred.items():
+        row = actual.get(identifier)
+        if (row is None or row.get('filing_id') != document or row.get('source_id') != 'oge'
+                or row.get('verification_status') != 'official_matched' or old.get(identifier) != row):
+            raise ReleaseReadinessError('OGE deferred fact differs from its previous complete published object')
+    return published, {'publication_transaction_count': published,
+                       'current_qualified_transaction_count': current + overlays,
+                       'historical_unchanged_transaction_count': len(deferred)}
+
+
 def validate_publication(review_root: Path, candidate_path: Path, *,
-                         cutoff_audit_path: Path | None = None) -> dict:
+                         cutoff_audit_path: Path | None = None,
+                         previous_board_path: Path | None = None) -> dict:
     """Validate source accounting without requiring quarantines and declared queues to vanish."""
     review_root = review_root.resolve()
     candidate_path = candidate_path.resolve()
@@ -121,6 +216,7 @@ def validate_publication(review_root: Path, candidate_path: Path, *,
             cutoff.get('reference_cutoff_at') != candidate['meta'].get('data_cutoff_at')):
         raise ReleaseReadinessError('Per-source cutoff policy does not match its audit')
     retained_transactions = retained_holdings = 0
+    oge_accounting = None
     for source_id, source_audit in cutoff["sources"].items():
         source_path = review_root / "candidates" / "sources" / f"{source_id}-current.json"
         source_candidate = _read(source_path, f"{source_id} source candidate")
@@ -129,10 +225,11 @@ def validate_publication(review_root: Path, candidate_path: Path, *,
             source_holdings = source_candidate.get("reported_holdings")
             if not isinstance(source_transactions, list) or not isinstance(source_holdings, list):
                 raise ReleaseReadinessError("OGE source candidate row arrays are invalid")
-            if len(source_transactions) != _count(
-                    oge, "qualified_transaction_count", "OGE status"):
+            publication_count, oge_accounting = _oge_publication_accounting(
+                review_root, oge, source_candidate, previous_board_path)
+            if len(source_transactions) != publication_count:
                 raise ReleaseReadinessError(
-                    "OGE qualified transaction count does not match its source candidate")
+                    "OGE publication transaction count does not match its source candidate")
             if len(source_holdings) != _count(
                     oge, "qualified_holding_count", "OGE status"):
                 raise ReleaseReadinessError(
@@ -163,6 +260,7 @@ def validate_publication(review_root: Path, candidate_path: Path, *,
 
     return {
         "readiness_policy": "v1-accounted-dispositions",
+        "oge_publication_accounting": oge_accounting,
         "pending": {
             "house_ptr": _count(house, "pending_parse_count", "House PTR status"),
             "house_annual_archive": _count(holdings, "remaining_archive_count", "House holdings status"),

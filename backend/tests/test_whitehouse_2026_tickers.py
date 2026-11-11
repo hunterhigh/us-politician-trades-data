@@ -137,9 +137,13 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
              self.asset("ACN", "Accenture plc", asset_id="second-security")],
         ):
             with self.subTest(assets=assets):
-                with self.assertRaisesRegex(ValueError, "no longer active SIP.*ticker=ACN"):
-                    enrich_reviewed_tickers(restored, assets,
-                        checked_at="2026-11-09T00:00:00Z", previous=audit)
+                repeated, repeated_audit = enrich_reviewed_tickers(restored, assets,
+                    checked_at="2026-11-09T00:00:00Z", previous=audit)
+                self.assertEqual(repeated, result)
+                self.assertEqual(repeated_audit["mappings"], audit["mappings"])
+                for conflict in repeated_audit['retained_ticker_conflicts']:
+                    self.assertEqual(conflict['reason'],
+                        'current_market_mapping_differs_from_historical_binding')
 
     def test_current_name_ticker_proposal_is_quarantined_without_rewriting_history(self):
         record_id = 'oge-278t:' + 'a' * 24
@@ -187,20 +191,39 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         restored = restore_pre_enrichment(result, audit)
         changed_basis = deepcopy(audit)
         changed_basis['mappings'][0]['mapping_basis'] = 'alpaca_unique_classless_asset_name'
-        with self.assertRaisesRegex(ValueError, 'identity conflicts'):
-            enrich_reviewed_tickers(restored,
-                [self.asset('NEW', 'Example Technologies Inc')],
-                checked_at='2026-10-27T00:00:00Z', previous=changed_basis)
-        with self.assertRaisesRegex(ValueError, 'now ambiguous'):
-            enrich_reviewed_tickers(restored,
-                [self.asset('NEW', 'Example Technologies Inc'),
-                 self.asset('OTHER', 'Example Technologies Inc')],
-                checked_at='2026-10-27T00:00:00Z', previous=audit)
+        for previous, assets in (
+            (changed_basis, [self.asset('NEW', 'Example Technologies Inc')]),
+            (audit, [self.asset('NEW', 'Example Technologies Inc'),
+                     self.asset('OTHER', 'Example Technologies Inc')]),
+            (audit, [self.asset('OTHER', 'Unrelated Corp')]),
+        ):
+            repeated, repeated_audit = enrich_reviewed_tickers(restored, assets,
+                checked_at='2026-11-10T00:00:00Z', previous=previous)
+            self.assertEqual(repeated['transactions'][0]['ticker'], 'OLD')
+            self.assertEqual(repeated_audit['mappings'], previous['mappings'])
         restored['transactions'][0]['asset_name'] = 'UNRELATED INC'
         with self.assertRaisesRegex(ValueError, 'lost its source row'):
             enrich_reviewed_tickers(restored,
                 [self.asset('NEW', 'Unrelated Inc')],
                 checked_at='2026-10-27T00:00:00Z', previous=audit)
+
+    def test_ari_history_survives_missing_listing_while_new_unknown_row_stays_unmatched(self):
+        record_id = "oge-278t:15141742f9a9d3d335e4cb1e"
+        rule = SEPTEMBER_SOURCE_ALIASES[record_id]
+        candidate = {"meta": {"is_demo": False},
+                     "transactions": [self.target(record_id, rule[0], rule[4])],
+                     "reported_holdings": []}
+        original, previous = enrich_reviewed_tickers(candidate,
+            [self.asset("ARI", SECURITY_DIRECTORY["ARI"][0])], checked_at="2026-09-28T00:00:00Z")
+        rebuilt = restore_pre_enrichment(original, previous)
+        unknown = self.target("oge-278t:" + "f" * 24, "UNKNOWN PRIVATE ASSET")
+        rebuilt["transactions"].append(unknown)
+        result, audit = enrich_reviewed_tickers(rebuilt,
+            [self.asset("OTHER", "Unrelated Corp")], checked_at="2026-11-10T00:00:00Z", previous=previous)
+        self.assertEqual(result["transactions"], original["transactions"] + [unknown])
+        self.assertEqual(audit["unmatched_records"], [{"record_id": unknown["id"],
+            "status": "unmatched", "reason": "no_unique_market_ticker"}])
+        self.assertEqual(audit["retained_mapping_count"], 1)
 
     def test_fixed_september_kroger_false_explicit_ticker_is_corrected_only_on_its_row(self):
         kroger_id = "oge-278t:6edb6800bfd420ed027f7f1c"
@@ -290,6 +313,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         result, audit = enrich_reviewed_tickers(
             candidate, assets, checked_at="2026-09-28T00:00:00Z")
         self.assertTrue(all(row["ticker"] is None for row in result["transactions"]))
+        self.assertEqual(len(audit["unmatched_records"]), audit["unmatched_record_count"])
         self.assertEqual(audit["new_mapping_count"], 0)
         self.assertEqual(
             audit["unmatched_record_count"] + audit["ambiguous_record_count"],

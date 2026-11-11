@@ -64,12 +64,15 @@ def configure_verify_publication_readiness(parser):
     readiness.add_argument("--input", type=Path, required=True)
     readiness.add_argument("--cutoff-audit", type=Path,
                            help="Audit produced with this exact disclosure candidate")
+    readiness.add_argument("--previous-board", type=Path,
+                           help="Fixed published board for unchanged deferred OGE facts")
     readiness.add_argument("--output", type=Path)
 
 
 def execute_verify_publication_readiness(args):
     result = validate_publication(args.review_root, args.input,
-                                  cutoff_audit_path=args.cutoff_audit)
+                                  cutoff_audit_path=args.cutoff_audit,
+                                  previous_board_path=args.previous_board)
     if args.output:
         _write_atomic(args.output, result)
     print(json.dumps({**result, "status": "ready",

@@ -365,13 +365,13 @@ def enrich_reviewed_tickers(candidate: dict, assets: object, *,
     recovered.extend(_apply_prior_exact_names(proposed, assets, ambiguous_ids))
     proposed_by_id = {row["record_id"]: row for row in recovered}
     prior_by_id = _previous(previous)
-    active_registry = _asset_registry(assets)
     references = {row["id"]: row for row in proposed["transactions"]
                   if isinstance(row.get("id"), str)}
-    source_rule_ids = {row["record_id"] for row in recovered
-                       if row["mapping_basis"] == SOURCE_DIRECTORY_BASIS}
-    if (prior_by_id.keys() & ambiguous_ids) - source_rule_ids:
-        raise ValueError("A sticky reviewed security ticker mapping is now ambiguous")
+    references = {record_id: dict(row) for record_id, row in references.items()}
+    for record_id, mapping in prior_by_id.items():
+        reference = references.get(record_id)
+        if reference is not None and reference.get("asset_name") == mapping["asset_name"]:
+            reference.update(ticker=mapping["ticker"], ticker_mapping_basis=mapping["mapping_basis"])
     rows_by_id = {row["id"]: row for row in proposed["transactions"] if _source_row(row)}
     mappings = []
     retained_ticker_conflicts = []
@@ -380,10 +380,7 @@ def enrich_reviewed_tickers(candidate: dict, assets: object, *,
         if row is None or row["asset_name"] != old["asset_name"]:
             raise ValueError("A sticky reviewed security ticker mapping lost its source row")
         if old["mapping_basis"] == PRIOR_EXACT_NAME_BASIS:
-            asset = active_registry.get(old["ticker"])
-            if (asset is None or asset["status"] != "active" or
-                    asset["exchange"] not in SIP_EXCHANGES or
-                    any((reference := references.get(prior_id)) is None or
+            if (any((reference := references.get(prior_id)) is None or
                         reference.get("person_id") != _rules()['person_id'] or
                         reference.get("source_id") != "oge" or
                         reference.get("verification_status") != "official_matched" or
@@ -395,17 +392,10 @@ def enrich_reviewed_tickers(candidate: dict, assets: object, *,
                         } for prior_id in old["prior_record_ids"])):
                 raise ValueError("A sticky reviewed exact-name source is no longer valid")
         if old["mapping_basis"] == SOURCE_DIRECTORY_BASIS:
-            asset = _unique_active_sip_asset(assets, old["ticker"])
-            if (asset is None or active_registry.get(old["ticker"]) != asset or
-                    row.get("transaction_date") != old["source_transaction_date"] or
-                    old["provider_asset_id"] != asset["id"] or
-                    old["provider_exchange"] != asset["exchange"]):
-                identity = ({key: asset[key] for key in ('id', 'name', 'exchange')}
-                            if asset is not None else None)
-                raise ValueError("A sticky source-directory security is no longer active SIP: "
-                    f"record_id={record_id}, ticker={old['ticker']}, "
-                    f"expected_id={old['provider_asset_id']}, "
-                    f"expected_exchange={old['provider_exchange']}, current={identity}")
+            # The directory and provider audit prove the historical binding.
+            # Today's listing status cannot invalidate that disclosure identity.
+            if row.get("transaction_date") != old["source_transaction_date"]:
+                raise ValueError("A sticky source-directory row changed its transaction date")
         current_mapping = proposed_by_id.get(record_id)
         if current_mapping is not None:
             changed_keys = [key for key in (
@@ -421,23 +411,18 @@ def enrich_reviewed_tickers(candidate: dict, assets: object, *,
                     "security_directory_url", "security_directory_checked_on")
                             if current_mapping.get(key) != old.get(key)]
             if changed_keys:
-                if (changed_keys == ['ticker'] and old['mapping_basis'] in {
-                        'alpaca_unique_asset_name', 'alpaca_unique_classless_asset_name'}):
-                    # A current name match cannot rewrite a historical mapping.
-                    # Quarantine the new proposal; do not infer a rename, split,
-                    # price-history alias or successor security from its name.
-                    retained_ticker_conflicts.append({
-                        'record_id': record_id, 'asset_name': old['asset_name'],
-                        'retained_ticker': old['ticker'],
-                        'proposed_ticker': current_mapping['ticker'],
-                        'reason': 'provider_name_match_changed_ticker',
-                        'disposition': 'proposal_quarantined_prior_mapping_retained',
-                    })
-                else:
-                    raise ValueError(
-                        "Alpaca identity conflicts with a sticky reviewed security mapping: "
-                        f"record_id={record_id}, fields={','.join(changed_keys)}"
-                    )
+                # A current name match cannot rewrite a historical mapping.
+                # Quarantine the new proposal; do not infer a rename, split,
+                # price-history alias or successor security from its name.
+                retained_ticker_conflicts.append({
+                    'record_id': record_id, 'asset_name': old['asset_name'],
+                    'retained_ticker': old['ticker'],
+                    'proposed_ticker': current_mapping['ticker'],
+                    'reason': ('provider_name_match_changed_ticker'
+                               if old['ticker'] != current_mapping['ticker'] else
+                               'current_market_mapping_differs_from_historical_binding'),
+                    'disposition': 'proposal_quarantined_prior_mapping_retained',
+                })
         row["ticker"] = old["ticker"]
         row["ticker_mapping_basis"] = old["mapping_basis"]
         mappings.append(dict(old))
@@ -493,6 +478,9 @@ def enrich_reviewed_tickers(candidate: dict, assets: object, *,
         "ambiguous_record_count": len(ambiguous),
         "ambiguous_records": ambiguous,
         "unmatched_record_count": len(unmatched),
+        "unmatched_records": [{"record_id": row["id"], "status": "unmatched",
+                               "reason": "no_unique_market_ticker"}
+                              for row in unmatched],
         "explicit_ticker_count": len(explicit),
         "mappings": mappings,
     }

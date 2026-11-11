@@ -21,7 +21,8 @@ from unison_snapshot.fact_policy.oge_classification_correction import verified_o
 
 
 @lru_cache(maxsize=16)
-def classification_fixture(*, generic=False, owner=None, prior_owner=None, unknown=False):
+def classification_fixture(*, generic=False, owner=None, prior_owner=None, unknown=False,
+                           asset="Example Common Stock See Endnote (EXM)"):
     """Return a complete Hpre board and the actual selected normal candidate.
 
     Endnote is source text in a generated PDF, not a saved rule marker. An
@@ -33,7 +34,7 @@ def classification_fixture(*, generic=False, owner=None, prior_owner=None, unkno
         pdf = pymupdf.open(stream=raw,filetype='pdf')
         pdf[1].insert_text((30,80),'Additional information')
         result = pdf.tobytes(); pdf.close(); return result
-    old,_,review,evidence,base = fixture(asset='Example Common Stock See Endnote (EXM)',
+    old,_,review,evidence,base = fixture(asset=asset,
         heading=heading, pdf_mutator=mutate if unknown else None)
     catalog = json.loads(next(raw for path,raw in evidence.items() if '/catalog/normalized/' in path))
     legacy = json.loads(next(raw for path,raw in review.items() if path.endswith('v8.json')))
@@ -74,7 +75,8 @@ class OgeClassificationCorrectionTests(unittest.TestCase):
                 git(*args)
             commit = git('rev-parse','HEAD')
             return verified_oge_classification_corrections(
-                old={old['id']:old},current={current['id']:current},
+                old={row['id']:row for row in (old if isinstance(old,list) else [old])},
+                current={row['id']:row for row in (current if isinstance(current,list) else [current])},
                 repo=repo,evidence_commit=commit,review_commit=commit,main_commit=commit,
                 previous_people=board['people'] if supplied_people is None else supplied_people)
 
@@ -90,6 +92,52 @@ class OgeClassificationCorrectionTests(unittest.TestCase):
                 self.assertEqual(events[0]['changed_fields'],fields)
                 self.assertEqual(events[0]['old_id'],events[0]['new_id'])
                 self.assertEqual(self.verify(data),events)
+
+    def test_current_endnote_unknown_type_replays_complete_objects_without_asserting_stock(self):
+        for unknown in (False, True):
+            data = classification_fixture(asset='Retirement Account See Endnote', unknown=unknown)
+            self.assertEqual(data[0]['instrument_type'], 'Bond')
+            self.assertEqual(data[1]['instrument_type'], 'Unspecified')
+            # The ordinary selected input is enough; no unused generic cache is a gate.
+            data = list(deepcopy(data))
+            data[2] = {path: raw for path, raw in data[2].items() if not path.endswith('v7.json')}
+            events = self.verify(tuple(data))
+            self.assertEqual(events[0]['changed_fields'], ['instrument_type'])
+            def forged(old, current, review, evidence, board):
+                old['amount_low'] = current['amount_low'] = board['transactions'][0]['amount_low'] = 1002
+            with self.assertRaisesRegex(InventoryError, 'complete source old/new'):
+                self.verify(tuple(data), edit=forged)
+
+    def test_multiple_source_corrections_replay_one_complete_receiver_and_check_every_object(self):
+        _,_,review,evidence,base = fixture(asset='Retirement Account See Endnote', heading=' ',
+            extra_rows=[['2','Other Account See Endnote','Sale','06/02/2026','No','$1,001 - $15,000']])
+        legacy = json.loads(next(raw for path,raw in review.items() if path.endswith('v8.json')))
+        catalog = json.loads(next(raw for path,raw in evidence.items() if '/catalog/normalized/' in path))
+        base['transactions'] = [_historical_projection(legacy,row,base['people'][0]['id'])
+                                for row in legacy['transactions']]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory);write_files(root,evidence)
+            current,audit = build_oge_candidate(catalog,[legacy],base,data_cutoff_at=CUTOFF,evidence_root=root)
+        self.assertEqual(len(current['transactions']),2)
+        self.assertTrue(all(row['instrument_type']=='Unspecified' for row in current['transactions']))
+        review['oge/qualifications/current.json'] = encoded(audit)
+        data = (base['transactions'],current['transactions'],review,evidence,base)
+        from unison_snapshot.fact_policy import oge_classification_correction as policy
+        with patch.object(policy,'_ordinary_current_receiver',wraps=policy._ordinary_current_receiver) as receiver:
+            self.assertEqual(len(self.verify(data)),2)
+            self.assertEqual(receiver.call_count,1)
+        def edit(old,current,review,evidence,board):
+            identifier=old[1]['id']
+            for row in old+current+board['transactions']:
+                if row['id']==identifier:row['amount_low']=1002
+        with self.assertRaisesRegex(InventoryError,'complete source old/new'):
+            self.verify(data,edit=edit)
+
+    def test_unknown_type_cannot_remove_an_explicit_source_bond_classification(self):
+        data = list(deepcopy(classification_fixture(asset='Treasury Bond See Endnote')))
+        data[1]['instrument_type'] = 'Unspecified'
+        with self.assertRaisesRegex(InventoryError, 'complete source old/new'):
+            self.verify(tuple(data))
 
     def test_explicit_owner_and_already_undisclosed_change_only_classification(self):
         for owner in ('Self','Spouse','Dependent Child'):
