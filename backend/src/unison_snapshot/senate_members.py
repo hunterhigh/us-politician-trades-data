@@ -9,7 +9,6 @@ from pathlib import Path
 import re
 import tempfile
 import time
-import unicodedata
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -220,56 +219,3 @@ def discover_members(root: Path, *, client: SenateMemberClient | None = None) ->
     return {"metadata": metadata, "members": roster["members"]}
 
 
-def _ascii_words(value: str) -> list[str]:
-    normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii").lower()
-    return re.findall(r"[a-z]+", normalized)
-
-
-def _name_key(value: str) -> tuple[str, str] | None:
-    if not isinstance(value, str):
-        return None
-    before, separator, after = value.partition(",")
-    if separator:
-        last_words = _ascii_words(before)
-        given_words = _ascii_words(after)
-        while given_words and given_words[0] in {"hon", "honorable", "mr", "mrs", "ms", "dr"}:
-            given_words.pop(0)
-        if not last_words or not given_words:
-            return None
-        return given_words[0], last_words[-1]
-    words = _ascii_words(value)
-    while words and words[0] in {"hon", "honorable", "mr", "mrs", "ms", "dr", "sen", "senator"}:
-        words.pop(0)
-    while words and words[-1] in {"jr", "sr", "ii", "iii", "iv"}:
-        words.pop()
-    return (words[0], words[-1]) if len(words) >= 2 else None
-
-
-def suggest_identity(filer_name: object, state: object, roster: dict) -> dict:
-    """Return a match only when exact normalized name plus state is unique."""
-
-    normalized_state = state.strip().upper() if isinstance(state, str) else ""
-    filer_key = _name_key(filer_name) if isinstance(filer_name, str) else None
-    members = roster.get("members", []) if isinstance(roster, dict) else []
-    matches = [member for member in members
-               if isinstance(member, dict) and member.get("state") == normalized_state and
-               (_name_key(str(member.get("official_name", ""))) == filer_key or
-                _name_key(f"{member.get('first_name', '')} {member.get('last_name', '')}") == filer_key)]
-    if not filer_key or not re.fullmatch(r"[A-Z]{2}", normalized_state) or len(matches) != 1:
-        return {
-            "status": "unresolved",
-            "filer_name": filer_name,
-            "state": normalized_state or state,
-            "candidate_count": len(matches),
-        }
-    member = matches[0]
-    return {
-        "status": "matched_automatically",
-        "person_id": member["person_id"],
-        "official_name": member["official_name"],
-        "state": member["state"],
-        "party": member["party"],
-        "evidence_url": member["evidence_url"],
-        "roster_sha256": roster.get("metadata", {}).get("sha256"),
-        "match_basis": "official_roster_exact_state_first_last_name",
-    }

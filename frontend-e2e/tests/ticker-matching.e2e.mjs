@@ -13,8 +13,8 @@ try {
   const generated = spawnSync(process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3'), ['-X', 'utf8', '-c', `
 import sys
 from pathlib import Path
-root=Path(sys.argv[1]);sys.path[:0]=[str(root/'backend/src'),str(root/'backend/tests')]
-from test_public_repo import production_payload, FakeTransport
+root=Path(sys.argv[1]);sys.path[:0]=[str(root/'backend/src'),str(root/'frontend-e2e')]
+from fixtures.public_repo import production_payload, FakeTransport
 from unison_snapshot.builder import build
 from unison_snapshot.public_repo import PublicSnapshotRepository
 from unison_snapshot.legacy import load

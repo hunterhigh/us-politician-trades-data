@@ -16,9 +16,9 @@ try {
   assert.ok(python);
   const code = `import sys
 from pathlib import Path
-root=Path(sys.argv[1]);sys.path[:0]=[str(root/'backend/src'),str(root/'backend/tests')]
-from test_known_gaps import fixture
-from test_public_repo import FakeTransport
+root=Path(sys.argv[1]);sys.path[:0]=[str(root/'backend/src'),str(root/'frontend-e2e')]
+from fixtures.known_gaps import fixture
+from fixtures.public_repo import FakeTransport
 from unison_snapshot.public_repo import PublicSnapshotRepository
 from unison_snapshot.legacy import load
 _,_,bundle=fixture()

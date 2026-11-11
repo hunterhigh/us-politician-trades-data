@@ -13,9 +13,9 @@ try {
   const python=process.env.PYTHON || (process.platform==='win32'?'python':'python3');
   const generated=spawnSync(python,['-X','utf8','-c',`import sys
 from pathlib import Path
-root=Path(sys.argv[1]);sys.path[:0]=[str(root/'backend/src'),str(root/'backend/tests')]
-from test_source_freshness import freshness_fixture
-from test_public_repo import FakeTransport
+root=Path(sys.argv[1]);sys.path[:0]=[str(root/'backend/src'),str(root/'frontend-e2e')]
+from fixtures.source_freshness import freshness_fixture
+from fixtures.public_repo import FakeTransport
 from unison_snapshot.public_repo import PublicSnapshotRepository
 from unison_snapshot.legacy import load
 for version in ('v2',):

@@ -21,9 +21,9 @@ try {
     const code = `import sys
 from pathlib import Path
 root=Path(sys.argv[1])
-sys.path.insert(0,str(root/'backend/tests'))
+sys.path.insert(0,str(root/'frontend-e2e'))
 sys.path.insert(0,str(root/'backend/src'))
-from test_disclosure_amounts import fixture
+from fixtures.disclosure_amounts import fixture
 from unison_snapshot.legacy import load
 processor=load('process_snapshot',version='v2')
 renderer=load('render_dashboard',version='v2')
