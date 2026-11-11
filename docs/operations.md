@@ -32,9 +32,9 @@ demo仅写`.local/demo`。修改后检查受影响路径，共享接口整合或
 
 Secrets只放在GitHub `production` environment：`ALPACA_API_KEY_ID`、`ALPACA_API_SECRET_KEY`、`TWELVE_DATA_API_KEY`及可选`CONGRESS_GOV_API_KEY`。不读取或记录真实值，不放入参数、URL、日志、Issue、HTML或Git。普通PR不取得生产Secrets。
 
-OGE采集必须同时满足`OGE_COLLECTION_ENABLED`及`OGE_TERMS_ACKNOWLEDGED`；Senate使用既有同类授权门禁。变量必须在作业取得production环境后判断。行情还需`MARKET_DISTRIBUTION_AUTHORIZED`及对应供应商分发授权。Form 201需申请的原件仅记`request_required`，不自动申请。
+OGE采集必须同时满足`OGE_COLLECTION_ENABLED`及`OGE_TERMS_ACKNOWLEDGED`；Senate日常PTR采用维护者浏览器下载；旧自动采集门禁仅用于显式历史维护。变量必须在作业取得production环境后判断。行情还需`MARKET_DISTRIBUTION_AUTHORIZED`及对应供应商分发授权。Form 201需申请的原件仅记`request_required`，不自动申请。
 
-不新增付费资源、供应商或受限来源。现有公开GitHub部署、House公开采集和官方归档已获授权；2025 House PTR回填已从code启动，只处理固定2025年PTR，不扩年报或其他年份。production 环境按受控工作流的 `code` 分支边界运行。来源门禁遵循[数据契约](data-contract.md)：Senate单独受阻可限期保旧发布。Senate不做403或访问绕行诊断，仅每日正常采集并自动补齐缺口。
+不新增付费资源、供应商或受限来源。现有公开GitHub部署、House公开采集和官方归档已获授权；2025 House PTR回填已从code启动，只处理固定2025年PTR，不扩年报或其他年份。production 环境按受控工作流的 `code` 分支边界运行。来源门禁遵循[数据契约](data-contract.md)：Senate单独受阻可限期保旧发布。Senate日常不自动访问eFD；维护者下载后上传，自动导入、组装并发布。
 
 ## 运行规则
 
@@ -55,7 +55,7 @@ OGE采集必须同时满足`OGE_COLLECTION_ENABLED`及`OGE_TERMS_ACKNOWLEDGED`�
 
 OGE重复观察更新成功采集时间，内容寻址原件的首次归档时间不变。记录使用当前解析和资格结果；无法处理的报告／行保持隔离，不要求对旧字段变化逐项证明。每次发布在main的`status/<sha256>.json`保存变更清单，由manifest的`publication_changes`引用；列出新增、修改、删除ID及修改字段前后值。按`source_id`合计交易与持仓，任一来源一次减少超过5%时停止发布。
 
-采集成功时间、原件归档时间、解析完成、合格候选截止时间和正式发布时间分开记录。任一新尝试、失败重试、行情更新或被取消的作业均不能冒充披露更新。来源各用真实合格截止，不再按最小值裁剪；顶层日期仅作统计参考。House/OGE两项水位须在48小时内，Senate按可配置宽限检查。Senate恢复后仍须补齐目录及资格队列，合格水位更新后才自动清除stale。停发时只完成评估，publish作业跳过，不刷新最后成功发布时间。
+采集成功时间、原件归档时间、解析完成、合格候选截止时间和正式发布时间分开记录。任一新尝试、失败重试、行情更新或被取消的作业均不能冒充披露更新。来源各用真实合格截止，不再按最小值裁剪；顶层日期仅作统计参考。House/OGE两项水位须在48小时内，Senate按可配置宽限检查。Senate人工文件成功导入并形成合格候选后推进水位，按正常新鲜度规则清除stale。停发时只完成评估，publish作业跳过，不刷新最后成功发布时间。
 
 告警采用稳定条件键，已有Issue复用，条件变化才更新；来源恢复且完整观察确认后关闭对应来源告警。明确内容边界失败会生成不含原始值的安全回执，并立即复用Integrity Issue；机器人告警供排查使用，不作为额外发布门槛。修复后，同一受控流程完整成功且相同对象的校验通过，才自动解除对应Integrity条件；其他对象、其他流程或失败作业不能清除。正式发布只执行数据合同、来源记录数减少超过5%、来源过期三项停发规则。健康观察使用独立health分支与锁，不被生产发布队列阻塞。发布时效按计划工作日窗口判断，周末不制造“漏发布”告警；开发工作连续推进，不等待工作日。
 
@@ -78,3 +78,17 @@ House归档应按时间预算推进积压并保存检查点，不能永久停在
 执行节奏、停止规则及待决事项统一以[status.md](status.md)的最新决定为准。本轮按授权连续推进；普通小提交、测试或PR完成不自动结束整个交付。
 
 原35项及旧技术研究材料通过[archive/pre-v1-docs](https://github.com/hunterhigh/us-politician-trades-data/tree/archive/pre-v1-docs/docs)查阅；不再复制到当前文档。初始候选`v1/candidate-20261028`固定不动，后续修正留在开发提交与PR。原本机成果还有`archive/pre-v1`与保存分支，以及`C:/Users/admin/.codex/backups/whitehouse-pre-v1-20261028`的恢复包；官方原件只从已校验的证据引用恢复。
+
+## Senate 维护者每周操作
+
+不需要改代码或运行命令。每周一 01:00 UTC 自动创建或更新唯一打开的「Senate 本周待下载」Issue，其中列出已导入的最新申报日期、Senate 数据截止时间和宽限期剩余天数。
+
+打开 efdsearch.senate.gov → 勾选同意条款 → Report Type 选 Periodic Transactions → 起始日期填上次截止日 → 逐份打开并另存为网页（仅 HTML） → 上传到 senate-inbox 分支的 inbox/ 目录。
+
+起始日期使用 Issue 中的最新申报日期，以覆盖当天；浏览器保存的 HTML 应保留来源网址。如果浏览器没有保留，请把报告网址中的编号加在文件名中。
+
+纸质 PTR 上传完整 PDF，或一次上传全部页面图片。文件名：`报告编号__YYYY-MM-DD__申报人姓名.pdf`；图片为 `报告编号__YYYY-MM-DD__申报人姓名__页码.png`（也支持 jpg、gif、tif）。编号从报告网址复制，日期和姓名照搜索结果填写。
+
+上传提交自动通知 code 分支的受控 Senate 工作流；原件标注 `acquisition: manual_browser` 并保存到 evidence，再复用现有解析、资格判定、候选、组装及正式发布流程。报告编号已完成手动导入时跳过；逐文件失败只影响该文件。成功导入后 Senate 截止时间推进，现有 PTR 与年报持仓继续保留。
+
+每次导入在提醒 Issue 中回复报告数、合格交易数（按报告计数，不代表净新增）、重复报告和无法识别文件及原因。原件已归档后自动清空 inbox/，仅保留 `.gitkeep`；全部文件成功或已跳过重复时关闭 Issue。无法识别的原件也保存在 evidence，Issue 保持打开；按反馈修正文件后重新上传。工作流本身失败时保留 inbox/，维护者可在 Actions 网页重跑。下一周复用并重新打开同一提醒 Issue。

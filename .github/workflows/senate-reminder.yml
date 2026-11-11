@@ -1,0 +1,38 @@
+name: Senate weekly download reminder
+on:
+  schedule:
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: read
+  issues: write
+concurrency:
+  group: disclosure-source-writer
+  queue: max
+  cancel-in-progress: false
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/setup-source
+      - uses: ./.github/actions/data-trees
+        with:
+          scope: senate
+          roles: review
+          workspace: ${{ runner.temp }}/senate-reminder
+      - name: Create or update this week's single reminder
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: backend/src
+          SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
+        run: python -m unison_snapshot senate-inbox remind --review-root "$REVIEW_ROOT"
