@@ -1,7 +1,7 @@
 {
   "alerts": [
     {
-      "detail": "{\"detail\": \"Authorized eFD PTR catalog and a bounded batch of report entrypoint responses were archived. Transaction facts remain unpublished.\", \"failed_step\": null, \"grace_active\": false, \"http_status\": null, \"last_attempt_at\": \"2026-11-11T12:29:36.817033+00:00\", \"last_successful_collection_at\": \"2026-11-10T09:47:44.269148+00:00\", \"max_stale_days\": 30, \"qualified_cutoff_at\": \"2026-10-23T07:42:53.699480+00:00\", \"stale\": true, \"status\": \"ok\", \"unhealthy_since\": null, \"workflow_run_url\": null}",
+      "detail": "{\"detail\": \"Authorized eFD PTR catalog and a bounded batch of report entrypoint responses were archived. Transaction facts remain unpublished.\", \"failed_step\": null, \"grace_active\": false, \"http_status\": null, \"last_attempt_at\": \"2026-11-11T12:31:50.093530+00:00\", \"last_successful_collection_at\": \"2026-11-11T12:31:50.093530+00:00\", \"max_stale_days\": 30, \"qualified_cutoff_at\": \"2026-10-23T07:42:53.699480+00:00\", \"stale\": true, \"status\": \"ok\", \"unhealthy_since\": null, \"workflow_run_url\": null}",
       "key": "source:senate_efd",
       "title": "[Health] senate_efd collection blocked or stale"
     },
@@ -159,7 +159,7 @@
       "source": "publication"
     }
   ],
-  "checked_at": "2026-11-11T12:30:17.824193+00:00",
+  "checked_at": "2026-11-11T12:33:01.609394+00:00",
   "integrity_failures": [
     {
       "category": "old_fact_delta",
@@ -184,7 +184,7 @@
       "number": 290
     },
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "quality-summary:2026-W46",
       "number": 327
     }
@@ -201,7 +201,7 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "7ec5b14094c814eea9de5f3403992110d0e58e3f",
+  "quality_review_commit": "a1eff23bdbc6de854bb1038a99291a3cca8ba5ce",
   "schema_version": "production-health/v1",
   "smoke": {
     "checked_at": "2026-11-11T11:47:46.447621+00:00",
@@ -284,8 +284,8 @@
       "failed_step": null,
       "grace_active": true,
       "http_status": null,
-      "last_attempt_at": "2026-11-11T12:29:36.817033+00:00",
-      "last_successful_collection_at": "2026-11-10T09:47:44.269148+00:00",
+      "last_attempt_at": "2026-11-11T12:31:50.093530+00:00",
+      "last_successful_collection_at": "2026-11-11T12:31:50.093530+00:00",
       "max_stale_days": 30,
       "qualified_cutoff_at": "2026-10-23T07:42:53.699480+00:00",
       "stale": true,
