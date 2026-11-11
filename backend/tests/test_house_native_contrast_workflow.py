@@ -80,9 +80,9 @@ class HouseContrastWorkflowTests(unittest.TestCase):
         self.assertEqual(selected(),[str(old_metadata)])
         environment['SELECT_YEAR']='2026'
         self.assertEqual(selected(),[str(metadata)])
-        # A bounded batch cannot claim the whole parser queue is ready.
+        # Native PDF text retries do not consume the OCR batch limit.
         environment.update(SELECT_YEAR='',UNISON_HOUSE_FILING_YEAR='',BATCH_SIZE='1')
-        self.assertEqual(len(selected()),1)
+        self.assertEqual(len(selected()),2)
         output=dict(line.split('=',1) for line in (root/'selector-output').read_text().splitlines())
-        self.assertEqual(output['cache_ready'],'false')
-        self.assertEqual(output['remaining_after_batch'],'1')
+        self.assertEqual(output['cache_ready'],'true')
+        self.assertEqual(output['remaining_after_batch'],'0')
