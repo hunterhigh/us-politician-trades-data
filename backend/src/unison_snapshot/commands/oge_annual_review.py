@@ -96,13 +96,13 @@ def extract_archived_reports(evidence_root: Path, review_root: Path, *, parser_v
     return summary
 
 
-def main() -> None:
+def main(argv=None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--evidence-root", type=Path, required=True)
     parser.add_argument("--review-root", type=Path, required=True)
     parser.add_argument("--parser-version", choices=(PARSER_VERSION, QUALIFIED_PARSER_VERSION), default=PARSER_VERSION)
     parser.add_argument("--document-id", action="append")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     summary = extract_archived_reports(args.evidence_root, args.review_root, parser_version=args.parser_version,
                                        document_ids=args.document_id)
     print(json.dumps({"reviewed": summary["archived_reports_reviewed"],

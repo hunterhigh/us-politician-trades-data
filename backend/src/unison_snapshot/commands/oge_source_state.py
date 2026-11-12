@@ -40,7 +40,7 @@ def record(root, gate, *, catalog=None, reports=None, extraction=None, successfu
     return value
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('phase', choices=['gate', 'collection'])
     parser.add_argument('--state-root', type=Path, required=True)
@@ -50,7 +50,7 @@ def main():
     parser.add_argument('--successful', choices=['true', 'false'], default='false')
     parser.add_argument('--run-url')
     parser.add_argument('--github-output', type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     read = lambda path: json.loads(path.read_bytes()) if path and path.is_file() else None
     gate = read(args.gate)
     result = record(args.state_root, gate, catalog=read(args.catalog), reports=read(args.reports),

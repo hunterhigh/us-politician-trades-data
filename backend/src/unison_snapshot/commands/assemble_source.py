@@ -65,7 +65,7 @@ def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_
     return status
 
 
-def main():
+def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workspace',type=Path,required=True)
     parser.add_argument('--source',choices=SOURCES,required=True)
@@ -73,7 +73,7 @@ def main():
     parser.add_argument('--html-output',type=Path)
     parser.add_argument('--builder-commit',required=True)
     parser.add_argument('--verify-readiness',action='store_true')
-    args=parser.parse_args()
+    args=parser.parse_args(argv)
     try:
         status=assemble(args.workspace,args.source,args.base,args.html_output,args.builder_commit,
             verify_readiness=args.verify_readiness)

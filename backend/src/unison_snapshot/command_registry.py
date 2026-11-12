@@ -2,7 +2,9 @@
 import importlib
 import sys
 
-COMMANDS = {'senate-inbox': ('senate_inbox', 'Import manual browser downloads and maintain the weekly Senate Issue'),
+COMMANDS = {'run-oge': ('run_oge', 'Run the controlled OGE source job'),
+ 'run-whitehouse': ('run_whitehouse', 'Run one controlled White House source job'),
+ 'senate-inbox': ('senate_inbox', 'Import manual browser downloads and maintain the weekly Senate Issue'),
 'verify-senate-saved-replay': ('verify_senate_saved_replay',
                                 'Check selected saved Senate replay conservation'),
  'oge-review': ('oge_review', 'Account for OGE and White House qualified source overlays'),
