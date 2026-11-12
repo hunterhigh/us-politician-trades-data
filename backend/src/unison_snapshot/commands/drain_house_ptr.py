@@ -76,6 +76,7 @@ def drain(checkpoint_path, evidence_root, *, budget_seconds=900, client=None,
         if metadata is not None:
             record_result(checkpoint,document,'archived',result_at=utc_now(),archive_metadata=metadata)
             counts['archived_count'] += 1
+            print('Archived House PTR ' + document, flush=True)
         else:
             record_result(checkpoint,document,'failed',result_at=utc_now(),error=str(failure)[:480])
             counts['failed_count'] += 1
@@ -93,13 +94,13 @@ def drain(checkpoint_path, evidence_root, *, budget_seconds=900, client=None,
         'remaining_unarchived_count':unarchived,'stop_reason':reason}
 
 
-def main():
+def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--checkpoint',type=Path,required=True)
     parser.add_argument('--archive',type=Path,required=True)
     parser.add_argument('--budget-seconds',type=int,default=900)
     parser.add_argument('--output',type=Path,required=True)
-    args=parser.parse_args()
+    args=parser.parse_args(argv)
     if args.output.resolve()==args.checkpoint.resolve():
         parser.error('Budget receipt and checkpoint must be separate files')
     try:
