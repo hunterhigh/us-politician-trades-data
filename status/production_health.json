@@ -156,23 +156,23 @@
     }
   ],
   "assembly": {
-    "attempted_at": "2026-11-12T06:38:41.571223+00:00",
-    "candidate_sha256": "a3063253b6574749486995bcdb7b73cc28e59ed411496fa2ef0c751caf999993",
-    "data_cutoff_at": "2026-11-12T05:31:55.950544+00:00",
+    "attempted_at": "2026-11-12T07:34:18.915393+00:00",
+    "candidate_sha256": "c49d48813331928cf61767558b93c150e7b87a5196f5ca6645c27525e330835c",
+    "data_cutoff_at": "2026-11-12T06:58:38+00:00",
     "schema_version": "disclosure-assembly-status/v1",
     "source_cutoffs": {
-      "house_clerk": "2026-11-11T19:37:45+00:00",
+      "house_clerk": "2026-11-12T06:58:38+00:00",
       "oge": "2026-11-12T05:31:55.950544+00:00",
       "senate_efd": "2026-11-12T04:04:33.677189+00:00"
     },
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-12T07:34:44.852621+00:00",
+  "checked_at": "2026-11-12T07:43:56.869642+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "quality-summary:2026-W46",
       "number": 327
     }
@@ -241,16 +241,16 @@
     "snapshot_id": "f3538e1ef497c24ed37764cb7af95968ff8d48b7b930745590826a21d2eb0464",
     "status": "passed"
   },
-  "snapshot_changed": true,
+  "snapshot_changed": false,
   "snapshot_id": "f3538e1ef497c24ed37764cb7af95968ff8d48b7b930745590826a21d2eb0464",
   "sources": {
     "house_clerk": {
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-12T06:58:38+00:00",
-      "last_successful_collection_at": "2026-11-12T06:58:38+00:00",
-      "qualified_cutoff_at": "2026-11-11T19:37:45+00:00",
+      "last_attempt_at": "2026-11-12T07:36:07+00:00",
+      "last_successful_collection_at": "2026-11-12T07:36:07+00:00",
+      "qualified_cutoff_at": "2026-11-12T06:58:38+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
