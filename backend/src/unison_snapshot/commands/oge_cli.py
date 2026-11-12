@@ -394,11 +394,6 @@ COMMANDS = {
 }
 
 
-def main(argv=None):
+def main():
     command = sys.argv[0].rsplit(" ", 1)[-1]
-    previous = sys.argv
-    try:
-        sys.argv = [previous[0], *(previous[1:] if argv is None else argv)]
-        invoke(command, *COMMANDS[command])
-    finally:
-        sys.argv = previous
+    invoke(command, *COMMANDS[command])

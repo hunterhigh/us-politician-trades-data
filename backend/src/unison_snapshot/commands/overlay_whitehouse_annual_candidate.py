@@ -118,7 +118,7 @@ def _validate_output_paths(candidate: Path, audit: Path, *, input_path: Path | N
             raise ValueError("Annual output target is not a writable file location")
 
 
-def main(argv=None) -> None:
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--review-root", required=True, type=Path)
     parser.add_argument("--evidence-root", type=Path,
@@ -129,7 +129,7 @@ def main(argv=None) -> None:
                         help="Optional saved OGE annual extractions, archive metadata and date observations")
     parser.add_argument("--oge-annual-runtime-root", type=Path,
                         help="Optional prepared root for relative PDF/model paths; verifies hashes before writing")
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     if args.oge_annual_runtime_root and not args.oge_annual_input:
         parser.error("--oge-annual-runtime-root requires --oge-annual-input")
     annual_input, runtime = None, None

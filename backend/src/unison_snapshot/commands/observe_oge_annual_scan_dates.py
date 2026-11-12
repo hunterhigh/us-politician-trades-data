@@ -33,11 +33,11 @@ def observe_fixed_batch(evidence_root: Path) -> dict:
             "production_eligible_transaction_count": 0}
 
 
-def main(argv=None) -> None:
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--evidence-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     result = observe_fixed_batch(args.evidence_root)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, sort_keys=True,

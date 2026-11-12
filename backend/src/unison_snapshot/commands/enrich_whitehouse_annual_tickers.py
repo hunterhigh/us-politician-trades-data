@@ -13,7 +13,7 @@ from unison_snapshot.reviewed_security_tickers import enrich_reviewed_tickers
 from unison_snapshot.whitehouse_annual_tickers import enrich_whitehouse_annual_tickers
 
 
-def main(argv=None) -> int:
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--mapping-output", type=Path, required=True)
@@ -21,7 +21,7 @@ def main(argv=None) -> int:
     parser.add_argument("--checked-at")
     parser.add_argument("--assets-url", default="https://paper-api.alpaca.markets/v2/assets")
     parser.add_argument("--distribution-authorized", action="store_true")
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     if not args.distribution_authorized:
         raise ValueError("Alpaca distribution authorization is required")
     client = AlpacaMarketClient(

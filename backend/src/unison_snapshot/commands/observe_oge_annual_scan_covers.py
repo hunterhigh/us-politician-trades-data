@@ -83,7 +83,7 @@ def observe_failed_covers(evidence_root: Path, review_root: Path,
     return summary
 
 
-def main(argv=None) -> None:
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--evidence-root", type=Path)
     parser.add_argument("--review-root", type=Path)
@@ -92,7 +92,7 @@ def main(argv=None) -> None:
     parser.add_argument("--document-id")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--tesseract", default="tesseract")
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     if args.native_cover_pdf is not None:
         if (args.evidence_root or bool(args.review_root) == bool(args.output) or
                 not all((args.source_sha256, args.document_id))):
