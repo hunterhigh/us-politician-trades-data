@@ -167,32 +167,9 @@
     },
     "status": "ready"
   },
-  "blocking_sources": [
-    {
-      "category": "old_fact_delta",
-      "issue": 342,
-      "reason": "content_integrity",
-      "source": "publication"
-    }
-  ],
-  "checked_at": "2026-11-12T02:56:56.070111+00:00",
-  "integrity_failures": [
-    {
-      "category": "old_fact_delta",
-      "closed": false,
-      "issue": 342,
-      "metadata": {
-        "code_commit": "7de11274d13a50d1059c766341f3630cb576f457",
-        "conditions": [
-          "4d062ecbfd330bbca2495eb111daec90ff0c18783b3eb131a2366b31c446a214"
-        ],
-        "overflow": false,
-        "run_id": "42973125235",
-        "schema_version": "integrity-conditions/v1"
-      },
-      "scope": "publication"
-    }
-  ],
+  "blocking_sources": [],
+  "checked_at": "2026-11-12T03:15:41.829792+00:00",
+  "integrity_failures": [],
   "issue_actions": [
     {
       "action": "already_open",
@@ -201,7 +178,7 @@
     }
   ],
   "last_successful_publication_check_at": "2026-11-12T00:50:00Z",
-  "publication": "held",
+  "publication": "sources_recovered",
   "published_at": "2026-11-12T00:16:21Z",
   "quality_complete": true,
   "quality_observed_scopes": [
