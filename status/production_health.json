@@ -175,7 +175,7 @@
       "source": "publication"
     }
   ],
-  "checked_at": "2026-11-12T00:54:26.000502+00:00",
+  "checked_at": "2026-11-12T02:56:56.070111+00:00",
   "integrity_failures": [
     {
       "category": "old_fact_delta",
@@ -264,7 +264,7 @@
     "snapshot_id": "535718b40a770cce07c1694424a36a5e1728c5941b71bfdf9176a1b9260c1a3b",
     "status": "passed"
   },
-  "snapshot_changed": true,
+  "snapshot_changed": false,
   "snapshot_id": "535718b40a770cce07c1694424a36a5e1728c5941b71bfdf9176a1b9260c1a3b",
   "sources": {
     "house_clerk": {
