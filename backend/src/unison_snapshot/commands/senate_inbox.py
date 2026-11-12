@@ -1,7 +1,7 @@
-"""Import maintainer-saved Senate PTR originals and manage the weekly inbox Issue."""
+"""Import maintainer-saved Senate PTR originals and manage the fallback inbox Issue."""
 import argparse
 from collections import defaultdict, Counter
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
 import hashlib
 import json
@@ -261,6 +261,20 @@ def qualify(args):
 
 
 def reminder(args, api):
+    issues = []; page = 1
+    while True:
+        batch = api.request(f'/issues?state=all&per_page=100&page={page}')
+        issues.extend(i for i in batch if i['title'] == TITLE and 'pull_request' not in i)
+        if len(batch) < 100:break
+        page += 1
+    last_auto = read(args.state_root / 'status/senate_efd.json')['last_successful_automatic_collection_at']
+    if datetime.now(timezone.utc) - datetime.fromisoformat(last_auto.replace('Z','+00:00')) <= timedelta(days=3):
+        for issue in issues:
+            if issue['state'] == 'open':
+                api.request(f"/issues/{issue['number']}/comments", 'POST',
+                            {'body': '自动采集已恢复。最近一次成功自动采集：'+last_auto})
+                api.request(f"/issues/{issue['number']}", 'PATCH', {'state':'closed'})
+        return issues[0]['number'] if issues else None
     status = read(args.review_root / 'status/senate_efd.json')
     extracted, _ = selected_artifacts(args.review_root, status)
     latest = max(_filed_date(x['filed_at_raw']) for x in extracted.values())
@@ -271,12 +285,6 @@ def reminder(args, api):
     body = (f'已导入的最新申报日期：**{latest}**（下载时从这个日期之后开始搜；起始日期填此日以覆盖当天）。\n\n'
             f'Senate 宽限期剩余：**{remaining} 天**。数据截止时间：{cutoff.isoformat()}。\n\n'
             f'{STEPS}\n\n{PAPER}\n\n电子 HTML 请保留浏览器保存的来源网址；若浏览器没有保留，在文件名中加入报告网址中的编号。')
-    issues = []; page = 1
-    while True:
-        batch = api.request(f'/issues?state=all&per_page=100&page={page}')
-        issues.extend(i for i in batch if i['title'] == TITLE and 'pull_request' not in i)
-        if len(batch) < 100:break
-        page += 1
     if issues:
         issue = next((i for i in issues if i['state']=='open'), issues[0])
         api.request('/issues/'+str(issue['number']), 'PATCH', {'body':body, 'state':'open'})
@@ -305,12 +313,13 @@ def finish(args, api):
              else '\n\n无新增报告。' if args.outcome=='success' else
              '\n\n工作流失败，inbox 原件保留；详见运行日志。')
     text += '\n\n运行：'+os.environ.get('GITHUB_SERVER_URL','https://github.com')+'/'+args.repository+'/actions/runs/'+os.environ['GITHUB_RUN_ID']
-    api.request(f'/issues/{issue}/comments','POST',{'body':text})
+    if issue is not None:
+        api.request(f'/issues/{issue}/comments','POST',{'body':text})
     if args.outcome == 'success':
         for f in result['files']:
             api.request('/contents/inbox/'+quote(f['name'],safe=''), 'DELETE', {
                 'message':'Senate: archive inbox originals in evidence', 'branch':'senate-inbox', 'sha':f['sha']})
-        if not errors:api.request(f'/issues/{issue}','PATCH',{'state':'closed'})
+        if not errors and issue is not None:api.request(f'/issues/{issue}','PATCH',{'state':'closed'})
 
 
 def main():

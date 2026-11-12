@@ -1,10 +1,10 @@
 # v1 状态
 
-2026-11-11：v1已替代35项，由PR293启用；旧文档在archive/pre-v1-docs。
+2026-11-12：v1已替代35项，由PR293启用；旧文档在archive/pre-v1-docs。
 
 ## 有效决定
 
-House/OGE水位48小时；Senate宽限30天（`SENATE_MAX_STALE_DAYS`），20天提醒，超过停发。各来源独立真实截止，保留Senate旧事实并展示缺口；来源告警保持，正式恢复后关闭发布窗口告警。Senate采用人工下载、自动导入；长期收件分支senate-inbox及每周一01:00 UTC提醒Issue已启用，日常仅需浏览器保存和GitHub网页上传。允许告警Issue、内容失败回退；网络仅重试。回填限2025 House PTR及归档年报持仓；五来源共用版本重跑，不以旧版替代当前解析。新记录无唯一代码时ticker为空并显示未匹配；历史ticker绑定独立于当前行情资格。见[契约](data-contract.md)。
+House/OGE水位48小时；Senate宽限30天（`SENATE_MAX_STALE_DAYS`），20天提醒，超过停发。各来源独立真实截止，保留Senate旧事实并展示缺口；来源告警保持，正式恢复后关闭发布窗口告警。Senate以自动采集为主；自动采集失败超过3天时使用人工下载、自动导入。senate-inbox保留；提醒仅在最近一次成功自动采集超过3天时打开，恢复后自动关闭并注明原因，不再每周一固定创建。人工截止取导入前截止与本批最晚filed_at的较晚值，不以导入运行时间推进。允许告警Issue、内容失败回退；网络仅重试。回填限2025 House PTR及归档年报持仓；五来源共用版本重跑，不以旧版替代当前解析。新记录无唯一代码时ticker为空并显示未匹配；历史ticker绑定独立于当前行情资格。见[契约](data-contract.md)。
 
 v1.1日期、稳定一周及定时检查已取消；本轮连续完成。两种方法未推进同一验收项即记待决、继续独立步骤；仅产品范围、付费或删除生产数据须询问。用户接受src 69,492、tests 59,137行，瘦身结束。
 
@@ -29,7 +29,7 @@ House重跑已完成：[最新运行](https://github.com/hunterhigh/us-politicia
 按用户追加要求，[PR350](https://github.com/hunterhigh/us-politician-trades-data/pull/350)移除House候选、状态统计的批量原件重放，复用已有资格产物；首次资格判定和现有修订流程保留。完整CI已通过，源码净减98行、测试未增。正式快照生成用时43分43秒，前两次为84、108分钟。
 
 
-Senate由[PR351](https://github.com/hunterhigh/us-politician-trades-data/pull/351)、[PR353](https://github.com/hunterhigh/us-politician-trades-data/pull/353)、[PR354](https://github.com/hunterhigh/us-politician-trades-data/pull/354)接入人工收件、按报告编号去重、纸表现有OCR入口及自动发布交接。[实际导入](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/43040416981)已自动完成1份既有电子PTR保存件、1笔合格交易及组装；原件标注manual_browser，inbox清空，Senate候选水位2026-11-11 14:40:13 UTC。导入数、重复及错误反馈统一见[提醒Issue352](https://github.com/hunterhigh/us-politician-trades-data/issues/352)；正式快照经[既有发布流程](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/43040781632)自动推进，当前正式结果以[main manifest](https://github.com/hunterhigh/us-politician-trades-data/blob/main/manifest.json)为准。维护者步骤见operations。
+旧old_fact_delta类别已删除，Issue342已按变更清单规则取消关闭；现有健康流程刷新后integrity_failures为空，publication为sources_recovered。人工截止已由PR358改为申报日期约束；[旧PTR实际导入](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/43149806139)前后均为2026-11-11 14:40:13 UTC。Senate恢复日常自动采集；人工下载、自动导入仅在自动采集失败超过3天时使用。自动成功时间单独记录，人工导入不更新该时间；维护步骤见operations，实际运行结果见Senate source pipeline与提醒Issue352。
 
 ## 待决事项
 
