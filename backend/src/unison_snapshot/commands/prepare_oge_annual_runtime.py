@@ -8,7 +8,7 @@ from unison_snapshot.oge_annual import PARSER_VERSION, SHADOW_PARSER_VERSION, QU
 from unison_snapshot.commands.overlay_whitehouse_annual_candidate import _write
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--review-root', required=True, type=Path)
     parser.add_argument('--evidence-root', required=True, type=Path)
@@ -29,7 +29,7 @@ def main():
                         help='Request existing source-pixel blank-slot verification for saved scans')
     parser.add_argument('--replay-cover-ocr', action='store_true',
                         help='Replay the existing cover form/type/report-period reader from source; does not verify signature dates')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     output = args.output.resolve()
     if any(output.is_relative_to(root.resolve()) for root in (args.review_root, args.evidence_root)):
         parser.error('--output must be outside controlled review and evidence trees')

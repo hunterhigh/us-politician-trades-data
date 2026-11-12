@@ -7,7 +7,7 @@ from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_ptr_runtime import prepare_oge_ptr_generic
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--document-id', required=True)
     parser.add_argument('--evidence-root', required=True, type=Path)
@@ -16,7 +16,7 @@ def main():
     parser.add_argument('--catalog-history-dir', type=Path)
     parser.add_argument('--source-sha256',
                         help='Select this existing archived input; does not attest latest version or supersession')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     try:
         receipt = prepare_oge_ptr_generic(**vars(args))
     except (OgeCatalogError, OSError, ValueError) as exc:

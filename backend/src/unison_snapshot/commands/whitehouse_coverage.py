@@ -213,7 +213,7 @@ def build_coverage(index: dict, batch: dict, review_root: Path, *, generic_trade
     }
 
 
-def main() -> None:
+def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--review-root", type=Path, required=True)
     parser.add_argument('--evidence-root', type=Path)
@@ -221,7 +221,7 @@ def main() -> None:
     parser.add_argument("--saved-ocr-trade", action="store_true")
     parser.add_argument("--dual-axis-trade",action="store_true")
     parser.add_argument("--output", type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if (args.generic_trade or args.saved_ocr_trade or args.dual_axis_trade) and args.output is None:
         raise ValueError("Generic White House coverage requires a separate output")
     root = args.review_root / "whitehouse/disclosures"

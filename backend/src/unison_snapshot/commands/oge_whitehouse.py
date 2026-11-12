@@ -11,7 +11,7 @@ from unison_snapshot.oge_whitehouse import (
 from unison_snapshot.oge_whitehouse_requests import build_request_plan
 
 
-def main() -> None:
+def main(argv=None) -> None:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
     coverage = sub.add_parser("coverage")
@@ -26,7 +26,7 @@ def main() -> None:
     annual.add_argument("--limit", type=int, default=2)
     annual.add_argument("--start-after-id")
     annual.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.command == "coverage":
         result = coverage_from_archive(args.evidence_root,
                                        latest_catalog_metadata(args.evidence_root))

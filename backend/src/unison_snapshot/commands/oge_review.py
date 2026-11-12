@@ -176,7 +176,7 @@ def selection(args):
     sys.stdout.buffer.write('\n'.join(doc + ':' + sources.get(doc, '') for doc in ids).encode('ascii'))
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=('build', 'reconcile', 'stage', 'saved-input', 'selection'))
     parser.add_argument('--review-root', type=Path, required=True)
@@ -186,7 +186,7 @@ def main():
     parser.add_argument('--document-id', default=os.environ.get('OGE_GENERIC_DOCUMENT_ID', ''))
     parser.add_argument('--document-sources', default=os.environ.get('OGE_PTR_DOCUMENT_SOURCES', ''))
     parser.add_argument('--document-source', default=os.environ.get('OGE_PTR_DOCUMENT_SOURCE', ''))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if not args.review_root.is_dir(): parser.error('review-root must be an existing directory')
     {'build': build, 'reconcile': reconcile, 'stage': stage, 'saved-input': saved_input, 'selection': selection}[args.mode](args)
     return 0
