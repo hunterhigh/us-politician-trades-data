@@ -5,7 +5,6 @@ import sys
 COMMANDS = {'senate-inbox': ('senate_inbox', 'Import manual browser downloads and maintain the weekly Senate Issue'),
 'verify-senate-saved-replay': ('verify_senate_saved_replay',
                                 'Check selected saved Senate replay conservation'),
- 'publication-probes': ('publication_probes', 'Select fixed source-backed publication probes'),
  'oge-review': ('oge_review', 'Account for OGE and White House qualified source overlays'),
  'house-review': ('house_review', 'Select and account for normal House review artifacts'),
  'record-source-failure': ('record_source_failure', 'Preserve failed official collection attempts'),
@@ -63,9 +62,6 @@ COMMANDS = {'senate-inbox': ('senate_inbox', 'Import manual browser downloads an
  'senate-annual': ('senate_annual', "Collect and replay current senators' latest public eFD annual reports."),
  'source-assembly-status': ('source_assembly_status',
                             'Expose one source-workflow assembly attempt without implying publication.'),
- 'verify-prepared-publication': ('verify_prepared_publication',
-                                 'Read a prepared publication from remote immutable commits before moving '
-                                 'production refs.'),
  'whitehouse-coverage': ('whitehouse_coverage',
                          'Summarize public White House report links without claiming canonical facts.'),
  'whitehouse-disclosures': ('whitehouse_disclosures',

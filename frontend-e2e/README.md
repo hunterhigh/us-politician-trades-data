@@ -25,15 +25,12 @@ npm test
 
 Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` when the browser is installed outside the known system paths.
 
-For a complete real candidate that has already passed the frozen processor and renderer, set
-`PRODUCTION_DASHBOARD_HTML` to the generated HTML and run `npm run test:production`. This path
-checks the real five-array page without changing the frozen handoff files.
-
 `npm run test:latest-html` checks the same candidate with the user-designated latest HTML
-page code. Set `PREVIOUS_MAIN_ROOT` to a fixed checkout of the prepublication `main` branch
+page code. Set `PRODUCTION_DASHBOARD_HTML` to the generated HTML and `PREVIOUS_MAIN_ROOT`
+to a fixed checkout of the prepublication `main` branch
 to compare its manifest/board and verify that every newly published transaction opens in
 the evidence drawer; recent new transactions must also reach the timeline and person page.
-The complete publish workflow supplies this path for both candidate and prepared readback.
+The complete publish workflow supplies the locally generated candidate.
 See `docs/最新HTML验收矩阵.md` for the page-by-page acceptance map and its limits.
 
 # Latest user HTML audit

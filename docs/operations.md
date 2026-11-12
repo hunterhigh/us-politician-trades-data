@@ -16,7 +16,6 @@ House队列、OCR规划及计数用`house-review`；OGE不可变产物暂存、�
 python -m unison_snapshot whitehouse-extract --help
 python -m unison_snapshot build-disclosure-status --help
 python -m unison_snapshot build-cached-candidate --help
-python -m unison_snapshot verify-prepared-publication --help
 ```
 
 生产解析使用runtime/image.lock.json固定摘要的容器；镜像包含精确Python/Node/Tesseract、语言数据和backend/requirements.lock的全部哈希依赖。Actions按提交固定。普通作业只校验环境并安装当前源码，不临时解析依赖；镜像重建通过CI显式触发，构建后真实OCR校验。浏览器按锁定Playwright版本安装匹配Chromium。
