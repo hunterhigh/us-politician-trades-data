@@ -100,10 +100,74 @@ jobs:
         with:
           scope: oge
           workspace: ${{ runner.temp }}/oge-source
-      - name: Run OGE source
+      - name: Check the production collection gate
+        id: gate
+        run: |
+          mkdir -p .local
+          python -m unison_snapshot oge-gate --output .local/oge-gate.json
+          python -m unison_snapshot oge-source-state gate --state-root "$STATE_ROOT" \
+            --gate .local/oge-gate.json --github-output "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/oge-source
+          roles: state
+          message: OGE gate ${{ github.run_id }}
+      - name: Reject a partially authorized collection gate
+        if: vars.OGE_COLLECTION_ENABLED == 'true' && vars.OGE_TERMS_ACKNOWLEDGED != 'true'
+        run: echo 'OGE collection requires the existing terms acknowledgement' >&2; exit 2
+      - name: Discover, archive and parse direct PDFs
+        id: collect
+        if: steps.gate.outputs.status == 'enabled'
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          echo "started_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+          mkdir -p .local/oge-extractions
+          PYTHONPATH=backend/src python -m unison_snapshot discover-oge \
+            --archive "$EVIDENCE_ROOT" --output .local/oge-catalog.json --failure-output .local/oge-collection-failure.json
+          batch_size="${OGE_REPORT_BATCH_SIZE:-10}"
+          PYTHONPATH=backend/src python -m unison_snapshot archive-oge-direct-pdfs \
+            --catalog .local/oge-catalog.json --archive "$EVIDENCE_ROOT" \
+            --limit "$batch_size" --output .local/oge-report-batch.json
+          PYTHONPATH=backend/src python -m unison_snapshot extract-oge-direct-pdfs \
+            --batch .local/oge-report-batch.json --archive "$EVIDENCE_ROOT" \
+            --reuse-root "$REVIEW_ROOT/oge/extractions" \
+            --output-dir .local/oge-extractions --output .local/oge-extraction-batch.json
+      - name: Publish immutable official evidence
+        id: publish_evidence
+        if: always() && steps.gate.outputs.status == 'enabled'
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/oge-source
+          roles: evidence
+          message: OGE originals ${{ github.run_id }}
+      - name: Preserve collection state independently of qualification
+        if: always() && steps.gate.outputs.status == 'enabled'
+        env:
+          SUCCESSFUL: ${{ steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success' }}
+        run: |
+          python -m unison_snapshot oge-source-state collection --state-root "$STATE_ROOT" \
+            --gate .local/oge-gate.json --catalog .local/oge-catalog.json \
+            --reports .local/oge-report-batch.json --extraction .local/oge-extraction-batch.json \
+            --failure .local/oge-collection-failure.json --successful "$SUCCESSFUL" --run-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          python -m unison_snapshot data-trees publish --workspace "$RUNNER_TEMP/oge-source" \
+            --role state --message 'OGE collection outcome'
+      - name: Stage parsed OGE observations
+        if: steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success'
+        run: python -m unison_snapshot oge-review stage --review-root "$REVIEW_ROOT"
+      - name: Persist parsed OGE review before candidate verification
+        if: steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success'
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/oge-source
+          roles: review
+          message: OGE Persist parsed observations ${{ github.run_id }}
+      - name: Publish normalized review data and build source candidate
+        if: steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success'
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           INCLUDE_SAVED_OGE_OBSERVATIONS: ${{ inputs.include_saved_oge_observations || false }}
           OGE_SAVED_OBSERVATIONS_PATH: ${{ inputs.oge_saved_observations_path }}
           OGE_GENERIC_DOCUMENT_ID: ${{ inputs.oge_generic_document_id }}
@@ -122,21 +186,154 @@ jobs:
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
           ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
           MARKET_DISTRIBUTION_AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
-          PYTHONPATH: backend/src
         run: |
-          python -m unison_snapshot run-oge \
-            --oge_generic_document_id "$OGE_GENERIC_DOCUMENT_ID" \
-            --oge_ptr_document_source "$OGE_PTR_DOCUMENT_SOURCE" \
-            --include_saved_oge_observations "$INCLUDE_SAVED_OGE_OBSERVATIONS" \
-            --oge_saved_observations_path "$OGE_SAVED_OBSERVATIONS_PATH" \
-            --include_saved_oge_annual "$INCLUDE_SAVED_OGE_ANNUAL" \
-            --include_saved_oge_annual_scans "$INCLUDE_SAVED_OGE_ANNUAL_SCANS" \
-            --oge_annual_document_id "$OGE_ANNUAL_DOCUMENT_ID" \
-            --oge_annual_parser_version "$OGE_ANNUAL_PARSER_VERSION" \
-            --oge_annual_blue_date_document_id "$OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID" \
-            --oge_annual_blue_date_model_directory "$OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY" \
-            --verify_oge_annual_blank_slots "$VERIFY_OGE_ANNUAL_BLANK_SLOTS" \
-            --replay_oge_annual_cover_ocr "$REPLAY_OGE_ANNUAL_COVER_OCR"
+          git fetch --no-tags --depth=1 --filter=blob:none origin +main:refs/remotes/origin/main
+          cutoff="$(python -c 'import json; c=json.load(open(".local/oge-catalog.json")); print(c.get("observed_at", c["metadata"]["retrieved_at"]))')"
+          # BEGIN bounded saved PTR selection
+          saved_observation_args=()
+          case "${INCLUDE_SAVED_OGE_OBSERVATIONS:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved PTR observation switch.' >&2; exit 2 ;;
+          esac
+          if [[ "${INCLUDE_SAVED_OGE_OBSERVATIONS:-false}" == true ]]; then
+            saved_observation_path="$(python -m unison_snapshot oge-review saved-input --review-root "$REVIEW_ROOT")"
+            saved_observation_args=(--saved-observations "$saved_observation_path")
+          elif [[ -n "${OGE_SAVED_OBSERVATIONS_PATH:-}" ]]; then
+            echo 'A saved PTR input requires its explicit switch.' >&2
+            exit 2
+          fi
+          # BEGIN scoped native PTR preparation
+          generic_document_args=()
+          document_source_args=()
+          generic_document_selection="$(python -m unison_snapshot oge-review selection --review-root "$REVIEW_ROOT")"
+          if [[ -n "$generic_document_selection" ]]; then
+            while IFS=: read -r document_id source_sha; do
+              source_prepare_args=()
+              if [[ -n "$source_sha" ]]; then
+                source_prepare_args=(--source-sha256 "$source_sha")
+                document_source_args+=(--document-source "$document_id:$source_sha")
+              fi
+              PYTHONPATH=backend/src python -m unison_snapshot prepare-oge-ptr-generic \
+                --document-id "$document_id" \
+                --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+                --catalog .local/oge-catalog.json \
+                --catalog-history-dir "$REVIEW_ROOT/oge/discoveries" "${source_prepare_args[@]}"
+              generic_document_args+=(--generic-document-id "$document_id")
+            done <<< "$generic_document_selection"
+          fi
+          # END scoped native PTR preparation
+          # END bounded saved PTR selection
+          mkdir -p "$REVIEW_ROOT/candidates/sources" "$REVIEW_ROOT/oge/qualifications"
+          PYTHONPATH=backend/src python -m unison_snapshot build-oge-candidate --prior-publication \
+            --catalog .local/oge-catalog.json \
+            --catalog-history-dir "$REVIEW_ROOT/oge/discoveries" \
+            --extractions-dir "$REVIEW_ROOT/oge/extractions" \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --manual-cover-dates-dir "$REVIEW_ROOT/oge/manual_cover_dates" \
+            --base backend/data/empty-disclosure.json --data-cutoff-at "$cutoff" \
+            --output "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --audit-output "$REVIEW_ROOT/oge/qualifications/current.json" \
+            "${saved_observation_args[@]}" "${generic_document_args[@]}" "${document_source_args[@]}"
+          PYTHONPATH=backend/src python -m unison_snapshot build-whitehouse-278t-candidate \
+            --oge-candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --review-root "$REVIEW_ROOT" \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --candidate-out "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
+          # BEGIN bounded saved annual preparation
+          annual_args=()
+          case "${INCLUDE_SAVED_OGE_ANNUAL:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual preparation switch.' >&2; exit 2 ;;
+          esac
+          case "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual scan preparation switch.' >&2; exit 2 ;;
+          esac
+          case "${VERIFY_OGE_ANNUAL_BLANK_SLOTS:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual blank-slot switch.' >&2; exit 2 ;;
+          esac
+          case "${REPLAY_OGE_ANNUAL_COVER_OCR:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual cover replay switch.' >&2; exit 2 ;;
+          esac
+          if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}${OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY:-}" ] || [ "${VERIFY_OGE_ANNUAL_BLANK_SLOTS:-false}" = true ] || [ "${REPLAY_OGE_ANNUAL_COVER_OCR:-false}" = true ]; then
+            if [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" != true ] || [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" != true ]; then
+              echo 'Blue dates, blank slots and cover replay require saved annual scan preparation.' >&2
+              exit 2
+            fi
+          fi
+          if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}${OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY:-}" ]; then
+            [[ "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}" =~ ^[0-9a-f]{32}$ ]] || exit 2
+            python - <<'PY'
+          import os
+          raw = os.environ.get('OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY', '')
+          if (not raw or len(raw) > 512 or raw != raw.strip() or raw.startswith('/') or
+                  chr(92) in raw or ':' in raw or any(ord(c) < 32 or ord(c) == 127 for c in raw) or
+                  any(part in ('', '.', '..') for part in raw.split('/'))):
+              raise SystemExit('Blue-date model directory must be a bounded canonical evidence-relative path')
+          PY
+          fi
+          if [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" = true ] && [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" != true ]; then
+            echo 'Saved annual scans require the explicit annual preparation switch.' >&2
+            exit 2
+          fi
+          if [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" = true ]; then
+            selection_args=()
+            if [ -n "${OGE_ANNUAL_PARSER_VERSION:-}" ]; then
+              selection_args+=(--parser-version "$OGE_ANNUAL_PARSER_VERSION")
+            fi
+            if [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" = true ]; then
+              selection_args+=(--include-saved-scans)
+            fi
+            if [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}" ]; then
+              [[ "$OGE_ANNUAL_DOCUMENT_ID" =~ ^[0-9a-f]{32}$ ]] || exit 2
+              selection_args+=(--document-id "$OGE_ANNUAL_DOCUMENT_ID")
+            fi
+            if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}" ]; then
+              selection_args+=(--blue-date-document-id "$OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID" \
+                --blue-date-model-directory "$OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY")
+            fi
+            if [ "${VERIFY_OGE_ANNUAL_BLANK_SLOTS:-false}" = true ]; then
+              selection_args+=(--verify-transaction-blank-slots)
+            fi
+            if [ "${REPLAY_OGE_ANNUAL_COVER_OCR:-false}" = true ]; then
+              command -v tesseract >/dev/null
+              selection_args+=(--replay-cover-ocr)
+            fi
+            PYTHONPATH=backend/src python -m unison_snapshot prepare-oge-annual-runtime \
+              --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+              --output "$RUNNER_TEMP/oge-annual-input.json" \
+              --code-commit "$(git rev-parse HEAD)" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              "${selection_args[@]}"
+            annual_args+=(--oge-annual-input "$RUNNER_TEMP/oge-annual-input.json" \
+              --oge-annual-runtime-root "$EVIDENCE_ROOT")
+          elif [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}${OGE_ANNUAL_PARSER_VERSION:-}" ]; then
+            echo 'Saved annual document/parser selection requires the explicit preparation switch.' >&2
+            exit 2
+          fi
+          # END bounded saved annual preparation
+          PYTHONPATH=backend/src python -m unison_snapshot overlay-whitehouse-annual-candidate \
+            --review-root "$REVIEW_ROOT" \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json" \
+            "${annual_args[@]}"
+          test "$MARKET_DISTRIBUTION_AUTHORIZED" = true
+          assets_url="${ALPACA_ASSETS_URL:-https://paper-api.alpaca.markets/v2/assets}"
+          PYTHONPATH=backend/src python -m unison_snapshot enrich-whitehouse-annual-tickers \
+            --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --mapping-output "$REVIEW_ROOT/whitehouse/annual/ticker-mapping-current.json" \
+            --trump-2026-mapping-output "$REVIEW_ROOT/whitehouse/278t/trump-2026-ticker-mapping-current.json" \
+            --checked-at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --assets-url "$assets_url" --distribution-authorized
+          python -m unison_snapshot oge-review build --review-root "$REVIEW_ROOT"
+      - name: Save the valid source and assemble current peer projections
+        if: steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success'
+        run: |
+          python -m unison_snapshot assemble-source --workspace "$RUNNER_TEMP/oge-source" --source oge \
+            --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}"
       - name: Reconcile explicit integrity failures
         if: always()
         uses: ./.github/actions/report-integrity

@@ -9,10 +9,10 @@ from pathlib import Path
 from unison_snapshot.whitehouse_annual_review import build_annual_review
 
 
-def main(argv=None) -> None:
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--review-root", required=True, type=Path)
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     root = args.review_root
     raw = (root / "whitehouse/coverage-current.json").read_bytes()
     result = build_annual_review(json.loads(raw), root,
