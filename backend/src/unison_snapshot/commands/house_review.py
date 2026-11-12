@@ -80,7 +80,9 @@ def select(args):
     remaining=len(pending)+len(retries)-len(selected)
     print(json.dumps({'pending_parse_count':len(pending),'parser_retry_count':len(retries),
                       'selected_count':len(selected),'remaining_after_batch':remaining}))
-    return {'remaining_after_batch': remaining, 'cache_ready': remaining == 0}
+    if output:=getattr(args,'github_output',None):
+        with output.open('a',encoding='utf-8') as stream:
+            stream.write(f'remaining_after_batch={remaining}\ncache_ready={str(remaining==0).lower()}\n')
 
 
 def ocr(args):
@@ -108,7 +110,8 @@ def ocr(args):
             if planned_ocr_pages(observe_native_word_pages(document, metadata['sha256'])):
                 needs_ocr = True
                 break
-    return needs_ocr
+    with open(args.github_output, 'a', encoding='utf-8') as output:
+        output.write(f'needed={str(needs_ocr).lower()}\n')
 
 
 def status(args):
@@ -280,7 +283,7 @@ HANDLERS = {'select': select, 'ocr': ocr, 'status': status, 'backfill': backfill
             'select-holdings': select_holdings, 'holding-status': holding_status}
 
 
-def main(argv=None):
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=HANDLERS)
     parser.add_argument('--evidence-root', type=Path, default=os.environ.get('EVIDENCE_ROOT'))
@@ -290,8 +293,9 @@ def main(argv=None):
     parser.add_argument('--year', default=(os.environ.get('SELECT_YEAR') or
                                           os.environ.get('UNISON_HOUSE_FILING_YEAR', '')))
     parser.add_argument('--paper-document-id', default=os.environ.get('PAPER_DOCUMENT_ID', ''))
+    parser.add_argument('--github-output', type=Path, default=os.environ.get('GITHUB_OUTPUT'))
     parser.add_argument('--run-dir', type=Path, default=os.environ.get('RUNNER_TEMP', '.local'))
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     if args.evidence_root is None or not args.evidence_root.is_dir():
         parser.error('evidence-root must be an existing directory')
     if args.mode != 'ocr' and (args.review_root is None or not args.review_root.is_dir()):
@@ -302,6 +306,8 @@ def main(argv=None):
         parser.error('year must be a four-digit filing year')
     if args.mode in {'status', 'holding-status', 'replay-holdings'} and not re.fullmatch(r'[0-9a-f]{40}', args.parser_commit or ''):
         parser.error('parser-commit must be a fixed Git commit')
+    if args.mode == 'ocr' and args.github_output is None:
+        parser.error('github-output is required for OCR planning')
     args.run_dir.mkdir(parents=True, exist_ok=True)
-    result = HANDLERS[args.mode](args)
-    return 0 if argv is None else result
+    HANDLERS[args.mode](args)
+    return 0
