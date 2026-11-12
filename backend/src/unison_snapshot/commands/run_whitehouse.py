@@ -36,8 +36,8 @@ def account_for_reports_and_archive_a_bounded_annual_batch():
 
 
 def publish_official_annual_originals(workspace):
-    data_trees.publish(workspace, ('evidence',),
-        'White House Publish official annual originals ' + os.environ['GITHUB_RUN_ID'])
+    print(json.dumps(data_trees.publish(workspace, ('evidence',),
+        'White House Publish official annual originals ' + os.environ['GITHUB_RUN_ID'])))
 
 
 def publish_complete_white_house_coverage_audit():
@@ -72,8 +72,8 @@ def publish_complete_white_house_coverage_audit():
 
 
 def persist_annual_coverage(workspace):
-    data_trees.publish(workspace, ('review',),
-        'White House Persist annual coverage ' + os.environ['GITHUB_RUN_ID'])
+    print(json.dumps(data_trees.publish(workspace, ('review',),
+        'White House Persist annual coverage ' + os.environ['GITHUB_RUN_ID'])))
 
 
 def extract_content_verified_annual_reports_into_review_only():
@@ -90,8 +90,8 @@ def record_scanned_cover_date_roles_without_filing_date_promotion():
 
 
 def publish_annual_extraction_audits(workspace):
-    data_trees.publish(workspace, ('review',),
-        'White House Publish annual extraction audits ' + os.environ['GITHUB_RUN_ID'])
+    print(json.dumps(data_trees.publish(workspace, ('review',),
+        'White House Publish annual extraction audits ' + os.environ['GITHUB_RUN_ID'])))
 
 
 def archive_public_index_and_bounded_original_pdfs():
@@ -120,8 +120,8 @@ def archive_public_index_and_bounded_original_pdfs():
 
 
 def publish_official_originals_to_evidence(workspace):
-    data_trees.publish(workspace, ('evidence',),
-        'White House Publish official originals to evidence ' + os.environ['GITHUB_RUN_ID'])
+    print(json.dumps(data_trees.publish(workspace, ('evidence',),
+        'White House Publish official originals to evidence ' + os.environ['GITHUB_RUN_ID'])))
 
 
 def build_conservative_oge_catalog_crosswalk():
@@ -161,8 +161,8 @@ def materialize_white_house_annual_filer_reported_holdings():
 
 
 def publish_bounded_review_observations(workspace):
-    data_trees.publish(workspace, ('review',),
-        'White House Publish bounded review observations ' + os.environ['GITHUB_RUN_ID'])
+    print(json.dumps(data_trees.publish(workspace, ('review',),
+        'White House Publish bounded review observations ' + os.environ['GITHUB_RUN_ID'])))
 
 
 def rebuild_complete_oge_and_unified_review_candidates(workspace):

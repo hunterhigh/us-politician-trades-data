@@ -61,7 +61,7 @@ def check_the_production_collection_gate():
 
 
 def publish_gate(workspace):
-    data_trees.publish(workspace, ('state',), 'OGE gate ' + os.environ['GITHUB_RUN_ID'])
+    print(json.dumps(data_trees.publish(workspace, ('state',), 'OGE gate ' + os.environ['GITHUB_RUN_ID'])))
 
 
 def reject_a_partially_authorized_collection_gate():
@@ -87,7 +87,7 @@ def discover_archive_and_parse_direct_pdfs():
 
 
 def publish_immutable_official_evidence(workspace):
-    data_trees.publish(workspace, ('evidence',), 'OGE originals ' + os.environ['GITHUB_RUN_ID'])
+    print(json.dumps(data_trees.publish(workspace, ('evidence',), 'OGE originals ' + os.environ['GITHUB_RUN_ID'])))
 
 
 def preserve_collection_state_independently_of_qualification(workspace, successful):
@@ -97,7 +97,7 @@ def preserve_collection_state_independently_of_qualification(workspace, successf
         '--failure', '.local/oge-collection-failure.json', '--successful', str(successful).lower(),
         '--run-url', 'https://github.com/' + os.environ['GITHUB_REPOSITORY'] +
         '/actions/runs/' + os.environ['GITHUB_RUN_ID']])
-    data_trees.publish(workspace, ('state',), 'OGE collection outcome')
+    print(json.dumps(data_trees.publish(workspace, ('state',), 'OGE collection outcome')))
 
 
 def stage_parsed_oge_observations():
