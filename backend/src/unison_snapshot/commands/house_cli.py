@@ -1,4 +1,5 @@
 """House discovery, parsing, qualification and candidate commands."""
+import argparse
 import sys
 import json
 from pathlib import Path
@@ -13,7 +14,7 @@ from ..house_candidate import load_house_candidate
 from ..house_holdings import HouseFinancialDocumentClient, archive_indexed_financial_report, parse_archived_financial_report, qualify_financial_report
 from ..legacy import load
 from ._io import _write_atomic
-from ._runtime import invoke
+from . import _runtime
 
 
 def configure_discover_house_index(parser):
@@ -277,6 +278,20 @@ COMMANDS = {
 }
 
 
-def main():
+def main(argv=None):
     command = sys.argv[0].rsplit(" ", 1)[-1]
-    invoke(command, *COMMANDS[command])
+    configure, execute = COMMANDS[command]
+    parser = argparse.ArgumentParser(prog="python -m unison_snapshot " + command)
+    configure(parser)
+    parser.set_defaults(command=command)
+    args = parser.parse_args(argv)
+    try:
+        execute(args)
+    except (ValueError, RuntimeError, _runtime.HouseIndexError, _runtime.DisclosureCandidateError,
+            _runtime.AlpacaMarketError, _runtime.SenateEfdError, _runtime.SenateRosterError,
+            _runtime.SenateIdentityError, _runtime.SenateHistoryError, _runtime.CongressMemberError,
+            _runtime.OgeCatalogError, _runtime.ReleaseReadinessError, KeyError, OSError,
+            json.JSONDecodeError) as exc:
+        from ..source_failures import record as record_source_failure
+        record_source_failure(args.command, exc, filing_year=getattr(args, 'year', None))
+        parser.exit(2, f"Snapshot operation failed: {exc}\n")
