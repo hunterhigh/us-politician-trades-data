@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 import uuid
 
-CATEGORIES = {'correction_assertion', 'snapshot_contract', 'official_hash', 'old_fact_delta'}
+CATEGORIES = {'correction_assertion', 'snapshot_contract', 'official_hash'}
 SCOPES = {'house_clerk', 'senate_efd', 'oge', 'publication', 'publication_gate', 'market'}
 MARKER = '<!-- source-integrity:'
 META = '<!-- integrity-conditions:'
@@ -21,7 +21,7 @@ def subject(category, values):
     document_hint = metadata.get('document_id') if isinstance(metadata, dict) else None
     if not isinstance(document_hint, str) or not re.fullmatch('[A-Za-z0-9:._-]{1,128}', document_hint):
         document_hint = None
-    if category in {'snapshot_contract', 'old_fact_delta'}:
+    if category == 'snapshot_contract':
         if document_hint: return 'document:' + document_hint
         path = values.get('metadata_path', values.get('path'))
         if isinstance(path, (str, Path)):
