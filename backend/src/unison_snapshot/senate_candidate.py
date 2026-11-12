@@ -1157,7 +1157,8 @@ def build_senate_candidate(
                 "basis": "qualified_empty_transaction_table_with_complete_source_coverage",
             })
 
-    cutoff = state_status.get("run_at")
+    cutoff = (state_status["data_cutoff_at"] if state_status.get("acquisition") == "manual_browser"
+              else state_status.get("run_at"))
     try:
         parsed_cutoff = datetime.fromisoformat(str(cutoff).replace("Z", "+00:00"))
         if parsed_cutoff.tzinfo is None:
