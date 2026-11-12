@@ -168,7 +168,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-12T07:43:56.869642+00:00",
+  "checked_at": "2026-11-12T07:59:17.683316+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -193,7 +193,7 @@
   "quality_review_commit": "f35f56053cd0359bbe6157b25ff57a24afe77f05",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-12T07:34:44.347613+00:00",
+    "checked_at": "2026-11-12T07:59:17.267262+00:00",
     "checks": [
       {
         "commit": "199b9373cadb6855d9b04fc144e94ea7eea2c232",
@@ -228,7 +228,7 @@
         "status": "passed"
       }
     ],
-    "client_sha256": "daa9b44a68113a7851558a23058ac177e8d51e9fdc78a5d9c5e10ef1c9e37ecd",
+    "client_sha256": "5fedb534d931ed87ee51cfc29777292fc849c53ac1cdd7ce51f86d3abbfc4a90",
     "commit": "199b9373cadb6855d9b04fc144e94ea7eea2c232",
     "failed_snapshots": {},
     "last_good_commit": "199b9373cadb6855d9b04fc144e94ea7eea2c232",
