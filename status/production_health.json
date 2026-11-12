@@ -156,8 +156,8 @@
     }
   ],
   "assembly": {
-    "attempted_at": "2026-11-12T00:12:32.577391+00:00",
-    "candidate_sha256": "6f53e4b5432c54b2174e4a0a6ff922bd48929b9515e2006b2b4296f63cb07092",
+    "attempted_at": "2026-11-12T03:43:25.951530+00:00",
+    "candidate_sha256": "c1ab91a3bb291e1767bf7aedfcaad7c6e9af2edef01f1b1b135e0788e24fc16d",
     "data_cutoff_at": "2026-11-11T23:07:49.999530+00:00",
     "schema_version": "disclosure-assembly-status/v1",
     "source_cutoffs": {
@@ -168,7 +168,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-12T03:15:41.829792+00:00",
+  "checked_at": "2026-11-12T03:48:14.000757+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -190,10 +190,10 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "69f3dbfbf8ee9622ebbe78a7594c11dd8408f3de",
+  "quality_review_commit": "1783ffd5567ebea4de7f22a27c235f7052f15281",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-12T00:54:25.695278+00:00",
+    "checked_at": "2026-11-12T03:48:13.682819+00:00",
     "checks": [
       {
         "commit": "a8c9f25722ee939be127747e3a97ce578df674a4",
@@ -228,7 +228,7 @@
         "status": "passed"
       }
     ],
-    "client_sha256": "3b59fcd5a45ceb72e7bb73a7ef5a5d483c60101e2f69486d7d2174421dde15ff",
+    "client_sha256": "7c323a92194b042829fb65c9ec912a61d6531b20536ccdd7756885230fcc1874",
     "commit": "a8c9f25722ee939be127747e3a97ce578df674a4",
     "failed_snapshots": {},
     "last_good_commit": "a8c9f25722ee939be127747e3a97ce578df674a4",
@@ -273,8 +273,8 @@
       "failed_step": null,
       "grace_active": false,
       "http_status": null,
-      "last_attempt_at": "2026-11-11T14:40:13.864411+00:00",
-      "last_successful_collection_at": "2026-11-11T14:40:13.864411+00:00",
+      "last_attempt_at": "2026-11-12T03:43:07.460127+00:00",
+      "last_successful_collection_at": "2026-11-12T03:43:07.460127+00:00",
       "max_stale_days": 30,
       "qualified_cutoff_at": "2026-11-11T14:40:13.864411+00:00",
       "stale": false,
