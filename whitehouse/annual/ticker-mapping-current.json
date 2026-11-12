@@ -749,9 +749,9 @@
     }
   ],
   "annual_transaction_count": 6759,
-  "asset_master_sha256": "61c2113100080ac3f3c8ea3577d0f007ab526c7401f4613e6e9003b6ad3faf58",
-  "candidate_before_sha256": "01f408f8d621cedd714dbb88d29f8380fe6bf7486c17baf667001c053e38e144",
-  "checked_at": "2026-11-11T23:49:06Z",
+  "asset_master_sha256": "8c23d8b946729bd56a7f78fb42754e96e9bdcaf50cfa94d466d1f4c728b8dafd",
+  "candidate_before_sha256": "591e9bcdabc0ef82d61f38260b244e4aafb73f6f1c0496378211994674e56159",
+  "checked_at": "2026-11-12T06:14:22Z",
   "mapped_asset_name_count": 1128,
   "mapping_count": 4540,
   "mappings": [
