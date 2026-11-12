@@ -130,6 +130,7 @@ def record_collected(state, run, now):
         'run_at': now,
         'status': 'catalog_ready_for_review',
         'last_successful_collection_at': now,
+        'last_successful_automatic_collection_at': now,
         'collection_enabled': True,
         'terms_acknowledged': True,
         'gate': gate,
@@ -224,16 +225,20 @@ def record_review(review, run, now):
             raise SystemExit('Senate eFD report failure conflicts with its source hash')
         write_text(item_target, item_content)
     parser_version = extraction_batch['parser_version']
-    extraction_paths = list(review.glob(
-        f'senate_efd/extractions/*/*/{parser_version}.json'))
+    versions = {row['document_id']: row['sha256'] for row in report_batch['replay']}
+    extraction_paths = [path for path in review.glob(
+        f'senate_efd/extractions/*/*/{parser_version}.json')
+        if versions.get(path.parent.parent.name) == path.parent.name]
     extraction_values = [json.loads(path.read_text(encoding='utf-8'))
                          for path in extraction_paths]
     evidence_count = sum(bool(item.get('evidence_complete')) for item in extraction_values)
     transaction_count = sum(len(item.get('transactions', [])) for item in extraction_values)
-    report_failure_count = sum(len(list(review.glob(pattern))) for pattern in (
+    report_failure_count = sum(
+        versions.get(path.parent.parent.name) == path.parent.name
+        for pattern in (
         f'senate_efd/report_failures/*/*/{parser_version}.json',
         f'senate_efd/paper_report_failures/*/*/{parser_version}.json',
-    ))
+    ) for path in review.glob(pattern))
     status = {
         'schema_version': 'senate-review-run/v1',
         'source_id': 'senate_efd',
@@ -245,6 +250,7 @@ def record_review(review, run, now):
         'identity_roster_sha256': roster_sha,
         'identity_binding_sha256': identity_binding,
         'report_parser_version': parser_version,
+        'report_source_sha256': versions,
         'report_entrypoint_count': report_batch['archived_total'],
         'report_entrypoint_pending_count': report_batch['pending_count'],
         'report_entrypoint_failure_count': report_batch['failure_count'],

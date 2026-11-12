@@ -1,7 +1,7 @@
-name: Senate weekly download reminder
+name: Senate automatic collection fallback reminder
 on:
   schedule:
-    - cron: '0 1 * * 1'
+    - cron: '0 1 * * *'
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,11 +28,11 @@ jobs:
       - uses: ./.github/actions/data-trees
         with:
           scope: senate
-          roles: review
+          roles: review state
           workspace: ${{ runner.temp }}/senate-reminder
-      - name: Create or update this week's single reminder
+      - name: Maintain the reminder only after three days without automatic success
         env:
           GH_TOKEN: ${{ github.token }}
           PYTHONPATH: backend/src
           SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
-        run: python -m unison_snapshot senate-inbox remind --review-root "$REVIEW_ROOT"
+        run: python -m unison_snapshot senate-inbox remind --review-root "$REVIEW_ROOT" --state-root "$STATE_ROOT"

@@ -246,31 +246,29 @@ def _archived_entrypoints(root: Path) -> list[dict]:
     reports_root = root.resolve() / "senate_efd" / "reports"
     if not reports_root.exists():
         return []
-    archived: list[dict] = []
-    seen: set[str] = set()
+    versions = []
     for path in reports_root.glob("*/*.metadata.json"):
         try:
             metadata = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             raise SenateEfdError("Archived Senate eFD report metadata is unreadable") from None
-        document_id = path.parent.name
         if (metadata.get("schema_version") != REPORT_ARCHIVE_SCHEMA or
-                metadata.get("document_id") != document_id or
-                metadata.get("artifact_role") != "entrypoint_response"):
+                metadata.get("document_id") != path.parent.name):
             raise SenateEfdError("Archived Senate eFD report metadata is inconsistent")
-        if document_id in seen:
-            raise SenateEfdError("Multiple Senate eFD entrypoints exist for one catalog document")
-        archived.append({
+        versions.append(metadata)
+    archived = {}
+    for metadata in sorted(versions, key=lambda m: (
+            m.get("artifact_role") == "entrypoint_response", m["retrieved_at"], m["sha256"])):
+        document_id = metadata["document_id"]
+        archived[document_id] = {
             "document_id": document_id,
             "access_method": metadata.get("access_method"),
             "sha256": metadata.get("sha256"),
             "media_kind": metadata.get("media_kind"),
             "archive_path": metadata.get("archive_path"),
             "evidence_complete": False,
-        })
-        seen.add(document_id)
-    archived.sort(key=lambda item: item["document_id"])
-    return archived
+        }
+    return [archived[key] for key in sorted(archived)]
 
 
 def archive_catalog_report_entrypoints(
