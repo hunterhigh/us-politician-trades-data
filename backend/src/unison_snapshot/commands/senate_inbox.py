@@ -190,7 +190,7 @@ def receive(args):
             extracted[document_id] = extraction; failed.pop(document_id, None)
             reports[document_id] = report
             receipt = {'document_id': document_id, 'source_sha256': sha, 'acquisition': 'manual_browser',
-                       'files': names, 'filed_date': report['portal_listed_date'], 'imported_at': now}
+                       'files': names, 'filed_date': _filed_date(extraction['filed_at_raw']), 'imported_at': now}
             ledger[document_id] = receipt
             result['imported'].append(receipt)
         except (RuntimeError, ValueError, OSError, IndexError, StopIteration) as error:
@@ -220,7 +220,12 @@ def receive(args):
             detail='Maintainer-saved PTR originals imported; existing annual and PTR inventory retained.')
         write(review / 'status/senate_efd.json', status)
         prior = read(state / 'status/senate_efd.json')
+        previous_cutoff = read(review / 'candidates/sources/senate_efd-current.json')['meta']['data_cutoff_at']
+        latest_filed = max(r['filed_date'] for r in result['imported']) + 'T00:00:00+00:00'
+        cutoff = max((previous_cutoff, latest_filed),
+                     key=lambda value: datetime.fromisoformat(value.replace('Z', '+00:00')))
         prior.update(acquisition='manual_browser', run_at=now, last_successful_collection_at=now,
+            data_cutoff_at=cutoff,
             status='catalog_ready_for_review', catalog={'status': 'ok', 'sha256': sha,
                 'record_count': len(reports), 'retrieved_at': now, 'page_count': 0},
             reports={'entrypoint_count': len(reports), 'pending_count': 0},
