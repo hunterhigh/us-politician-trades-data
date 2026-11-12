@@ -10,7 +10,6 @@ import re
 from .builder import timestamp
 from .oge_projection import (
     _identity_key, _person_id, _instrument, _transaction_projection,
-    _legacy_default_owner_evidence,
 )
 from .oge import OgeCatalogError, SCHEMA as CATALOG_SCHEMA
 from .oge_reports import (EXTRACTION_SCHEMA, GENERIC_PARSER_VERSION, PARSER_VERSION, collapse_direct_catalog_records)
