@@ -80,10 +80,6 @@ def parser_profile_for_source(source_url, source_sha256):
     return correction.get('parser_profile') if correction and correction['source_url'] == source_url else None
 
 
-def required_source_urls():
-    return {c['source_url'] for c in profiles() if c.get('publication_requirement') is True}
-
-
 def _variant(correction, version):
     if version == correction['parser_version']:
         return correction

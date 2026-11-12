@@ -58,17 +58,6 @@ def profiles():
     return [c for p in sorted(ROOT.glob('*.json')) if (c:=correction_for(p.stem)) is not None]
 
 
-def required_publication_sources():
-    return [c for c in profiles() if c.get('publication_requirement') is True]
-
-
-def required_publication_source(row):
-    return any(row.get('filing_id')==c['document_id'] and
-        row.get('source_url')==c['assertions']['metadata']['document_url'] and
-        isinstance(row.get('id'),str) and row['id'].startswith('oge-278t:')
-        for c in required_publication_sources())
-
-
 def parser_versions(document=None):
     selected=profiles() if document is None else [c] if (c:=correction_for(document)) else []
     return {v for c in selected for v in c['parser_versions']}
