@@ -156,19 +156,19 @@
     }
   ],
   "assembly": {
-    "attempted_at": "2026-11-12T23:23:47.129950+00:00",
-    "candidate_sha256": "b3c72f2ce73198f4408f8bfc76b26db6f0a9b31c688ad97d3e49676c70e2f0c5",
-    "data_cutoff_at": "2026-11-12T22:30:22.396364+00:00",
+    "attempted_at": "2026-11-13T04:07:08.456299+00:00",
+    "candidate_sha256": "a51957f39e7f91f8ecd58f0a2c79190d6c3dbe184e20511c6153b0088a20df90",
+    "data_cutoff_at": "2026-11-13T03:52:10.276931+00:00",
     "schema_version": "disclosure-assembly-status/v1",
     "source_cutoffs": {
       "house_clerk": "2026-11-12T19:55:39+00:00",
-      "oge": "2026-11-12T22:30:22.396364+00:00",
+      "oge": "2026-11-13T03:52:10.276931+00:00",
       "senate_efd": "2026-11-12T04:04:33.677189+00:00"
     },
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-13T03:43:33.616057+00:00",
+  "checked_at": "2026-11-13T04:12:10.194562+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -190,10 +190,10 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "08d417f27a1f97a4f4cc721b3370a12c4aa1810d",
+  "quality_review_commit": "f6d6674b3cf4a141aa2f948190225c16b4e8d85b",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-13T03:43:33.078938+00:00",
+    "checked_at": "2026-11-13T04:12:09.888696+00:00",
     "checks": [
       {
         "commit": "ce196dbe7108956b65492c2a088d5855e44787b8",
@@ -228,7 +228,7 @@
         "status": "passed"
       }
     ],
-    "client_sha256": "5fedb534d931ed87ee51cfc29777292fc849c53ac1cdd7ce51f86d3abbfc4a90",
+    "client_sha256": "c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8",
     "commit": "ce196dbe7108956b65492c2a088d5855e44787b8",
     "failed_snapshots": {},
     "last_good_commit": "ce196dbe7108956b65492c2a088d5855e44787b8",
@@ -260,13 +260,13 @@
       "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-13T03:09:00.350218+00:00",
-      "last_successful_collection_at": "2026-11-13T02:58:28.573461+00:00",
-      "qualified_cutoff_at": "2026-11-12T22:30:22.396364+00:00",
+      "last_attempt_at": "2026-11-13T04:03:20.987872+00:00",
+      "last_successful_collection_at": "2026-11-13T03:52:10.276931+00:00",
+      "qualified_cutoff_at": "2026-11-13T03:52:10.276931+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/43355469412"
+      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/43360829523"
     },
     "senate_efd": {
       "detail": "Authorized eFD PTR catalog and a bounded batch of report entrypoint responses were archived. Transaction facts remain unpublished.",
