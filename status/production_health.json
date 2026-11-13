@@ -161,19 +161,19 @@
     }
   ],
   "assembly": {
-    "attempted_at": "2026-11-13T20:34:38.950247+00:00",
-    "candidate_sha256": "b525fdba632d18a738cc2df21a82de84882ccd97f13bf5f9ca7bba5047bfb6a1",
-    "data_cutoff_at": "2026-11-13T19:43:23+00:00",
+    "attempted_at": "2026-11-13T22:17:58.263321+00:00",
+    "candidate_sha256": "acf43d2922eacd8ca5e91c7dc660254c1a522d1fdf7476cad3b3e84722adfd95",
+    "data_cutoff_at": "2026-11-13T22:14:51.663643+00:00",
     "schema_version": "disclosure-assembly-status/v1",
     "source_cutoffs": {
       "house_clerk": "2026-11-13T19:43:23+00:00",
-      "oge": "2026-11-13T12:41:40.839663+00:00",
+      "oge": "2026-11-13T22:14:51.663643+00:00",
       "senate_efd": "2026-11-12T04:04:33.677189+00:00"
     },
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-13T20:55:58.924522+00:00",
+  "checked_at": "2026-11-13T22:20:43.101811+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -182,14 +182,14 @@
       "number": 290
     },
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "quality-summary:2026-W46",
       "number": 327
     }
   ],
-  "last_successful_publication_check_at": "2026-11-13T20:50:56Z",
+  "last_successful_publication_check_at": "2026-11-13T22:17:18Z",
   "publication": "sources_recovered",
-  "published_at": "2026-11-13T20:39:08Z",
+  "published_at": "2026-11-13T22:07:36Z",
   "quality_complete": true,
   "quality_observed_scopes": [
     "quality:house_clerk:house_ptr",
@@ -200,34 +200,34 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "cda7cce1caaa7df93381ebeb89c6d48b2d284499",
+  "quality_review_commit": "edcb23c8bdee2c5aae9b98ac68e19a950e64c0bb",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-13T20:55:58.532590+00:00",
+    "checked_at": "2026-11-13T22:20:42.756863+00:00",
     "checks": [
       {
-        "commit": "5d2b668e9c6310392c5a271065c850f9dbac6eca",
+        "commit": "d9f198013c0d2b22f8edc213c411370f1060729a",
         "mode": "dashboard",
         "person_id": null,
         "snapshot_id": "ad663289eca048121f5e182d6f4ddbe4944893bf9ac7899eb0eedc8e4353f602",
         "status": "passed"
       },
       {
-        "commit": "5d2b668e9c6310392c5a271065c850f9dbac6eca",
+        "commit": "d9f198013c0d2b22f8edc213c411370f1060729a",
         "mode": "person",
         "person_id": "house:M001157",
         "snapshot_id": "ad663289eca048121f5e182d6f4ddbe4944893bf9ac7899eb0eedc8e4353f602",
         "status": "passed"
       },
       {
-        "commit": "5d2b668e9c6310392c5a271065c850f9dbac6eca",
+        "commit": "d9f198013c0d2b22f8edc213c411370f1060729a",
         "mode": "person",
         "person_id": "senate:W000805",
         "snapshot_id": "ad663289eca048121f5e182d6f4ddbe4944893bf9ac7899eb0eedc8e4353f602",
         "status": "passed"
       },
       {
-        "commit": "5d2b668e9c6310392c5a271065c850f9dbac6eca",
+        "commit": "d9f198013c0d2b22f8edc213c411370f1060729a",
         "mode": "person",
         "person_id": "oge:076544f8ba0638cf",
         "snapshot_id": "ad663289eca048121f5e182d6f4ddbe4944893bf9ac7899eb0eedc8e4353f602",
@@ -239,9 +239,9 @@
       }
     ],
     "client_sha256": "c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8",
-    "commit": "5d2b668e9c6310392c5a271065c850f9dbac6eca",
+    "commit": "d9f198013c0d2b22f8edc213c411370f1060729a",
     "failed_snapshots": {},
-    "last_good_commit": "5d2b668e9c6310392c5a271065c850f9dbac6eca",
+    "last_good_commit": "d9f198013c0d2b22f8edc213c411370f1060729a",
     "recovery": {
       "action": "none",
       "reason": "passed"
@@ -251,7 +251,7 @@
     "snapshot_id": "ad663289eca048121f5e182d6f4ddbe4944893bf9ac7899eb0eedc8e4353f602",
     "status": "passed"
   },
-  "snapshot_changed": true,
+  "snapshot_changed": false,
   "snapshot_id": "ad663289eca048121f5e182d6f4ddbe4944893bf9ac7899eb0eedc8e4353f602",
   "sources": {
     "house_clerk": {
@@ -270,13 +270,13 @@
       "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-13T12:41:53.854702+00:00",
-      "last_successful_collection_at": "2026-11-13T12:41:40.839663+00:00",
-      "qualified_cutoff_at": "2026-11-13T12:41:40.839663+00:00",
+      "last_attempt_at": "2026-11-13T22:15:03.479778+00:00",
+      "last_successful_collection_at": "2026-11-13T22:14:51.663643+00:00",
+      "qualified_cutoff_at": "2026-11-13T22:14:51.663643+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/43426924414"
+      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/43517278069"
     },
     "senate_efd": {
       "detail": "Senate catalog collection failed; prior source data is retained.",
