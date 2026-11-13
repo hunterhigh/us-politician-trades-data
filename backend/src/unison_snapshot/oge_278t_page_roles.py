@@ -89,17 +89,3 @@ def observe_native_page_role(page, page_number: int, *, source_sha256: str | Non
     from .oge_278t_cover_role import observe_native_cover_role
     return observe_native_cover_role(page, page_number, source_sha256=source_sha256,
                                      cover_identity_context=cover_identity_context)
-
-
-def replay_native_page_role(path: Path, proof: dict, *, source_sha256: str,
-                            page_number: int, cover_identity_context=None) -> bool:
-    if not isinstance(proof, dict):
-        return False
-    if proof.get('rule_version') == RULE:
-        return replay_native_privacy_role(path, proof, source_sha256=source_sha256,
-                                          page_number=page_number)
-    from .oge_278t_cover_role import COVER_RULE, replay_native_cover_role
-    if proof.get('rule_version') == COVER_RULE:
-        return replay_native_cover_role(path, proof, source_sha256=source_sha256,
-            page_number=page_number, cover_identity_context=cover_identity_context)
-    return False

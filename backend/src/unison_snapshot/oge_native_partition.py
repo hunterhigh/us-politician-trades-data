@@ -1,8 +1,6 @@
 """Source-selected direct OGE native visibility variants and original replay."""
 from __future__ import annotations
 
-from pathlib import Path
-
 from .oge import OgeCatalogError
 
 DEFAULT_VERSION = 'oge-278t-native-visible-default/v1'
@@ -84,27 +82,6 @@ def parse_partitioned_oge(metadata, path, *, source_sha256, generic=False, parse
         result.update(cover_date_evidence=date_evidence,
             row_interpretation_mode=GENERIC_ROW_INTERPRETATION_MODE, structural_rows=structural)
     return result
-
-
-def replay_partitioned_oge(extraction, evidence_root):
-    """A saved marker cannot substitute for the canonical archived original."""
-    from .oge_reports import _read_archived_source
-    if evidence_root is None:
-        raise OgeCatalogError('Native visible OGE qualification requires its evidence root')
-    document, sha = extraction.get('document_id'), extraction.get('source_sha256')
-    import re
-    if not isinstance(document, str) or not re.fullmatch('[0-9a-f]{32}', document) or not re.fullmatch('[0-9a-f]{64}', str(sha)):
-        raise OgeCatalogError('Native visible OGE source identity is invalid')
-    root = Path(evidence_root).resolve()
-    metadata, path, actual = _read_archived_source(root, root / f'oge/reports/{document}/{sha}.json')
-    if actual != sha:
-        raise OgeCatalogError('Native visible OGE original differs')
-    replayed = parse_partitioned_oge(metadata, path, source_sha256=sha,
-        generic=extraction.get('parser_version') in GENERIC_VERSIONS,
-        parser_version=extraction.get('parser_version'))
-    if replayed != extraction:
-        raise OgeCatalogError('Native visible OGE extraction differs from original source replay')
-    return replayed
 
 
 def validate_partitioned_interpretation(extraction):
