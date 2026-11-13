@@ -156,19 +156,19 @@
     }
   ],
   "assembly": {
-    "attempted_at": "2026-11-12T20:35:37.731623+00:00",
-    "candidate_sha256": "87838c4506f4e85500e2191a004d11f02f354f08552451d114a7d41814afb15c",
-    "data_cutoff_at": "2026-11-12T19:55:39+00:00",
+    "attempted_at": "2026-11-12T23:23:47.129950+00:00",
+    "candidate_sha256": "b3c72f2ce73198f4408f8bfc76b26db6f0a9b31c688ad97d3e49676c70e2f0c5",
+    "data_cutoff_at": "2026-11-12T22:30:22.396364+00:00",
     "schema_version": "disclosure-assembly-status/v1",
     "source_cutoffs": {
       "house_clerk": "2026-11-12T19:55:39+00:00",
-      "oge": "2026-11-12T13:20:21.988710+00:00",
+      "oge": "2026-11-12T22:30:22.396364+00:00",
       "senate_efd": "2026-11-12T04:04:33.677189+00:00"
     },
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-12T23:04:01.311420+00:00",
+  "checked_at": "2026-11-13T00:12:22.417799+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -177,9 +177,9 @@
       "number": 327
     }
   ],
-  "last_successful_publication_check_at": "2026-11-12T23:00:02Z",
+  "last_successful_publication_check_at": "2026-11-13T00:07:46Z",
   "publication": "sources_recovered",
-  "published_at": "2026-11-12T22:25:52Z",
+  "published_at": "2026-11-12T23:28:06Z",
   "quality_complete": true,
   "quality_observed_scopes": [
     "quality:house_clerk:house_ptr",
@@ -190,37 +190,37 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "f5e06f73cc9df18d63f8f5228747111680311781",
+  "quality_review_commit": "8341dd3081e33d9458ef8480e2a195111db5a207",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-12T23:04:00.954224+00:00",
+    "checked_at": "2026-11-13T00:12:22.046142+00:00",
     "checks": [
       {
-        "commit": "d37757310a09a4fcb70abcea9948eb655c392bc5",
+        "commit": "5cd533fd1fc1a9d72859cc16485a46a711d87d33",
         "mode": "dashboard",
         "person_id": null,
-        "snapshot_id": "c8e5073605e11b701fc3580549d62281aaca3114da4c605b9534884d3882cd31",
+        "snapshot_id": "e26b14a3e371edf131abd493b40cda577ad65ad415e976028739c05e4a1efb8b",
         "status": "passed"
       },
       {
-        "commit": "d37757310a09a4fcb70abcea9948eb655c392bc5",
+        "commit": "5cd533fd1fc1a9d72859cc16485a46a711d87d33",
         "mode": "person",
         "person_id": "house:M001157",
-        "snapshot_id": "c8e5073605e11b701fc3580549d62281aaca3114da4c605b9534884d3882cd31",
+        "snapshot_id": "e26b14a3e371edf131abd493b40cda577ad65ad415e976028739c05e4a1efb8b",
         "status": "passed"
       },
       {
-        "commit": "d37757310a09a4fcb70abcea9948eb655c392bc5",
+        "commit": "5cd533fd1fc1a9d72859cc16485a46a711d87d33",
         "mode": "person",
         "person_id": "senate:W000805",
-        "snapshot_id": "c8e5073605e11b701fc3580549d62281aaca3114da4c605b9534884d3882cd31",
+        "snapshot_id": "e26b14a3e371edf131abd493b40cda577ad65ad415e976028739c05e4a1efb8b",
         "status": "passed"
       },
       {
-        "commit": "d37757310a09a4fcb70abcea9948eb655c392bc5",
+        "commit": "5cd533fd1fc1a9d72859cc16485a46a711d87d33",
         "mode": "person",
         "person_id": "oge:076544f8ba0638cf",
-        "snapshot_id": "c8e5073605e11b701fc3580549d62281aaca3114da4c605b9534884d3882cd31",
+        "snapshot_id": "e26b14a3e371edf131abd493b40cda577ad65ad415e976028739c05e4a1efb8b",
         "status": "passed"
       },
       {
@@ -229,20 +229,20 @@
       }
     ],
     "client_sha256": "5fedb534d931ed87ee51cfc29777292fc849c53ac1cdd7ce51f86d3abbfc4a90",
-    "commit": "d37757310a09a4fcb70abcea9948eb655c392bc5",
+    "commit": "5cd533fd1fc1a9d72859cc16485a46a711d87d33",
     "failed_snapshots": {},
-    "last_good_commit": "d37757310a09a4fcb70abcea9948eb655c392bc5",
+    "last_good_commit": "5cd533fd1fc1a9d72859cc16485a46a711d87d33",
     "recovery": {
       "action": "none",
       "reason": "passed"
     },
     "rollback_requested_for": null,
     "schema_version": "publication-smoke/v1",
-    "snapshot_id": "c8e5073605e11b701fc3580549d62281aaca3114da4c605b9534884d3882cd31",
+    "snapshot_id": "e26b14a3e371edf131abd493b40cda577ad65ad415e976028739c05e4a1efb8b",
     "status": "passed"
   },
-  "snapshot_changed": false,
-  "snapshot_id": "c8e5073605e11b701fc3580549d62281aaca3114da4c605b9534884d3882cd31",
+  "snapshot_changed": true,
+  "snapshot_id": "e26b14a3e371edf131abd493b40cda577ad65ad415e976028739c05e4a1efb8b",
   "sources": {
     "house_clerk": {
       "detail": null,
@@ -262,7 +262,7 @@
       "http_status": null,
       "last_attempt_at": "2026-11-12T22:41:02.351297+00:00",
       "last_successful_collection_at": "2026-11-12T22:30:22.396364+00:00",
-      "qualified_cutoff_at": "2026-11-12T13:20:21.988710+00:00",
+      "qualified_cutoff_at": "2026-11-12T22:30:22.396364+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
