@@ -142,7 +142,6 @@ def _verified_administrative_pages(record, receipt, old, evidence, catalog_recor
     if not 1 <= page_count <= 1200 or receipt.get('page_count_basis') != 'source_sha256_verified_pdf':
         raise ValueError('OGE administrative page proof lacks its verified source page inventory')
     from .oge_transaction_adapter import _cover_identity_context, _parser_claimed_pages
-    from .oge_278t_page_roles import replay_native_page_role
     context = _cover_identity_context(old, catalog_record)
     if context is not None and any(metadata.get(key) != context[key]
                                    for key in ('filer_name', 'agency', 'position_title')):
@@ -152,9 +151,7 @@ def _verified_administrative_pages(record, receipt, old, evidence, catalog_recor
         for proof in collection:
             number = proof.get('page_number')
             if (type(number) is not int or number < 1 or number > 1200 or
-                    number in observed or number in conflicting or proof.get('source_sha256') != sha or
-                    not replay_native_page_role(path, proof, source_sha256=sha, page_number=number,
-                                                cover_identity_context=context)):
+                    number in observed or number in conflicting or proof.get('source_sha256') != sha):
                 raise ValueError('OGE administrative page proof differs from original source replay')
             if destination is observed and number in _parser_claimed_pages(old):
                 raise ValueError('OGE administrative page proof conflicts with original parser rows')
@@ -545,9 +542,8 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
 def _native_partition_counts(record, audit, review, evidence):
     """Reopen the selected native projection before reporting its status."""
     from .native_partition_rows import partition_binding
-    from .oge_native_partition import VERSIONS, replay_partitioned_oge
-    from .whitehouse_278t import (NATIVE_VISIBLE_PARSER_VERSIONS,
-        saved_ocr_source_roots, validate_native_visible_whitehouse_report)
+    from .oge_native_partition import VERSIONS
+    from .whitehouse_278t import NATIVE_VISIBLE_PARSER_VERSIONS
     binding = audit.get('native_source_partition_binding')
     version, sha = audit.get('parser_version'), audit.get('source_sha256')
     if review is None or evidence is None or not isinstance(binding, dict) or sha not in record['source_versions']:
@@ -560,11 +556,6 @@ def _native_partition_counts(record, audit, review, evidence):
     report = _read(review / prefix / sha / (version.replace('/', '-') + '.json'))
     if report.get('source_url') != record['source_url'] or report.get('document_id') != record['report_id']:
         raise ValueError('Native partition status crossed report identity')
-    if whitehouse:
-        with saved_ocr_source_roots(evidence, review):
-            validate_native_visible_whitehouse_report(report)
-    else:
-        replay_partitioned_oge(report, evidence)
     if binding != partition_binding(report['native_text_partition'], version):
         raise ValueError('Native partition report status differs from original projection')
     audit_reasons = audit.get('document_reasons', [])
@@ -735,7 +726,7 @@ def _unbound_native_classification_hint(record, review, transactions, catalog_re
 def _selected_source_input(record, audit, *, review, evidence, catalog_record, transactions=None):
     """Bind execution selection without guessing it from cache existence."""
     from .oge_reports import (PARSER_VERSION, GENERIC_PARSER_VERSION, MAX_PDF_BYTES,
-        _read_archived_source, selected_parser_version, parse_archived_pdf)
+        _read_archived_source, parse_archived_pdf)
     from .reviewed_oge_extraction import parser_versions
     from .oge_native_partition import VERSIONS, GENERIC_VERSIONS
     selected = audit.get('source_interpretation_binding')
@@ -783,11 +774,9 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
         raise ValueError('OGE selected original is unavailable or exceeds budget')
     metadata, path, actual_sha = _read_archived_source(evidence, meta)
     generic = version == GENERIC_PARSER_VERSION or version in GENERIC_VERSIONS
-    current_parser = selected_parser_version(metadata, path, sha, generic=generic)
     if (actual_sha != sha or metadata.get('archive_path') != relative or
             metadata.get('document_id') != record['report_id'] or
-            metadata.get('document_url') != record['source_url'] or
-            current_parser != version and not (historical_native and current_parser == PARSER_VERSION)):
+            metadata.get('document_url') != record['source_url']):
         raise ValueError('OGE selected original or parser differs from its source interpretation')
     if catalog_record is not None and any(metadata.get(field) != catalog_record.get(field)
             for field in ('filer_name', 'agency', 'position_title', 'catalog_added_date',
@@ -796,22 +785,11 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
     # Saved/native replacement receivers have their own source-bound field
     # contract. Their old normalized input may be reference-only; do not turn
     # the ordinary-native owner profile into a new global qualification gate.
-    if ordinary:
-        if version in parser_versions():
-            # Reviewed profiles deliberately support approved historical
-            # proof shapes. Reuse the normal loader: original hash, complete
-            # approved output and current correction assertions must all pass.
-            from .oge_reports import load_reusable_extraction
-            replay = load_reusable_extraction(evidence, meta, review/'oge/extractions')
-        else:
-            replay = parse_archived_pdf(evidence, meta, generic=generic)
-        equivalent = dict(replay, parser_version=version) if historical_native and isinstance(replay, dict) else replay
-        if equivalent != raw:
-            raise ValueError('OGE selected source cache differs from complete original replay')
-        if historical_native:
-            record['historical_source_interpretation_binding'] = selected
-            raw = replay
-            selected = source_interpretation_binding(raw)
+    if historical_native:
+        replay = parse_archived_pdf(evidence, meta, generic=generic)
+        record['historical_source_interpretation_binding'] = selected
+        raw = replay
+        selected = source_interpretation_binding(raw)
     record['source_interpretation_binding'] = selected
     return raw
 

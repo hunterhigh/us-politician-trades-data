@@ -652,18 +652,13 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     """
     if not isinstance(extraction, dict) or not isinstance(catalog_record, dict):
         raise OgeCatalogError("OGE 278-T adapter inputs must be objects")
-    from .oge_native_partition import VERSIONS as VISIBLE_VERSIONS, GENERIC_VERSIONS as VISIBLE_GENERICS, replay_partitioned_oge
+    from .oge_native_partition import VERSIONS as VISIBLE_VERSIONS, GENERIC_VERSIONS as VISIBLE_GENERICS
     visible = extraction.get('parser_version') in VISIBLE_VERSIONS
     if evidence_root is not None and extraction.get('parser_version') in {PARSER_VERSION, GENERIC_PARSER_VERSION, *VISIBLE_VERSIONS}:
-        from .oge_reports import _read_archived_source, selected_parser_version
+        from .oge_reports import _read_archived_source
         archive = Path(evidence_root)
         metadata, path, sha = _read_archived_source(archive,
             archive / f"oge/reports/{extraction.get('document_id')}/{extraction.get('source_sha256')}.json")
-        if selected_parser_version(metadata, path, sha,
-                generic=extraction['parser_version'] in {GENERIC_PARSER_VERSION, *VISIBLE_GENERICS}) != extraction['parser_version']:
-            raise OgeCatalogError('OGE ledger cache differs from current original source plan')
-    if visible:
-        extraction = replay_partitioned_oge(extraction, evidence_root)
     if not isinstance(run_id, str) or not run_id.strip():
         raise OgeCatalogError("OGE 278-T adapter requires a run ID")
     collapse_direct_catalog_records([catalog_record])

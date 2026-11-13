@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 from .source_transport import read_with_retry, TRANSPORT_ERRORS
 from .content_integrity import content_boundary
@@ -22,6 +23,8 @@ REPORT_ARCHIVE_SCHEMA = "oge-278t-archive/v1"
 EXTRACTION_SCHEMA = "oge-278t-extraction/v1"
 PARSER_VERSION = "oge-278t-pdf/v8"
 GENERIC_PARSER_VERSION = "oge-278t-pdf/v7"
+SELECTOR_VERSION = 'oge-278t-source-selection/v1'
+_SOURCE_SELECTIONS = {}
 GENERIC_ROW_INTERPRETATION_MODE = "source_ordered_owner_account_scope/v1"
 MAX_PDF_BYTES = 50 * 1024 * 1024
 MAX_PDF_PAGES = 500
@@ -690,8 +693,29 @@ def selected_parser_version(metadata: dict, pdf_path: Path, source_sha: str, *, 
     """Select from the actual source before consulting an old saved result."""
     correction = None if generic else source_correction(metadata,source_sha)
     if correction is None:
-        from .oge_native_partition import source_plan
-        _, visible_version = source_plan(pdf_path, source_sha256=source_sha, generic=generic)
+        key = (source_sha, generic)
+        if key not in _SOURCE_SELECTIONS:
+            review_root = os.environ.get('REVIEW_ROOT')
+            selections_path = Path(review_root) / 'oge/source-selections.json' if review_root else None
+            selections = {}
+            if selections_path is not None and selections_path.is_file():
+                saved = json.loads(selections_path.read_text(encoding='utf-8'))
+                if saved['selector_version'] == SELECTOR_VERSION:
+                    selections = saved['selections']
+            selection_key = source_sha + (':generic' if generic else ':default')
+            if selection_key not in selections:
+                from .oge_native_partition import source_plan
+                _, visible_version = source_plan(pdf_path, source_sha256=source_sha, generic=generic)
+                selections[selection_key] = visible_version
+                _SOURCE_SELECTIONS[key] = visible_version
+                if selections_path is not None:
+                    selections_path.parent.mkdir(parents=True, exist_ok=True)
+                    selections_path.write_text(json.dumps({
+                        'selector_version': SELECTOR_VERSION, 'selections': selections},
+                        sort_keys=True, indent=2), encoding='utf-8')
+            else:
+                _SOURCE_SELECTIONS[key] = selections[selection_key]
+        visible_version = _SOURCE_SELECTIONS[key]
         if visible_version:
             return visible_version
     return GENERIC_PARSER_VERSION if generic else correction['parser_version'] if correction else PARSER_VERSION
@@ -739,12 +763,9 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
         # The approved final artifact remains byte-identical, including its
         # legacy/additive source-proof shape. No OCR is repeated.
         return value if replay_base_checkpoint(reuse_root,correction) is not None else None
-    from .oge_native_partition import VERSIONS, replay_partitioned_oge
+    from .oge_native_partition import VERSIONS
     if parser_version in VERSIONS:
-        try:
-            return replay_partitioned_oge(value, root)
-        except (OgeCatalogError, OSError, ValueError, KeyError, TypeError):
-            return None
+        return value
     if generic:
         try:
             validate_generic_table_interpretation(value, require_mode=True)

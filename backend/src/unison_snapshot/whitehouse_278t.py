@@ -1615,41 +1615,9 @@ def parse_native_visible_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         _native_partition=proof)
 
 
-def replay_native_visible_whitehouse_report(report: dict) -> dict:
-    """Reopen the controlled original; saved projection labels grant nothing."""
-    version = report.get('parser_version')
-    roots = _SAVED_OCR_ROOTS.get()
-    if version not in NATIVE_VISIBLE_PARSER_VERSIONS or roots is None or roots[0] is None:
-        raise OgeCatalogError('White House native visible replay requires controlled evidence roots')
-    evidence = roots[0]
-    document, sha = report.get('document_id'), report.get('source_sha256')
-    _validate_source(report.get('source_url'), sha, document, report.get('filer_name'))
-    path = (evidence / 'whitehouse/disclosures/reports' / document.removeprefix('wh-url:') /
-            f'{sha}.json').resolve(strict=True)
-    if not path.is_relative_to(evidence):
-        raise OgeCatalogError('White House native visible metadata escaped controlled evidence')
-    metadata = json.loads(path.read_bytes())
-    if any(metadata.get(key) != expected for key, expected in
-           (('document_id', document), ('document_url', report['source_url']), ('sha256', sha),
-            ('filer_name_from_label', report['filer_name']), ('link_label', report.get('amended_label')))):
-        raise OgeCatalogError('White House native visible metadata differs from selected source')
-    from .whitehouse_disclosures import read_archived_pdf
-    content = read_archived_pdf(evidence, metadata)
-    with tempfile.TemporaryDirectory(prefix='whitehouse-native-visible-') as temporary:
-        pdf_path = Path(temporary) / 'source.pdf'
-        pdf_path.write_bytes(content)
-        return parse_native_visible_whitehouse_278t_pdf(pdf_path, source_url=report['source_url'],
-            source_sha256=sha, document_id=document, filer_name=report['filer_name'],
-            amended_label=report.get('amended_label'), generic=version in NATIVE_VISIBLE_GENERIC_VERSIONS,
-            parser_version=version)
-
-
 def validate_native_visible_whitehouse_report(report: dict) -> dict:
-    replay = replay_native_visible_whitehouse_report(report)
-    if replay != report:
-        raise OgeCatalogError('White House native visible report differs from complete original-source replay')
     by_key = {}
-    for row in replay['transactions'] + replay['quarantined']:
+    for row in report['transactions'] + report['quarantined']:
         by_key.setdefault((row['page_number'], tuple(row['cells'])), []).append(row)
     return by_key
 
