@@ -1,49 +1,50 @@
 {
-  "checked_at": "2026-11-14T10:31:40.037474+00:00",
+  "checked_at": "2026-11-14T11:59:14.314920+00:00",
   "checks": [
     {
-      "commit": "cd7888abf849553e594add45e0305078c747b4d9",
+      "detail": "Invalid gzip repository object",
+      "expected_commit": "4abab3de72ba1c74c24829b94bf1447961c0ec25",
       "mode": "dashboard",
       "person_id": null,
-      "snapshot_id": "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c",
-      "status": "passed"
+      "status": "content_failure"
     },
     {
-      "commit": "cd7888abf849553e594add45e0305078c747b4d9",
+      "commit": "4abab3de72ba1c74c24829b94bf1447961c0ec25",
       "mode": "person",
       "person_id": "house:M001157",
       "snapshot_id": "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c",
       "status": "passed"
     },
     {
-      "commit": "cd7888abf849553e594add45e0305078c747b4d9",
+      "commit": "4abab3de72ba1c74c24829b94bf1447961c0ec25",
       "mode": "person",
       "person_id": "senate:W000805",
       "snapshot_id": "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c",
       "status": "passed"
     },
     {
-      "commit": "cd7888abf849553e594add45e0305078c747b4d9",
+      "commit": "4abab3de72ba1c74c24829b94bf1447961c0ec25",
       "mode": "person",
       "person_id": "oge:076544f8ba0638cf",
       "snapshot_id": "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c",
       "status": "passed"
-    },
-    {
-      "mode": "render",
-      "status": "passed"
     }
   ],
   "client_sha256": "c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8",
-  "commit": "cd7888abf849553e594add45e0305078c747b4d9",
-  "failed_snapshots": {},
+  "commit": "4abab3de72ba1c74c24829b94bf1447961c0ec25",
+  "failed_snapshots": {
+    "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c": {
+      "checked_at": "2026-11-14T11:59:14.314920+00:00",
+      "commit": "4abab3de72ba1c74c24829b94bf1447961c0ec25"
+    }
+  },
   "last_good_commit": "cd7888abf849553e594add45e0305078c747b4d9",
   "recovery": {
-    "action": "none",
-    "reason": "passed"
+    "action": "requested",
+    "target": "cd7888abf849553e594add45e0305078c747b4d9"
   },
-  "rollback_requested_for": null,
+  "rollback_requested_for": "4abab3de72ba1c74c24829b94bf1447961c0ec25",
   "schema_version": "publication-smoke/v1",
   "snapshot_id": "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c",
-  "status": "passed"
+  "status": "content_failure"
 }
