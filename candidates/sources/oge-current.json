@@ -1,10 +1,10 @@
 {
   "meta": {
-    "data_cutoff_at": "2026-11-15T02:11:47.939937+00:00",
+    "data_cutoff_at": "2026-11-15T12:20:17.450152+00:00",
     "default_window_days": 30,
-    "generated_at": "2026-11-15T02:11:47.939937+00:00",
+    "generated_at": "2026-11-15T12:20:17.450152+00:00",
     "is_demo": false,
-    "snapshot_id": "d85c3bca2285f6be9ad9abc34c81e448f0440efea3b24a7781e785265ec3498a",
+    "snapshot_id": "1b882f6770a83580e63c668b241a9469d367a5a15f97831bc142bc40af22e5d7",
     "subtitle": "OGE 真实 278-T 候选数据；申请型文件和异常记录保持隔离",
     "timezone": "America/New_York",
     "title": "美国政客交易披露"
@@ -17272,10 +17272,10 @@
       "status": "pending_review"
     },
     {
-      "data_cutoff_at": "2026-11-15T02:11:47.939937+00:00",
+      "data_cutoff_at": "2026-11-15T12:20:17.450152+00:00",
       "detail": "Prior direct OGE status: 343 direct 278-T documents; 343 PDFs extracted; 5239 transactions currently qualified; 4751 request-required catalog entries were not automated; 11 direct documents were retained from archived catalog history.; White House public 278-T: 82 PDFs audited, 1703 transactions qualified, 8222 rows quarantined; 6942 total OGE candidate transactions.; White House annual: 27 complete and 29 partial filer-reported reports, 818 holdings and 6759 transactions",
-      "last_checked_at": "2026-11-15T02:11:47.939937+00:00",
-      "last_successful_sync_at": "2026-11-15T02:11:47.939937+00:00",
+      "last_checked_at": "2026-11-15T12:20:17.450152+00:00",
+      "last_successful_sync_at": "2026-11-15T12:20:17.450152+00:00",
       "source": "U.S. Office of Government Ethics",
       "source_id": "oge",
       "source_type": "official_disclosure",
