@@ -1,29 +1,29 @@
 {
-  "checked_at": "2026-11-14T23:44:56.417620+00:00",
+  "checked_at": "2026-11-15T02:27:32.544221+00:00",
   "checks": [
     {
-      "commit": "7038f76898d2313e1eed8e20efb705738e4f7dcc",
+      "commit": "28562eee10ac966c38a96d0fff4e06e4de0e2760",
       "mode": "dashboard",
       "person_id": null,
       "snapshot_id": "750dc9fdf941ed41ec1f3645ed6062f88a73b38e7662fb03b9a1e8cafdc57d8e",
       "status": "passed"
     },
     {
-      "commit": "7038f76898d2313e1eed8e20efb705738e4f7dcc",
+      "commit": "28562eee10ac966c38a96d0fff4e06e4de0e2760",
       "mode": "person",
       "person_id": "house:M001157",
       "snapshot_id": "750dc9fdf941ed41ec1f3645ed6062f88a73b38e7662fb03b9a1e8cafdc57d8e",
       "status": "passed"
     },
     {
-      "commit": "7038f76898d2313e1eed8e20efb705738e4f7dcc",
+      "commit": "28562eee10ac966c38a96d0fff4e06e4de0e2760",
       "mode": "person",
       "person_id": "senate:W000805",
       "snapshot_id": "750dc9fdf941ed41ec1f3645ed6062f88a73b38e7662fb03b9a1e8cafdc57d8e",
       "status": "passed"
     },
     {
-      "commit": "7038f76898d2313e1eed8e20efb705738e4f7dcc",
+      "commit": "28562eee10ac966c38a96d0fff4e06e4de0e2760",
       "mode": "person",
       "person_id": "oge:076544f8ba0638cf",
       "snapshot_id": "750dc9fdf941ed41ec1f3645ed6062f88a73b38e7662fb03b9a1e8cafdc57d8e",
@@ -35,14 +35,14 @@
     }
   ],
   "client_sha256": "c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8",
-  "commit": "7038f76898d2313e1eed8e20efb705738e4f7dcc",
+  "commit": "28562eee10ac966c38a96d0fff4e06e4de0e2760",
   "failed_snapshots": {
     "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c": {
       "checked_at": "2026-11-14T11:59:14.314920+00:00",
       "commit": "4abab3de72ba1c74c24829b94bf1447961c0ec25"
     }
   },
-  "last_good_commit": "7038f76898d2313e1eed8e20efb705738e4f7dcc",
+  "last_good_commit": "28562eee10ac966c38a96d0fff4e06e4de0e2760",
   "recovery": {
     "action": "none",
     "reason": "passed"
