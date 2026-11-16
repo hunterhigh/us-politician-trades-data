@@ -1,37 +1,37 @@
 {
-  "checked_at": "2026-11-16T20:25:07.292731+00:00",
+  "checked_at": "2026-11-16T23:40:45.201213+00:00",
   "checks": [
     {
       "detail": "Repository returned HTTP 404",
-      "expected_commit": "198354bbc404f1c1526070f326911786d7c4bdbb",
+      "expected_commit": "95a1eac5f191be1641d091966b61fc7ea26c08ed",
       "mode": "dashboard",
       "person_id": null,
       "status": "network_failure"
     },
     {
       "detail": "Repository returned HTTP 404",
-      "expected_commit": "198354bbc404f1c1526070f326911786d7c4bdbb",
+      "expected_commit": "95a1eac5f191be1641d091966b61fc7ea26c08ed",
       "mode": "person",
       "person_id": "house:M001157",
       "status": "network_failure"
     },
     {
       "detail": "Repository returned HTTP 404",
-      "expected_commit": "198354bbc404f1c1526070f326911786d7c4bdbb",
+      "expected_commit": "95a1eac5f191be1641d091966b61fc7ea26c08ed",
       "mode": "person",
       "person_id": "senate:W000805",
       "status": "network_failure"
     },
     {
       "detail": "Repository returned HTTP 404",
-      "expected_commit": "198354bbc404f1c1526070f326911786d7c4bdbb",
+      "expected_commit": "95a1eac5f191be1641d091966b61fc7ea26c08ed",
       "mode": "person",
       "person_id": "oge:076544f8ba0638cf",
       "status": "network_failure"
     }
   ],
   "client_sha256": "c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8",
-  "commit": "198354bbc404f1c1526070f326911786d7c4bdbb",
+  "commit": "95a1eac5f191be1641d091966b61fc7ea26c08ed",
   "failed_snapshots": {
     "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c": {
       "checked_at": "2026-11-14T11:59:14.314920+00:00",
@@ -45,6 +45,6 @@
   },
   "rollback_requested_for": "4abab3de72ba1c74c24829b94bf1447961c0ec25",
   "schema_version": "publication-smoke/v1",
-  "snapshot_id": "723358a7999a4774947e42e47085b5fc36c53fe52c256f3ed76731460b6838a2",
+  "snapshot_id": "ce3a2bb0b603742a20ffd39dda7b3b4c68f86ba3dd7d720058673f0c75ba4fe9",
   "status": "network_failure"
 }
