@@ -1,41 +1,37 @@
 {
-  "checked_at": "2026-11-16T03:01:30.829597+00:00",
+  "checked_at": "2026-11-16T08:01:18.313874+00:00",
   "checks": [
     {
-      "commit": "bf57f972439759ffebec0d373360fcb24fdc341e",
+      "detail": "Repository returned HTTP 404",
+      "expected_commit": "5842fde1f1ae0151846b88fad7c7fc6dc084c9db",
       "mode": "dashboard",
       "person_id": null,
-      "snapshot_id": "f36d1c9925200de1281bbfc5c5739a455c381f0b768f3acca601e3a20e2eb22c",
-      "status": "passed"
+      "status": "network_failure"
     },
     {
-      "commit": "bf57f972439759ffebec0d373360fcb24fdc341e",
+      "detail": "Repository returned HTTP 404",
+      "expected_commit": "5842fde1f1ae0151846b88fad7c7fc6dc084c9db",
       "mode": "person",
       "person_id": "house:M001157",
-      "snapshot_id": "f36d1c9925200de1281bbfc5c5739a455c381f0b768f3acca601e3a20e2eb22c",
-      "status": "passed"
+      "status": "network_failure"
     },
     {
-      "commit": "bf57f972439759ffebec0d373360fcb24fdc341e",
+      "detail": "Repository returned HTTP 404",
+      "expected_commit": "5842fde1f1ae0151846b88fad7c7fc6dc084c9db",
       "mode": "person",
       "person_id": "senate:W000805",
-      "snapshot_id": "f36d1c9925200de1281bbfc5c5739a455c381f0b768f3acca601e3a20e2eb22c",
-      "status": "passed"
+      "status": "network_failure"
     },
     {
-      "commit": "bf57f972439759ffebec0d373360fcb24fdc341e",
+      "detail": "Repository returned HTTP 404",
+      "expected_commit": "5842fde1f1ae0151846b88fad7c7fc6dc084c9db",
       "mode": "person",
       "person_id": "oge:076544f8ba0638cf",
-      "snapshot_id": "f36d1c9925200de1281bbfc5c5739a455c381f0b768f3acca601e3a20e2eb22c",
-      "status": "passed"
-    },
-    {
-      "mode": "render",
-      "status": "passed"
+      "status": "network_failure"
     }
   ],
   "client_sha256": "c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8",
-  "commit": "bf57f972439759ffebec0d373360fcb24fdc341e",
+  "commit": "5842fde1f1ae0151846b88fad7c7fc6dc084c9db",
   "failed_snapshots": {
     "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c": {
       "checked_at": "2026-11-14T11:59:14.314920+00:00",
@@ -45,10 +41,10 @@
   "last_good_commit": "bf57f972439759ffebec0d373360fcb24fdc341e",
   "recovery": {
     "action": "none",
-    "reason": "passed"
+    "reason": "network_failure"
   },
   "rollback_requested_for": "4abab3de72ba1c74c24829b94bf1447961c0ec25",
   "schema_version": "publication-smoke/v1",
-  "snapshot_id": "f36d1c9925200de1281bbfc5c5739a455c381f0b768f3acca601e3a20e2eb22c",
-  "status": "passed"
+  "snapshot_id": "723358a7999a4774947e42e47085b5fc36c53fe52c256f3ed76731460b6838a2",
+  "status": "network_failure"
 }
