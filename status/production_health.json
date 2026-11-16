@@ -9,7 +9,7 @@
         },
         "status": "network_failure"
       },
-      "detail": "{\"checked_at\": \"2026-11-16T13:37:41.959570+00:00\", \"checks\": [{\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"198354bbc404f1c1526070f326911786d7c4bdbb\", \"mode\": \"dashboard\", \"person_id\": null, \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"198354bbc404f1c1526070f326911786d7c4bdbb\", \"mode\": \"person\", \"person_id\": \"house:M001157\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"198354bbc404f1c1526070f326911786d7c4bdbb\", \"mode\": \"person\", \"person_id\": \"senate:W000805\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"198354bbc404f1c1526070f326911786d7c4bdbb\", \"mode\": \"person\", \"person_id\": \"oge:076544f8ba0638cf\", \"status\": \"network_failure\"}], \"client_sha256\": \"c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8\", \"commit\": \"198354bbc404f1c1526070f326911786d7c4bdbb\", \"failed_snapshots\": {\"1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c\": {\"checked_at\": \"2026-11-14T11:59:14.314920+00:00\", \"commit\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\"}}, \"last_good_commit\": \"bf57f972439759ffebec0d373360fcb24fdc341e\", \"recovery\": {\"action\": \"none\", \"reason\": \"network_failure\"}, \"rollback_requested_for\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\", \"schema_version\": \"publication-smoke/v1\", \"snapshot_id\": \"723358a7999a4774947e42e47085b5fc36c53fe52c256f3ed76731460b6838a2\", \"status\": \"network_failure\"}",
+      "detail": "{\"checked_at\": \"2026-11-16T19:01:32.306399+00:00\", \"checks\": [{\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"198354bbc404f1c1526070f326911786d7c4bdbb\", \"mode\": \"dashboard\", \"person_id\": null, \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"198354bbc404f1c1526070f326911786d7c4bdbb\", \"mode\": \"person\", \"person_id\": \"house:M001157\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"198354bbc404f1c1526070f326911786d7c4bdbb\", \"mode\": \"person\", \"person_id\": \"senate:W000805\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"198354bbc404f1c1526070f326911786d7c4bdbb\", \"mode\": \"person\", \"person_id\": \"oge:076544f8ba0638cf\", \"status\": \"network_failure\"}], \"client_sha256\": \"c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8\", \"commit\": \"198354bbc404f1c1526070f326911786d7c4bdbb\", \"failed_snapshots\": {\"1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c\": {\"checked_at\": \"2026-11-14T11:59:14.314920+00:00\", \"commit\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\"}}, \"last_good_commit\": \"bf57f972439759ffebec0d373360fcb24fdc341e\", \"recovery\": {\"action\": \"none\", \"reason\": \"network_failure\"}, \"rollback_requested_for\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\", \"schema_version\": \"publication-smoke/v1\", \"snapshot_id\": \"723358a7999a4774947e42e47085b5fc36c53fe52c256f3ed76731460b6838a2\", \"status\": \"network_failure\"}",
       "key": "smoke",
       "title": "[Health] Published client read or report smoke failed"
     },
@@ -160,7 +160,7 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-16T13:37:42.567916+00:00",
+  "checked_at": "2026-11-16T19:01:32.691418+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -169,7 +169,7 @@
       "number": 369
     },
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "quality-summary:2026-W47",
       "number": 370
     }
@@ -186,10 +186,10 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "2b6dd08a81d28e7fc0283b4adc4648a628585fa4",
+  "quality_review_commit": "246e4fa332742f0b5dcf0806004ca95115e4fbd9",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-16T13:37:41.959570+00:00",
+    "checked_at": "2026-11-16T19:01:32.306399+00:00",
     "checks": [
       {
         "detail": "Repository returned HTTP 404",
