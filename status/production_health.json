@@ -9,7 +9,7 @@
         },
         "status": "network_failure"
       },
-      "detail": "{\"checked_at\": \"2026-11-17T01:03:57.025606+00:00\", \"checks\": [{\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"7944ddf856457709ec89aff6ee826d3f28f91693\", \"mode\": \"dashboard\", \"person_id\": null, \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"7944ddf856457709ec89aff6ee826d3f28f91693\", \"mode\": \"person\", \"person_id\": \"house:M001157\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"7944ddf856457709ec89aff6ee826d3f28f91693\", \"mode\": \"person\", \"person_id\": \"senate:W000805\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"7944ddf856457709ec89aff6ee826d3f28f91693\", \"mode\": \"person\", \"person_id\": \"oge:076544f8ba0638cf\", \"status\": \"network_failure\"}], \"client_sha256\": \"c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8\", \"commit\": \"7944ddf856457709ec89aff6ee826d3f28f91693\", \"failed_snapshots\": {\"1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c\": {\"checked_at\": \"2026-11-14T11:59:14.314920+00:00\", \"commit\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\"}}, \"last_good_commit\": \"bf57f972439759ffebec0d373360fcb24fdc341e\", \"recovery\": {\"action\": \"none\", \"reason\": \"network_failure\"}, \"rollback_requested_for\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\", \"schema_version\": \"publication-smoke/v1\", \"snapshot_id\": \"af21bb2e68e9b0184655ddd1b71ffa0b28db3782b374df08ce0e8598615ec64f\", \"status\": \"network_failure\"}",
+      "detail": "{\"checked_at\": \"2026-11-17T03:47:48.867533+00:00\", \"checks\": [{\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"7944ddf856457709ec89aff6ee826d3f28f91693\", \"mode\": \"dashboard\", \"person_id\": null, \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"7944ddf856457709ec89aff6ee826d3f28f91693\", \"mode\": \"person\", \"person_id\": \"house:M001157\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"7944ddf856457709ec89aff6ee826d3f28f91693\", \"mode\": \"person\", \"person_id\": \"senate:W000805\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"7944ddf856457709ec89aff6ee826d3f28f91693\", \"mode\": \"person\", \"person_id\": \"oge:076544f8ba0638cf\", \"status\": \"network_failure\"}], \"client_sha256\": \"c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8\", \"commit\": \"7944ddf856457709ec89aff6ee826d3f28f91693\", \"failed_snapshots\": {\"1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c\": {\"checked_at\": \"2026-11-14T11:59:14.314920+00:00\", \"commit\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\"}}, \"last_good_commit\": \"bf57f972439759ffebec0d373360fcb24fdc341e\", \"recovery\": {\"action\": \"none\", \"reason\": \"network_failure\"}, \"rollback_requested_for\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\", \"schema_version\": \"publication-smoke/v1\", \"snapshot_id\": \"af21bb2e68e9b0184655ddd1b71ffa0b28db3782b374df08ce0e8598615ec64f\", \"status\": \"network_failure\"}",
       "key": "smoke",
       "title": "[Health] Published client read or report smoke failed"
     },
@@ -160,11 +160,11 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-17T01:03:57.399212+00:00",
+  "checked_at": "2026-11-17T03:47:49.248492+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "smoke",
       "number": 369
     },
@@ -189,7 +189,7 @@
   "quality_review_commit": "6d2fff34fa4701d6b96b3f3ad9318a7c0e2e324e",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-17T01:03:57.025606+00:00",
+    "checked_at": "2026-11-17T03:47:48.867533+00:00",
     "checks": [
       {
         "detail": "Repository returned HTTP 404",
@@ -238,7 +238,7 @@
     "snapshot_id": "af21bb2e68e9b0184655ddd1b71ffa0b28db3782b374df08ce0e8598615ec64f",
     "status": "network_failure"
   },
-  "snapshot_changed": true,
+  "snapshot_changed": false,
   "snapshot_id": "af21bb2e68e9b0184655ddd1b71ffa0b28db3782b374df08ce0e8598615ec64f",
   "sources": {
     "house_clerk": {
