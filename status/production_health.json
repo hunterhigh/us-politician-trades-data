@@ -9,7 +9,7 @@
         },
         "status": "network_failure"
       },
-      "detail": "{\"checked_at\": \"2026-11-18T04:18:57.700544+00:00\", \"checks\": [{\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"ba4317095f5303f6a741e5bcac26d50fb015053c\", \"mode\": \"dashboard\", \"person_id\": null, \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"ba4317095f5303f6a741e5bcac26d50fb015053c\", \"mode\": \"person\", \"person_id\": \"house:M001157\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"ba4317095f5303f6a741e5bcac26d50fb015053c\", \"mode\": \"person\", \"person_id\": \"senate:W000805\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"ba4317095f5303f6a741e5bcac26d50fb015053c\", \"mode\": \"person\", \"person_id\": \"oge:076544f8ba0638cf\", \"status\": \"network_failure\"}], \"client_sha256\": \"c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8\", \"commit\": \"ba4317095f5303f6a741e5bcac26d50fb015053c\", \"failed_snapshots\": {\"1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c\": {\"checked_at\": \"2026-11-14T11:59:14.314920+00:00\", \"commit\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\"}}, \"last_good_commit\": \"bf57f972439759ffebec0d373360fcb24fdc341e\", \"recovery\": {\"action\": \"none\", \"reason\": \"network_failure\"}, \"rollback_requested_for\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\", \"schema_version\": \"publication-smoke/v1\", \"snapshot_id\": \"fd7ba33f9e4c07522594c14fa2422c0b044ab26c3df4b4da83a45300c92551f8\", \"status\": \"network_failure\"}",
+      "detail": "{\"checked_at\": \"2026-11-18T08:47:43.607997+00:00\", \"checks\": [{\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"ba4317095f5303f6a741e5bcac26d50fb015053c\", \"mode\": \"dashboard\", \"person_id\": null, \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"ba4317095f5303f6a741e5bcac26d50fb015053c\", \"mode\": \"person\", \"person_id\": \"house:M001157\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"ba4317095f5303f6a741e5bcac26d50fb015053c\", \"mode\": \"person\", \"person_id\": \"senate:W000805\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"ba4317095f5303f6a741e5bcac26d50fb015053c\", \"mode\": \"person\", \"person_id\": \"oge:076544f8ba0638cf\", \"status\": \"network_failure\"}], \"client_sha256\": \"c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8\", \"commit\": \"ba4317095f5303f6a741e5bcac26d50fb015053c\", \"failed_snapshots\": {\"1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c\": {\"checked_at\": \"2026-11-14T11:59:14.314920+00:00\", \"commit\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\"}}, \"last_good_commit\": \"bf57f972439759ffebec0d373360fcb24fdc341e\", \"recovery\": {\"action\": \"none\", \"reason\": \"network_failure\"}, \"rollback_requested_for\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\", \"schema_version\": \"publication-smoke/v1\", \"snapshot_id\": \"fd7ba33f9e4c07522594c14fa2422c0b044ab26c3df4b4da83a45300c92551f8\", \"status\": \"network_failure\"}",
       "key": "smoke",
       "title": "[Health] Published client read or report smoke failed"
     },
@@ -169,19 +169,19 @@
     }
   ],
   "assembly": {
-    "attempted_at": "2026-11-17T23:45:49.238861+00:00",
-    "candidate_sha256": "3180914e363785252640451b93065521e17bb1576bdca02a3e3dd061d667d185",
-    "data_cutoff_at": "2026-11-17T23:42:38.835168+00:00",
+    "attempted_at": "2026-11-18T08:22:41.880668+00:00",
+    "candidate_sha256": "8a1894621c53f314773ebf664cc1afaab127458f9e43340eaf44078cf7ca908f",
+    "data_cutoff_at": "2026-11-18T07:30:42+00:00",
     "schema_version": "disclosure-assembly-status/v1",
     "source_cutoffs": {
-      "house_clerk": "2026-11-17T20:57:27+00:00",
+      "house_clerk": "2026-11-18T07:30:42+00:00",
       "oge": "2026-11-17T23:42:38.835168+00:00",
       "senate_efd": "2026-11-17T10:52:43.131604+00:00"
     },
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-18T04:18:58.176337+00:00",
+  "checked_at": "2026-11-18T08:47:43.971541+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -208,10 +208,10 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "b0c0f121ecb4e460b2e552c9311932c829b4e53b",
+  "quality_review_commit": "88ea3a4abe24b7e3caa290899fbb3ea65c1c438c",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-18T04:18:57.700544+00:00",
+    "checked_at": "2026-11-18T08:47:43.607997+00:00",
     "checks": [
       {
         "detail": "Repository returned HTTP 404",
@@ -267,9 +267,9 @@
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-17T20:57:27+00:00",
-      "last_successful_collection_at": "2026-11-17T20:57:27+00:00",
-      "qualified_cutoff_at": "2026-11-17T20:57:27+00:00",
+      "last_attempt_at": "2026-11-18T07:30:42+00:00",
+      "last_successful_collection_at": "2026-11-18T07:30:42+00:00",
+      "qualified_cutoff_at": "2026-11-18T07:30:42+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
