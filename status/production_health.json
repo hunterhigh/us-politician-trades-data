@@ -2,14 +2,14 @@
   "alerts": [
     {
       "condition": {
-        "commit": "4d3942d4d218b522944f31712767eff7eeef0889",
+        "commit": "e6c26061e5846b45a41e40f53b3eafcae393c19c",
         "recovery": {
           "action": "none",
           "reason": "network_failure"
         },
         "status": "network_failure"
       },
-      "detail": "{\"checked_at\": \"2026-11-17T22:18:05.018425+00:00\", \"checks\": [{\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"4d3942d4d218b522944f31712767eff7eeef0889\", \"mode\": \"dashboard\", \"person_id\": null, \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"4d3942d4d218b522944f31712767eff7eeef0889\", \"mode\": \"person\", \"person_id\": \"house:M001157\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"4d3942d4d218b522944f31712767eff7eeef0889\", \"mode\": \"person\", \"person_id\": \"senate:W000805\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"4d3942d4d218b522944f31712767eff7eeef0889\", \"mode\": \"person\", \"person_id\": \"oge:076544f8ba0638cf\", \"status\": \"network_failure\"}], \"client_sha256\": \"c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8\", \"commit\": \"4d3942d4d218b522944f31712767eff7eeef0889\", \"failed_snapshots\": {\"1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c\": {\"checked_at\": \"2026-11-14T11:59:14.314920+00:00\", \"commit\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\"}}, \"last_good_commit\": \"bf57f972439759ffebec0d373360fcb24fdc341e\", \"recovery\": {\"action\": \"none\", \"reason\": \"network_failure\"}, \"rollback_requested_for\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\", \"schema_version\": \"publication-smoke/v1\", \"snapshot_id\": \"b9bdd6aa8c5d98ac6de0422aea4cdab597d050f983b9735b2f65c664d3d5a105\", \"status\": \"network_failure\"}",
+      "detail": "{\"checked_at\": \"2026-11-18T00:01:43.177030+00:00\", \"checks\": [{\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"e6c26061e5846b45a41e40f53b3eafcae393c19c\", \"mode\": \"dashboard\", \"person_id\": null, \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"e6c26061e5846b45a41e40f53b3eafcae393c19c\", \"mode\": \"person\", \"person_id\": \"house:M001157\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"e6c26061e5846b45a41e40f53b3eafcae393c19c\", \"mode\": \"person\", \"person_id\": \"senate:W000805\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"e6c26061e5846b45a41e40f53b3eafcae393c19c\", \"mode\": \"person\", \"person_id\": \"oge:076544f8ba0638cf\", \"status\": \"network_failure\"}], \"client_sha256\": \"c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8\", \"commit\": \"e6c26061e5846b45a41e40f53b3eafcae393c19c\", \"failed_snapshots\": {\"1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c\": {\"checked_at\": \"2026-11-14T11:59:14.314920+00:00\", \"commit\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\"}}, \"last_good_commit\": \"bf57f972439759ffebec0d373360fcb24fdc341e\", \"recovery\": {\"action\": \"none\", \"reason\": \"network_failure\"}, \"rollback_requested_for\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\", \"schema_version\": \"publication-smoke/v1\", \"snapshot_id\": \"b9bdd6aa8c5d98ac6de0422aea4cdab597d050f983b9735b2f65c664d3d5a105\", \"status\": \"network_failure\"}",
       "key": "smoke",
       "title": "[Health] Published client read or report smoke failed"
     },
@@ -169,23 +169,23 @@
     }
   ],
   "assembly": {
-    "attempted_at": "2026-11-17T21:40:58.578029+00:00",
-    "candidate_sha256": "f771ef90f71796f28c338cfdcd374fdfa8f55ff7788950250b025c62d49c5676",
-    "data_cutoff_at": "2026-11-17T20:57:27+00:00",
+    "attempted_at": "2026-11-17T23:45:49.238861+00:00",
+    "candidate_sha256": "3180914e363785252640451b93065521e17bb1576bdca02a3e3dd061d667d185",
+    "data_cutoff_at": "2026-11-17T23:42:38.835168+00:00",
     "schema_version": "disclosure-assembly-status/v1",
     "source_cutoffs": {
       "house_clerk": "2026-11-17T20:57:27+00:00",
-      "oge": "2026-11-17T13:55:43.492544+00:00",
+      "oge": "2026-11-17T23:42:38.835168+00:00",
       "senate_efd": "2026-11-17T10:52:43.131604+00:00"
     },
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-17T22:18:05.515195+00:00",
+  "checked_at": "2026-11-18T00:01:43.675292+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
-      "action": "already_open",
+      "action": "updated_condition",
       "key": "smoke",
       "number": 369
     },
@@ -195,9 +195,9 @@
       "number": 370
     }
   ],
-  "last_successful_publication_check_at": "2026-11-17T22:06:56Z",
+  "last_successful_publication_check_at": "2026-11-18T00:00:32Z",
   "publication": "sources_recovered",
-  "published_at": "2026-11-17T21:47:40Z",
+  "published_at": "2026-11-17T23:41:56Z",
   "quality_complete": true,
   "quality_observed_scopes": [
     "quality:house_clerk:house_ptr",
@@ -208,42 +208,42 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "3c809cee0c6d9fa1977e408f05a596d7beb94fc0",
+  "quality_review_commit": "b0c0f121ecb4e460b2e552c9311932c829b4e53b",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-17T22:18:05.018425+00:00",
+    "checked_at": "2026-11-18T00:01:43.177030+00:00",
     "checks": [
       {
         "detail": "Repository returned HTTP 404",
-        "expected_commit": "4d3942d4d218b522944f31712767eff7eeef0889",
+        "expected_commit": "e6c26061e5846b45a41e40f53b3eafcae393c19c",
         "mode": "dashboard",
         "person_id": null,
         "status": "network_failure"
       },
       {
         "detail": "Repository returned HTTP 404",
-        "expected_commit": "4d3942d4d218b522944f31712767eff7eeef0889",
+        "expected_commit": "e6c26061e5846b45a41e40f53b3eafcae393c19c",
         "mode": "person",
         "person_id": "house:M001157",
         "status": "network_failure"
       },
       {
         "detail": "Repository returned HTTP 404",
-        "expected_commit": "4d3942d4d218b522944f31712767eff7eeef0889",
+        "expected_commit": "e6c26061e5846b45a41e40f53b3eafcae393c19c",
         "mode": "person",
         "person_id": "senate:W000805",
         "status": "network_failure"
       },
       {
         "detail": "Repository returned HTTP 404",
-        "expected_commit": "4d3942d4d218b522944f31712767eff7eeef0889",
+        "expected_commit": "e6c26061e5846b45a41e40f53b3eafcae393c19c",
         "mode": "person",
         "person_id": "oge:076544f8ba0638cf",
         "status": "network_failure"
       }
     ],
     "client_sha256": "c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8",
-    "commit": "4d3942d4d218b522944f31712767eff7eeef0889",
+    "commit": "e6c26061e5846b45a41e40f53b3eafcae393c19c",
     "failed_snapshots": {
       "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c": {
         "checked_at": "2026-11-14T11:59:14.314920+00:00",
@@ -279,13 +279,13 @@
       "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-17T13:55:53.511675+00:00",
-      "last_successful_collection_at": "2026-11-17T13:55:43.492544+00:00",
-      "qualified_cutoff_at": "2026-11-17T13:55:43.492544+00:00",
+      "last_attempt_at": "2026-11-17T23:42:50.695067+00:00",
+      "last_successful_collection_at": "2026-11-17T23:42:38.835168+00:00",
+      "qualified_cutoff_at": "2026-11-17T23:42:38.835168+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/44097043911"
+      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/44201250245"
     },
     "senate_efd": {
       "detail": "Authorized eFD PTR catalog and a bounded batch of report entrypoint responses were archived. Transaction facts remain unpublished.",
