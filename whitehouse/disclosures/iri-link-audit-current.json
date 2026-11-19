@@ -92,7 +92,7 @@
     }
   ],
   "schema_version": "whitehouse-public-iri-link-recovery/v1",
-  "source_page_sha256": "c8df641634221b76b8d44a94ca067eb7a424c0dab182501c239b75282fe9b870",
+  "source_page_sha256": "d6885ac5c7c2ad151a153d33620f5a02e0b678e68de2d9580e4a43af7e41601f",
   "source_page_url": "https://www.whitehouse.gov/disclosures/",
   "transformation": "RFC3986 UTF-8 percent encoding of exact official href path"
 }
