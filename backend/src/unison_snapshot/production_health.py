@@ -142,8 +142,9 @@ class GitHub:
         self.base = 'https://api.github.com/repos/' + repository
         self.token = token
 
-    def request(self, path, method='GET', payload=None):
-        headers = {'Accept': 'application/vnd.github+json', 'User-Agent': 'politician-production-health'}
+    def request(self, path, method='GET', payload=None, *, raw=False):
+        headers = {'Accept': 'application/vnd.github.raw+json' if raw else 'application/vnd.github+json',
+                   'User-Agent': 'politician-production-health'}
         if self.token:
             headers['Authorization'] = 'Bearer ' + self.token
         data = None if payload is None else json.dumps(payload).encode()
@@ -151,6 +152,8 @@ class GitHub:
             try:
                 with urlopen(Request(self.base + path, data=data, headers=headers, method=method), timeout=25) as response:
                     body = response.read()
+                    if raw:
+                        return body
                     return json.loads(body) if body else None
             except (HTTPError, URLError, TimeoutError) as exc:
                 # Mutations are reconciled on the next run rather than retried after

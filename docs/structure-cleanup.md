@@ -39,8 +39,8 @@ Paddle、TrOCR 在此基线已无源码、专用测试、依赖或工作流残�
 | `archive-senate-paper-pages` | 删除未调用的整批 `archive_review_paper_pages` 包装；正常报告采集使用的单报告页面归档保留。 |
 | `assemble` | 删除独立 CLI 包装；`store.assemble` 由现有 `demo` 使用，保留。 |
 | `correct-reviewed-senate-paper` | 删除旧生产器、路径包装和专用测试；正式候选仍使用的 `correction_for`、`reviewed_record`、`reviewed_counts` 及其消费测试保留。 |
-| `fetch-disclosure-status` | 删除无调用的 CLI 包装；正式客户端使用的 `PublicSnapshotRepository.disclosure_status` 保留。 |
-| `fetch-public` | 删除重复 CLI 包装；公开读取仍由 `client/fetch_snapshot.py` 及共享仓库客户端提供。 |
+| `fetch-disclosure-status` | 删除无调用的 CLI 包装；离线兼容使用的 `PublicSnapshotRepository.disclosure_status` 保留；正式消费已由现有token skill承担。 |
+| `fetch-public` | 删除重复 CLI 包装；原公开入口 `client/fetch_snapshot.py` 已弃用；共享类保留离线兼容，正式消费使用现有token skill。 |
 | `observe-senate-paper-slots` | 删除专用 `senate_paper_observation_cli.py`；候选和已保存纸表重放仍需的观察／投影实现保留并冻结。 |
 | `parse-senate-members` | 删除离线 CLI 包装；正常采集和年报使用的名册解析函数保留。 |
 | `parse-senate-search-page` | 删除离线 CLI 包装；正常分页采集使用的解析函数保留。 |

@@ -1,21 +1,10 @@
 #!/usr/bin/env python3
-"""Fetch and process one snapshot directly from a fixed public GitHub repository."""
+"""Deprecated public client. Production data is available only through the token skill."""
 import argparse
 import json
 import os
 from pathlib import Path
-import sys
 import tempfile
-
-# Allow this checked-in entry point to run directly from any working directory.
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-BACKEND_SRC = PROJECT_ROOT / "backend" / "src"
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
-
-from unison_snapshot.legacy import PROCESSOR_V2_SHA256, load, processor_version_for
-from snapshot_repo import HTTPTransport, PublicSnapshotError, PublicSnapshotRepository
-from unison_snapshot.public_repo import PublicSnapshotChanged, PublicSnapshotTransportError
 
 
 def write_atomic(path: Path, value: dict) -> None:
@@ -45,31 +34,13 @@ def main() -> int:
         parser.error("configure --owner/--repo or POLITICIAN_DATA_GITHUB_OWNER/REPO")
     if args.mode in {"person", "ticker"} and not args.value:
         parser.error(f"{args.mode} requires --value")
-    try:
-        repository = PublicSnapshotRepository(args.owner, args.repo, ref=args.ref,
-            expected_commit=args.expected_commit,
-            transport=HTTPTransport(os.environ.get("GITHUB_TOKEN"), timeout=args.timeout, retries=3))
-        selected = repository.fetch(args.mode, args.value)
-        processor = load("process_snapshot", version="v2")
-        processed = processor.build_snapshot(selected.snapshot)
-        processed["meta"]["snapshot_commit"] = selected.commit
-        write_atomic(args.output, processed)
-    except (PublicSnapshotError, ValueError, OSError) as exc:
-        if args.status_output:
-            # Local I/O errors and unavailable HTTP objects are operational
-            # failures, never proof that an immutable published fact is corrupt.
-            status = ('superseded' if isinstance(exc, PublicSnapshotChanged) else
-                'network_failure' if isinstance(exc, PublicSnapshotTransportError) else
-                'operational_failure' if isinstance(exc, OSError) else 'content_failure')
-            write_atomic(args.status_output, {'status':status, 'detail':str(exc),
-                'expected_commit':args.expected_commit})
-        parser.exit(2, f"snapshot error: {exc}\n")
+    message = ('Public data reads have stopped: this repository is intentionally private. '
+        'This client is deprecated; use the existing token-authenticated skill. '
+        'Setting GITHUB_TOKEN on this legacy client does not enable private data downloads.')
     if args.status_output:
-        write_atomic(args.status_output, {'status':'passed', 'commit':selected.commit,
-            'snapshot_id':processed['meta']['snapshot_id']})
-    print(json.dumps({"snapshot_id": processed["meta"]["snapshot_id"],
-                      "snapshot_commit": selected.commit, "output": str(args.output.resolve())}))
-    return 0
+        write_atomic(args.status_output, {'status': 'deprecated', 'detail': message,
+            'expected_commit': args.expected_commit})
+    parser.exit(2, message + '\n')
 
 
 if __name__ == "__main__":
