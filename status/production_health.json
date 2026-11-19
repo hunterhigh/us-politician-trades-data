@@ -1,19 +1,6 @@
 {
   "alerts": [
     {
-      "condition": {
-        "commit": "536784d3b8f8000955d07155fa9859324983a774",
-        "recovery": {
-          "action": "none",
-          "reason": "network_failure"
-        },
-        "status": "network_failure"
-      },
-      "detail": "{\"checked_at\": \"2026-11-19T04:16:54.886084+00:00\", \"checks\": [{\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"536784d3b8f8000955d07155fa9859324983a774\", \"mode\": \"dashboard\", \"person_id\": null, \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"536784d3b8f8000955d07155fa9859324983a774\", \"mode\": \"person\", \"person_id\": \"house:M001157\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"536784d3b8f8000955d07155fa9859324983a774\", \"mode\": \"person\", \"person_id\": \"senate:W000805\", \"status\": \"network_failure\"}, {\"detail\": \"Repository returned HTTP 404\", \"expected_commit\": \"536784d3b8f8000955d07155fa9859324983a774\", \"mode\": \"person\", \"person_id\": \"oge:076544f8ba0638cf\", \"status\": \"network_failure\"}], \"client_sha256\": \"c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8\", \"commit\": \"536784d3b8f8000955d07155fa9859324983a774\", \"failed_snapshots\": {\"1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c\": {\"checked_at\": \"2026-11-14T11:59:14.314920+00:00\", \"commit\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\"}}, \"last_good_commit\": \"bf57f972439759ffebec0d373360fcb24fdc341e\", \"recovery\": {\"action\": \"none\", \"reason\": \"network_failure\"}, \"rollback_requested_for\": \"4abab3de72ba1c74c24829b94bf1447961c0ec25\", \"schema_version\": \"publication-smoke/v1\", \"snapshot_id\": \"95f4f5af99a7ed1412a04b8b5fd62a7fd69d607594d363bde51aee28a1e86269\", \"status\": \"network_failure\"}",
-      "key": "smoke",
-      "title": "[Health] Published client read or report smoke failed"
-    },
-    {
       "condition": [
         {
           "baseline_comparable": true,
@@ -181,18 +168,18 @@
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-19T04:16:55.318146+00:00",
+  "checked_at": "2026-11-19T07:37:21.996976+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
       "action": "already_open",
-      "key": "smoke",
-      "number": 369
-    },
-    {
-      "action": "already_open",
       "key": "quality-summary:2026-W47",
       "number": 370
+    },
+    {
+      "action": "closed",
+      "key": "smoke",
+      "number": 369
     }
   ],
   "last_successful_publication_check_at": "2026-11-18T23:17:15Z",
@@ -211,38 +198,42 @@
   "quality_review_commit": "bc679521200a12040f2edfcb91ec67263fe77907",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-19T04:16:54.886084+00:00",
+    "checked_at": "2026-11-19T07:37:21.454111+00:00",
     "checks": [
       {
-        "detail": "Repository returned HTTP 404",
-        "expected_commit": "536784d3b8f8000955d07155fa9859324983a774",
+        "commit": "536784d3b8f8000955d07155fa9859324983a774",
         "mode": "dashboard",
         "person_id": null,
-        "status": "network_failure"
+        "snapshot_id": "95f4f5af99a7ed1412a04b8b5fd62a7fd69d607594d363bde51aee28a1e86269",
+        "status": "passed"
       },
       {
-        "detail": "Repository returned HTTP 404",
-        "expected_commit": "536784d3b8f8000955d07155fa9859324983a774",
+        "commit": "536784d3b8f8000955d07155fa9859324983a774",
         "mode": "person",
         "person_id": "house:M001157",
-        "status": "network_failure"
+        "snapshot_id": "95f4f5af99a7ed1412a04b8b5fd62a7fd69d607594d363bde51aee28a1e86269",
+        "status": "passed"
       },
       {
-        "detail": "Repository returned HTTP 404",
-        "expected_commit": "536784d3b8f8000955d07155fa9859324983a774",
+        "commit": "536784d3b8f8000955d07155fa9859324983a774",
         "mode": "person",
         "person_id": "senate:W000805",
-        "status": "network_failure"
+        "snapshot_id": "95f4f5af99a7ed1412a04b8b5fd62a7fd69d607594d363bde51aee28a1e86269",
+        "status": "passed"
       },
       {
-        "detail": "Repository returned HTTP 404",
-        "expected_commit": "536784d3b8f8000955d07155fa9859324983a774",
+        "commit": "536784d3b8f8000955d07155fa9859324983a774",
         "mode": "person",
         "person_id": "oge:076544f8ba0638cf",
-        "status": "network_failure"
+        "snapshot_id": "95f4f5af99a7ed1412a04b8b5fd62a7fd69d607594d363bde51aee28a1e86269",
+        "status": "passed"
+      },
+      {
+        "mode": "render",
+        "status": "passed"
       }
     ],
-    "client_sha256": "c2829e8eee7593ab24a6cf3d0cdbd0c125c389b581e850e5528d541d7dd796f8",
+    "client_sha256": "881733980fd3ad329b49c14af84f442ee8ddf11db6d86131f10febe5515a19be",
     "commit": "536784d3b8f8000955d07155fa9859324983a774",
     "failed_snapshots": {
       "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c": {
@@ -250,15 +241,15 @@
         "commit": "4abab3de72ba1c74c24829b94bf1447961c0ec25"
       }
     },
-    "last_good_commit": "bf57f972439759ffebec0d373360fcb24fdc341e",
+    "last_good_commit": "536784d3b8f8000955d07155fa9859324983a774",
     "recovery": {
       "action": "none",
-      "reason": "network_failure"
+      "reason": "passed"
     },
     "rollback_requested_for": "4abab3de72ba1c74c24829b94bf1447961c0ec25",
     "schema_version": "publication-smoke/v1",
     "snapshot_id": "95f4f5af99a7ed1412a04b8b5fd62a7fd69d607594d363bde51aee28a1e86269",
-    "status": "network_failure"
+    "status": "passed"
   },
   "snapshot_changed": false,
   "snapshot_id": "95f4f5af99a7ed1412a04b8b5fd62a7fd69d607594d363bde51aee28a1e86269",
@@ -267,8 +258,8 @@
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-18T20:34:13+00:00",
-      "last_successful_collection_at": "2026-11-18T20:34:13+00:00",
+      "last_attempt_at": "2026-11-19T07:29:11+00:00",
+      "last_successful_collection_at": "2026-11-19T07:29:11+00:00",
       "qualified_cutoff_at": "2026-11-18T20:34:13+00:00",
       "stale": false,
       "status": "ok",
