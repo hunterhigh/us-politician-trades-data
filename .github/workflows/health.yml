@@ -56,9 +56,10 @@ jobs:
             git worktree add --detach --no-checkout "$RUNNER_TEMP/health-output" HEAD
             git -C "$RUNNER_TEMP/health-output" switch --orphan health-output
           fi
-      - name: Evaluate health and reconcile one Issue per condition
+      - name: Check token-authenticated data and reconcile one Issue per condition
         env:
           GH_TOKEN: ${{ github.token }}
+          # Contents API reads use authentication; anonymous raw access is not a health check.
           GITHUB_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: |

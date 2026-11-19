@@ -1,20 +1,19 @@
-# 公开 GitHub 消费端适配
+# 数据访问与已弃用的公开客户端
 
-这是在对方新版 `snapshot_repo.py` 尚未交付时，本项目实现的可运行适配器。它不改 `review-input/` 中的原前端文件。
+仓库由所有者有意设为私有，必须保持私有。正式数据只通过已有带 token 的 skill 访问；该通道已能供前端使用，不重写 skill，也不新增 API、代理、CDN 或其他消费通道。字段需求见 [数据与前端契约](../docs/data-contract.md) 及固定的 `frontend-contract-v2/scripts/process_snapshot.py`。
 
-读取顺序：GitHub API 将 `main` 固定为 40 位 commit → 从 `raw.githubusercontent.com` 按该 commit 读取 manifest、索引与内容分片 → 校验 SHA-256、demo 边界、依赖和引用完整性 → 交给固定哈希的原包 `process_snapshot.py`。
+`client/fetch_snapshot.py` 已弃用，执行时明确提示“公开读取已停止，请使用现有 token skill”，返回退出码 2；若传入 `--status-output` 则记录 `deprecated`。它不再发起网络请求。旧版只在解析 commit 时携带 token，下载数据文件不携带认证；给旧客户端设置 `GITHUB_TOKEN` 不能使它支持私有仓库。匿名 raw URL 返回 404 是私有化的预期结果，不是产品故障。
 
-项目根目录运行示例：
+`client/snapshot_repo.py` 保留兼容导出。实际调用清单：`publication_smoke.py` 已停止执行旧 CLI，改以认证 ContentsTransport 复用 backend repository 类的契约校验；`frontend-e2e/build_fixture.py`、`known-gaps.e2e.mjs`、`source-freshness.e2e.mjs`、`ticker-matching.e2e.mjs` 仍以本地或 FakeTransport 使用共享类，不做匿名生产读取，不删除这些调用。旧 HTTPTransport 不用于生产监控。
 
-```powershell
-$env:GITHUB_TOKEN = gh auth token  # 可选，但建议设置以提高 GitHub API 限额
-python client/fetch_snapshot.py dashboard --owner hunterhigh --repo us-politician-trades-data --output .local/production-dashboard.json
-python client/fetch_snapshot.py person --value "Nancy Pelosi" --owner hunterhigh --repo us-politician-trades-data --output .local/production-person.json
-python review-input/us-politician-trades-watch/scripts/render_dashboard.py --input .local/production-dashboard.json --output .local/production-dashboard.html
-```
+## 凭据
 
-脚本会自动定位仓库内的 `backend/src`，不要求用户设置 `PYTHONPATH`。公开仓库可以匿名读取；GitHub 的匿名 API 限额较低，在共享出口网络中可能出现 403，因此生产运行建议设置只读可用的 `GITHUB_TOKEN`。Token 只用于 GitHub API 的 commit 解析，不会发送给 raw 内容主机。owner/repo 是固定标识，不接受任意基础 URL。
+消费 skill 的 fine-grained token 只需选择 `hunterhigh/us-politician-trades-data` 一个仓库，并授予 **Contents: Read**（Metadata: Read 由 GitHub 自动附带）；不需要 Contents 写入、Issues、Actions 或组织管理权限。凭据留在现有 skill 的 secret/环境变量配置中；本仓库不管理或更改该外部配置，也不把未知的变量名写成已确认事实。
 
-相较对方代理版“manifest + board”两个 HTTP 请求，公开 GitHub 直读多一次 commit 解析，所以 dashboard 首次为三个请求。它换来的结果是首版不需要 Cloudflare，也不会在一次报告中混合两个提交。
+仓库内健康监控由 `.github/workflows/health.yml` 将 GitHub 自动凭据 `${{ github.token }}` 注入 **`GITHUB_TOKEN`**，数据读取使用这个环境变量；同一 workflow 的 **`GH_TOKEN`** 用于既有状态/Issue/回退管理，不是给消费 skill 扩权。无需新增长期 PAT 或 secret。维护者本地验证时，仅在进程环境中提供 `GITHUB_TOKEN`，不把值作为命令参数或写入文件。
 
-`person` 接受稳定ID或人物全名/短名。姓名会在同一个固定commit的完整board中做大小写与空白规范化后的唯一精确匹配，再读取人物分片；无匹配和重名会明确失败，不使用模糊猜测。
+## 监控
+
+监控通过已有认证 GitHub API 将 `main` 固定为 commit，使用 Contents API 的 raw media 响应读取同一提交的 manifest、索引和分片（包含引用的 market 提交），再校验现有哈希/字节数与前端投影、渲染契约。监控内部适配不对外提供新的数据入口，不改下游 skill。
+
+匿名请求不参与产品健康判断。认证缺失、失效或认证读取 404 仍是实际访问问题，不能一概忽略 404。监控回执只记录状态、commit 和 snapshot 标识；任何 token 都不得写入代码、日志、workflow 输出或 Issue。

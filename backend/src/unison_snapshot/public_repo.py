@@ -1,4 +1,7 @@
-"""Read the hash-sharded contract directly from a public GitHub repository."""
+"""Deprecated public reader, retained for offline contract consumers.
+
+Production access uses the existing token-authenticated skill, not this transport.
+"""
 from dataclasses import dataclass
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
@@ -97,6 +100,10 @@ class HTTPTransport:
                     data = _read_response(response, limit)
                 break
             except urllib.error.HTTPError as exc:
+                if exc.code == 404:
+                    raise PublicSnapshotTransportError(
+                        'Public data reads have stopped; the repository is intentionally private. '
+                        'This public client is deprecated; use the existing token-authenticated skill.') from None
                 if exc.code not in retryable_http or attempt == self.retries:
                     raise PublicSnapshotTransportError(f"Repository returned HTTP {exc.code}") from None
             except PublicSnapshotTransportError:

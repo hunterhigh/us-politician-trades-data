@@ -4,7 +4,7 @@
 
 ## 入口与环境
 
-公开生产数据从[main manifest](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)读取。[独立健康状态](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)保存采集、候选、发布与冒烟结果。客户端用法见`client/README.md`。
+仓库保持私有，正式生产数据仅通过已有带token的skill访问；匿名404是预期结果。[main manifest（维护者登录查看）](https://github.com/hunterhigh/us-politician-trades-data/blob/main/manifest.json)。[独立健康状态](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)保存采集、候选、发布与冒烟结果。凭据最小权限、监控环境变量及旧客户端弃用说明见`client/README.md`。
 
 House原件解析和资格判定在来源处理阶段执行；候选构建、处理状态及正式发布复用已保存的资格产物，移除常规报告的逐份重复重算。修订关联仍使用现有修订流程。
 
@@ -33,7 +33,7 @@ Secrets只放在GitHub `production` environment：`ALPACA_API_KEY_ID`、`ALPACA_
 
 OGE采集必须同时满足`OGE_COLLECTION_ENABLED`及`OGE_TERMS_ACKNOWLEDGED`；Senate默认自动采集，使用既有采集及条款授权门禁；自动采集失败超过3天时使用人工下载、自动导入。变量必须在作业取得production环境后判断。行情还需`MARKET_DISTRIBUTION_AUTHORIZED`及对应供应商分发授权。Form 201需申请的原件仅记`request_required`，不自动申请。
 
-不新增付费资源、供应商或受限来源。现有公开GitHub部署、House公开采集和官方归档已获授权；2025 House PTR回填已从code启动，只处理固定2025年PTR，不扩年报或其他年份。production 环境按受控工作流的 `code` 分支边界运行。来源门禁遵循[数据契约](data-contract.md)：Senate单独受阻可限期保旧发布。Senate以自动采集为主；自动采集失败超过3天时使用人工下载、自动导入。
+不新增付费资源、供应商或受限来源。现有私有GitHub部署、House公开采集和官方归档已获授权；2025 House PTR回填已从code启动，只处理固定2025年PTR，不扩年报或其他年份。production 环境按受控工作流的 `code` 分支边界运行。来源门禁遵循[数据契约](data-contract.md)：Senate单独受阻可限期保旧发布。Senate以自动采集为主；自动采集失败超过3天时使用人工下载、自动导入。
 
 ## 运行规则
 
@@ -46,7 +46,7 @@ OGE采集必须同时满足`OGE_COLLECTION_ENABLED`及`OGE_TERMS_ACKNOWLEDGED`�
 | Senate单独受阻或过期 | 保留旧事实和真实水位，公开显示stale及统计缺口 | 宽限默认30天（`SENATE_MAX_STALE_DAYS`）；20天提醒一次，超过宽限停发；来源告警保持 |
 | 单文档无法解析、必要字段缺失 | 报告/行隔离，独立文档继续 | 进入状态和known_gaps，不称已全部处理 |
 | 单条原件或修正无法解析 | 隔离受影响记录，继续其他记录 | 不新增全站发布门槛 |
-| 旧数据变化或违反合同 | 当前解析结果进入公开变更清单；合同不符则保留现有快照 | 仅合同不符、任一来源记录数一次减少超过5%、来源过期时停发 |
+| 旧数据变化或违反合同 | 当前解析结果进入同提交的变更清单；合同不符则保留现有快照 | 仅合同不符、任一来源记录数一次减少超过5%、来源过期时停发 |
 | 隔离率上升或新unknown_layout | 保存分子、分母、时间窗与布局标识 | 周汇总；比上周增加超过5个百分点或新布局时单独告警 |
 | 发布后正式客户端/渲染内容失败 | 绑定当前head、失败快照和已验证的last_good | 仅在内容失败时自动请求受控恢复；下一次发布按当次数据合同和正常读取结果判断 |
 
@@ -65,8 +65,8 @@ House归档应按时间预算推进积压并保存检查点，不能永久停在
 ## 发布与演练
 
 1. 保存本机成果和固定候选，冻结code、evidence、review、前一main/market引用。
-2. 用正常命令构建候选，检查自动资格、行守恒、旧事实差异和市场覆盖。所有旧记录变化自动写入公开变更清单。
-3. 准备不可变预发布提交，通过公开客户端四模式、最高HTML与正常渲染浏览器检查；核对known_gaps。
+2. 用正常命令构建候选，检查自动资格、行守恒、旧事实差异和市场覆盖。所有旧记录变化自动写入同提交的变更清单。
+3. 准备不可变预发布提交，通过本地四模式、最高HTML与正常渲染浏览器检查；核对known_gaps。
 4. 演练在最后发布步骤前受控失败，确认正式引用未移动；再演练绑定head及已验证前版的恢复，不触发正式切换。
 5. 用户已于2026-10-29确认code切换，PR293已合入；以后正式数据发布仅按数据合同、5%来源记录数减少及来源过期规则停发。正式引用移动后执行读取与渲染冒烟。
 

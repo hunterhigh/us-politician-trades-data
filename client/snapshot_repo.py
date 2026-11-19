@@ -1,4 +1,4 @@
-"""Stable import surface for the public GitHub snapshot transport."""
+"""Deprecated public-reader compatibility exports, retained for offline consumers."""
 from unison_snapshot.public_repo import (
     HTTPTransport,
     PublicSnapshotError,

@@ -1,14 +1,14 @@
-"""Read the live publication through the shipped client, with content-only recovery."""
+"""Check authenticated private data against the frontend contract, with content-only recovery."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
+from http.client import HTTPException
 import json
 import os
 from pathlib import Path
 import re
-import subprocess
-import sys
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote
 
 from . import legacy
 
@@ -42,33 +42,56 @@ def save_json(path, value):
     temporary.replace(path)
 
 
-def check_client(*, repository, commit, client_root, output_dir, people, runner=subprocess.run):
-    """Execute the same entry point used by the report Skill, without live writes."""
+def check_client(*, repository, commit, client_root, output_dir, people):
+    """Use the existing authenticated Contents API, then the pinned frontend contract.
+
+    This is a monitor adapter, not a replacement consumer or a change to the skill.
+    Anonymous raw requests are deliberately never made here.
+    """
+    from .production_health import GitHub
+    from .public_repo import PublicSnapshotRepository, PublicSnapshotChanged, PublicSnapshotError
     if not SHA.fullmatch(commit) or repository.count('/') != 1 or len(people) != 3 or len(set(people)) != 3:
         raise ValueError('Smoke requires one frozen publication and three fixed distinct people')
     owner, repo = repository.split('/')
+    token = os.environ.get('GITHUB_TOKEN')
+    if not token:
+        return {'status': 'operational_failure', 'checks': [
+            {'mode': 'authentication', 'status': 'operational_failure',
+             'detail': 'GITHUB_TOKEN is required for private repository monitoring'}]}
+    github = GitHub(repository, token)
+
+    class ContentsTransport:
+        def get(self, url, limit, *, api=False):
+            if api:
+                data = json.dumps(github.request('/git/ref/heads/main')).encode()
+            else:
+                frozen, path = url.removeprefix(
+                    f'https://raw.githubusercontent.com/{repository}/').split('/', 1)
+                data = github.request('/contents/' + quote(path, safe='/') + '?ref=' + frozen, raw=True)
+            if len(data) > limit:
+                raise PublicSnapshotError('Repository object exceeds the contract size limit')
+            return data
+
+    reader = PublicSnapshotRepository(owner, repo, expected_commit=commit, transport=ContentsTransport())
+    processor = legacy.load('process_snapshot', version='v2')
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     results = []
     for index, (mode, person) in enumerate([('dashboard', None), *(('person', p) for p in people)]):
-        output, status_path = (output_dir/f'{index}.json', output_dir/f'{index}-status.json')
-        # A previous attempt's receipt must never mask a crashed new invocation.
-        status_path.unlink(missing_ok=True)
-        command = [sys.executable, str(Path(client_root)/'client/fetch_snapshot.py'), mode,
-            '--owner', owner, '--repo', repo, '--expected-commit', commit,
-            '--output', str(output), '--status-output', str(status_path)]
-        if person is not None:
-            command.extend(['--value', person])
+        output = output_dir/f'{index}.json'
         try:
-            process = runner(command, capture_output=True, text=True, encoding='utf-8', timeout=240)
-            result = read_json(status_path) if status_path.is_file() else {'status':'operational_failure',
-                'detail':'Client exited without a typed receipt'}
-            if process.returncode != 0 and result.get('status') == 'passed':
-                result = {'status':'operational_failure', 'detail':'Client exit contradicts its receipt'}
-            if result.get('status') == 'passed' and (result.get('commit') != commit or not output.is_file()):
-                result = {'status':'operational_failure', 'detail':'Client receipt is missing its bound output'}
-        except (OSError, ValueError, subprocess.TimeoutExpired) as error:
-            result = {'status':'operational_failure', 'detail':str(error)}
+            selected = reader.fetch(mode, person)
+            processed = processor.build_snapshot(selected.snapshot)
+            processed['meta']['snapshot_commit'] = selected.commit
+            save_json(output, processed)
+            result = {'status': 'passed', 'commit': selected.commit,
+                      'snapshot_id': processed['meta']['snapshot_id']}
+        except PublicSnapshotChanged:
+            result = {'status': 'superseded', 'detail': 'Snapshot head advanced beyond the checked publication'}
+        except (HTTPError, URLError, TimeoutError, OSError, HTTPException):
+            result = {'status': 'network_failure', 'detail': 'Authenticated GitHub data read failed'}
+        except (PublicSnapshotError, ValueError) as error:
+            result = {'status': 'content_failure', 'detail': str(error)}
         results.append({'mode':mode, 'person_id':person, **result})
         if result.get('status') == 'superseded':
             break
