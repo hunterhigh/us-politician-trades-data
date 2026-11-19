@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime, timezone
 import hashlib
+from http.client import HTTPException
 import json
 import os
 from pathlib import Path
@@ -87,7 +88,7 @@ def check_client(*, repository, commit, client_root, output_dir, people):
                       'snapshot_id': processed['meta']['snapshot_id']}
         except PublicSnapshotChanged:
             result = {'status': 'superseded', 'detail': 'Snapshot head advanced beyond the checked publication'}
-        except (HTTPError, URLError, TimeoutError, OSError):
+        except (HTTPError, URLError, TimeoutError, OSError, HTTPException):
             result = {'status': 'network_failure', 'detail': 'Authenticated GitHub data read failed'}
         except (PublicSnapshotError, ValueError) as error:
             result = {'status': 'content_failure', 'detail': str(error)}
