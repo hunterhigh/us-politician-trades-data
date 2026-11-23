@@ -1,11 +1,6 @@
 {
   "alerts": [
     {
-      "detail": "{\"detail\": null, \"failed_step\": null, \"http_status\": null, \"last_attempt_at\": \"2026-11-19T20:40:00+00:00\", \"last_successful_collection_at\": \"2026-11-19T20:40:00+00:00\", \"stale\": true, \"status\": \"stale\", \"unhealthy_since\": \"2026-11-19T20:40:00+00:00\", \"workflow_run_url\": null}",
-      "key": "source:house_clerk",
-      "title": "[Health] house_clerk collection blocked or stale"
-    },
-    {
       "detail": "{\"detail\": \"Authorized eFD PTR catalog and a bounded batch of report entrypoint responses were archived. Transaction facts remain unpublished.\", \"failed_step\": null, \"grace_active\": true, \"http_status\": null, \"last_attempt_at\": \"2026-11-19T10:30:21.300688+00:00\", \"last_successful_collection_at\": \"2026-11-19T10:30:21.300688+00:00\", \"max_stale_days\": 30, \"stale\": true, \"status\": \"stale\", \"unhealthy_since\": \"2026-11-19T10:30:21.300688+00:00\", \"workflow_run_url\": null}",
       "key": "source:senate_efd",
       "title": "[Health] senate_efd collection blocked or stale"
@@ -16,7 +11,7 @@
       "title": "[Health] oge collection blocked or stale"
     },
     {
-      "detail": "Latest snapshot: 2026-11-19T23:31:40Z\nBlocking sources: [{\"source\": \"house_clerk\", \"reason\": \"source_stale\"}, {\"source\": \"oge\", \"reason\": \"source_stale\"}, {\"source\": \"house_clerk\", \"reason\": \"candidate_stale\", \"candidate_cutoff_at\": \"2026-11-19T20:40:00+00:00\"}, {\"source\": \"oge\", \"reason\": \"candidate_stale\", \"candidate_cutoff_at\": \"2026-11-19T23:17:11.267530+00:00\"}]",
+      "detail": "Latest snapshot: 2026-11-19T23:31:40Z\nBlocking sources: [{\"source\": \"oge\", \"reason\": \"source_stale\"}, {\"source\": \"house_clerk\", \"reason\": \"candidate_stale\", \"candidate_cutoff_at\": \"2026-11-19T20:40:00+00:00\"}, {\"source\": \"oge\", \"reason\": \"candidate_stale\", \"candidate_cutoff_at\": \"2026-11-19T23:17:11.267530+00:00\"}]",
       "key": "publication",
       "title": "[Health] Production publication missed its expected window"
     }
@@ -36,10 +31,6 @@
   "blocking_sources": [
     {
       "reason": "source_stale",
-      "source": "house_clerk"
-    },
-    {
-      "reason": "source_stale",
       "source": "oge"
     },
     {
@@ -53,28 +44,28 @@
       "source": "oge"
     }
   ],
-  "checked_at": "2026-11-23T08:24:44.305250+00:00",
+  "checked_at": "2026-11-23T08:58:32.680429+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
-      "action": "created",
-      "key": "source:house_clerk",
-      "number": 372
-    },
-    {
-      "action": "reopened",
+      "action": "already_open",
       "key": "source:senate_efd",
       "number": 290
     },
     {
-      "action": "created",
+      "action": "already_open",
       "key": "source:oge",
       "number": 373
     },
     {
-      "action": "reopened",
+      "action": "updated_condition",
       "key": "publication",
       "number": 291
+    },
+    {
+      "action": "closed",
+      "key": "source:house_clerk",
+      "number": 372
     }
   ],
   "last_successful_publication_check_at": "2026-11-19T23:49:28Z",
@@ -145,12 +136,12 @@
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-19T20:40:00+00:00",
-      "last_successful_collection_at": "2026-11-19T20:40:00+00:00",
+      "last_attempt_at": "2026-11-23T08:26:31+00:00",
+      "last_successful_collection_at": "2026-11-23T08:26:31+00:00",
       "qualified_cutoff_at": "2026-11-19T20:40:00+00:00",
-      "stale": true,
-      "status": "stale",
-      "unhealthy_since": "2026-11-19T20:40:00+00:00",
+      "stale": false,
+      "status": "ok",
+      "unhealthy_since": null,
       "workflow_run_url": null
     },
     "oge": {
