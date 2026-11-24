@@ -1,9 +1,9 @@
 name: OGE direct 278-T pipeline
 on:
-  schedule:
-    # Stagger from House and Senate: GitHub retains only one pending run in
-    # their shared disclosure-source-writer concurrency group.
-    - cron: '43 4,10,16,22 * * *'
+  workflow_run:
+    workflows: [House source pipeline]
+    branches: [code]
+    types: [completed]
   workflow_dispatch:
     inputs:
       oge_generic_document_id:
@@ -68,7 +68,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   source:
-    if: github.ref == 'refs/heads/code'
+    if: >-
+      github.ref == 'refs/heads/code' &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.head_repository.full_name == github.repository)
     environment: production
     runs-on: ubuntu-latest
     # Candidate and source-status checks both replay native original evidence.

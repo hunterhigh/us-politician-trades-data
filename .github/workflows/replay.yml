@@ -6,7 +6,6 @@ on:
       - backend/src/unison_snapshot/house_holdings.py
       - backend/src/unison_snapshot/house_annual_sections.py
       - backend/src/unison_snapshot/house_holdings_replay.py
-      - .github/workflows/replay.yml
   workflow_dispatch:
     inputs:
       source:
@@ -68,6 +67,7 @@ jobs:
   invalid-selection:
     if: ${{ github.event_name != 'push' && !((inputs.source == 'house' && (inputs.mode == 'backfill' || inputs.mode == 'holdings')) || (inputs.source == 'senate' && (inputs.mode == 'paper-saved' || inputs.mode == 'history-plan' || inputs.mode == 'history-resolve')) || (inputs.source == 'whitehouse' && inputs.mode == 'pdf')) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - run: echo 'Unsupported source and replay mode' >&2; exit 2
   house-backfill:
@@ -110,7 +110,7 @@ jobs:
           PY
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
         with:
@@ -186,7 +186,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
         with:
@@ -256,7 +256,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
         with:
@@ -285,7 +285,7 @@ jobs:
           name: selected-amendment-replay
           path: .local/senate-history/*.json
           if-no-files-found: ignore
-          retention-days: 30
+          retention-days: 7
       - name: Reconcile explicit integrity failures
         if: always()
         uses: ./.github/actions/report-integrity

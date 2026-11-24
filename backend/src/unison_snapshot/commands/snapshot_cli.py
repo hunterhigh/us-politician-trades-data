@@ -6,6 +6,7 @@ from pathlib import Path
 from ..builder import build, normalize
 from ..codec import digest, encode
 from ..materialize import materialize
+from ..publication_gate import publication_inputs
 from ..disclosure_candidate import DisclosureCandidateError, SourceCutoffsStaleError, build_disclosure_candidate, project_source_candidate
 from ..legacy import load, PROCESSOR_V2_SHA256
 from ..release_readiness import validate_publication
@@ -24,6 +25,7 @@ def configure_prepare_publication(parser):
     prepare.add_argument("--market-pages-file", type=Path)
     prepare.add_argument("--disclosure-status-input", type=Path)
     prepare.add_argument("--publication-changes", type=Path)
+    prepare.add_argument("--publication-inputs", nargs=4, metavar=("REVIEW", "STATE", "MARKET", "CODE"))
     prepare.add_argument("--consumer-validation-file", type=Path,
                          help="Reuse successful rendering of these exact bytes by the pinned processor")
 
@@ -59,6 +61,9 @@ def execute_prepare_publication(args):
         bundle.files[f"status/{sha}.json"] = changes
         bundle.manifest['publication_changes'] = {
             'schema_version': 'publication-changes/v1', 'sha256': sha, 'byte_length': len(changes)}
+    if args.publication_inputs:
+        bundle.manifest['publication_inputs'] = publication_inputs(*args.publication_inputs)
+    if args.publication_changes or args.publication_inputs:
         bundle.files['manifest.json'] = encode(bundle.manifest)
     result = materialize(args.root, bundle)
     print(json.dumps({"changed": result.changed, "business_changed": result.business_changed,

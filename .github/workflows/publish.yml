@@ -1,10 +1,8 @@
 name: Publish complete production snapshot
 
 on:
-  schedule:
-    - cron: '31 4,10,16,22 * * *'
   workflow_run:
-    workflows: [Prepare licensed market data, House source pipeline, House annual holdings parser replay, OGE direct 278-T pipeline, White House source pipeline]
+    workflows: [Prepare licensed market data, Replay bounded source inputs, OGE direct 278-T pipeline, White House source pipeline]
     branches: [code]
     types: [completed]
   workflow_dispatch:
@@ -22,7 +20,9 @@ jobs:
   assess:
     if: >-
       github.ref == 'refs/heads/code' &&
-      (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository))
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.head_repository.full_name == github.repository &&
+        (github.event.workflow_run.name == 'OGE direct 278-T pipeline' || github.event.workflow_run.conclusion == 'success')))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -43,7 +43,7 @@ jobs:
       - uses: ./.github/actions/setup-source
         with:
           integrity_scope: publication_gate
-      - name: Require a completed price handoff for market-triggered publication
+      - name: Require a completed price handoff or House holdings replay
         id: upstream
         env:
           GH_TOKEN: ${{ github.token }}
@@ -54,9 +54,11 @@ jobs:
           event = json.load(open(os.environ['GITHUB_EVENT_PATH']))
           run = event.get('workflow_run', {})
           ready = True
-          if run.get('name') == 'Prepare licensed market data':
+          required_job = {'Prepare licensed market data': 'refresh',
+                          'Replay bounded source inputs': 'house-holdings'}.get(run.get('name'))
+          if required_job:
               jobs = GitHub(os.environ['GITHUB_REPOSITORY'], os.environ['GH_TOKEN']).request('/actions/runs/' + str(run['id']) + '/jobs?per_page=100')
-              ready = any(job['name'] == 'refresh' and job['conclusion'] == 'success' for job in jobs['jobs'])
+              ready = any(job['name'] == required_job and job['conclusion'] == 'success' for job in jobs['jobs'])
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write('ready=' + str(ready).lower() + '\n')
           PY
@@ -64,12 +66,22 @@ jobs:
         if: steps.upstream.outputs.ready == 'true'
         id: gate
         env:
-          GH_TOKEN: ${{ github.token }}
+          MARKET_HANDOFF: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Prepare licensed market data' }}
         run: |
-          git fetch --no-tags --depth=1 --filter=blob:none origin review:refs/remotes/origin/review state:refs/remotes/origin/state
+          git fetch --no-tags --depth=1 --filter=blob:none origin \
+            review:refs/remotes/origin/review state:refs/remotes/origin/state \
+            main:refs/remotes/origin/main market:refs/remotes/origin/market
+          compare=()
+          if [ "$MARKET_HANDOFF" != true ]; then
+            compare=(--previous-main-commit "$(git rev-parse origin/main)" \
+                     --market-commit "$(git rev-parse origin/market)" --code-commit "$GITHUB_SHA")
+          fi
           python -m unison_snapshot publication-gate --repo . \
             --review-commit "$(git rev-parse origin/review)" --state-commit "$(git rev-parse origin/state)" \
-            --output "$RUNNER_TEMP/publication-source-gate.json" --github-output "$GITHUB_OUTPUT"
+            --output "$RUNNER_TEMP/publication-source-gate.json" --github-output "$GITHUB_OUTPUT" "${compare[@]}"
+      - name: Record unchanged publication inputs
+        if: steps.gate.outputs.inputs_unchanged == 'true'
+        run: echo 'inputs unchanged' >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve publication hold evidence
         if: steps.upstream.outputs.ready == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -77,7 +89,7 @@ jobs:
           name: publication-source-gate-${{ github.run_id }}
           path: ${{ runner.temp }}/publication-source-gate.json
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
       - name: Reconcile explicit integrity failures
         if: always()
         uses: ./.github/actions/report-integrity
@@ -99,8 +111,11 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Enforce scheduled publication switch
-        if: github.event_name == 'schedule'
+      - name: Enforce the daily publication switch
+        if: >-
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.name == 'OGE direct 278-T pipeline' &&
+          github.event.workflow_run.event == 'workflow_run'
         env:
           ENABLED: ${{ vars.COMPLETE_PUBLICATION_ENABLED }}
         run: test "$ENABLED" = "true"
@@ -188,7 +203,7 @@ jobs:
           name: publication-changes-${{ github.run_id }}
           path: ${{ runner.temp }}/publication-changes.json
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
       - name: Prepare and commit market branch
         id: market
         env:
@@ -235,7 +250,9 @@ jobs:
             --market-pages-file "$RUNNER_TEMP/market-publication.json" \
             --consumer-validation-file "$RUNNER_TEMP/consumer-validation.json" \
             --disclosure-status-input "$RUNNER_TEMP/disclosure-status-input.json" \
-            --publication-changes "$RUNNER_TEMP/publication-changes.json"
+            --publication-changes "$RUNNER_TEMP/publication-changes.json" \
+            --publication-inputs "${{ steps.trees.outputs.review_commit }}" "${{ steps.trees.outputs.state_commit }}" \
+              "$MARKET_SHA" "$GITHUB_SHA"
           git -C "$MAIN_ROOT" add -A -- manifest.json board people tickers status
           if git -C "$MAIN_ROOT" diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"

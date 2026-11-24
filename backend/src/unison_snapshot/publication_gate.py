@@ -36,3 +36,7 @@ def evaluate(candidates,statuses,*,now=None,senate_days=None):
             if now-instant>age_limit:blockers.append({'source':source,'reason':phase+'_stale','waterline_at':value})
     return {'schema_version':'publication-source-gate/v1','checked_at':now.isoformat(),
             'ready':not blockers,'blocking_sources':blockers,'waterlines':waterlines}
+
+def publication_inputs(review_commit, state_commit, market_commit, code_commit):
+    return {'review_commit': review_commit, 'state_commit': state_commit,
+            'market_commit': market_commit, 'code_commit': code_commit}

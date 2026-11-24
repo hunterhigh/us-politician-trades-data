@@ -1,12 +1,8 @@
 name: Offline contract checks
 on:
-  push:
-    branches: [code]
-    paths: ['contract/**', 'backend/**', 'client/**', 'frontend-e2e/**', 'review-input/**', '.github/**', 'runtime/**', 'docs/**', 'README.md', 'AGENTS.md']
   pull_request:
-    paths: ['contract/**', 'backend/**', 'client/**', 'frontend-e2e/**', 'review-input/**', '.github/**', 'runtime/**', 'docs/**', 'README.md', 'AGENTS.md']
-  schedule:
-    - cron: '43 18 * * *'
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ['contract/**', 'backend/**', 'client/**', 'frontend-e2e/**', 'review-input/**', '.github/**', 'runtime/**']
   workflow_dispatch:
     inputs:
       build_runtime:
@@ -25,6 +21,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   checks:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     name: Demo, golden reports and frontend
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -50,9 +47,10 @@ jobs:
       - run: npm test
         working-directory: frontend-e2e
   verify:
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     needs: checks
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Require successful offline checks
         env:
@@ -96,4 +94,4 @@ jobs:
           path: .local/runtime-build.json
           include-hidden-files: true
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7

@@ -6,7 +6,7 @@ import re
 import subprocess
 
 from unison_snapshot.codec import encode
-from unison_snapshot.publication_gate import SOURCES,evaluate
+from unison_snapshot.publication_gate import SOURCES, evaluate, publication_inputs
 
 
 def from_git(repo,review_commit,state_commit):
@@ -31,6 +31,9 @@ def main():
     parser.add_argument('--state-commit',required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--github-output',type=Path)
+    parser.add_argument('--previous-main-commit')
+    parser.add_argument('--market-commit')
+    parser.add_argument('--code-commit')
     requirement=parser.add_mutually_exclusive_group()
     requirement.add_argument('--require-ready',action='store_true')
     requirement.add_argument('--require-preparation-ready',action='store_true')
@@ -38,13 +41,20 @@ def main():
     try:
         candidates,statuses,provenance=from_git(args.repo,args.review_commit,args.state_commit)
         result={**evaluate(candidates,statuses),**provenance}
-        result['preparation_ready']=result['ready']
+        inputs_unchanged = False
+        if result['ready'] and args.previous_main_commit:
+            manifest = json.loads(subprocess.check_output(
+                ['git', '-C', str(args.repo), 'show', args.previous_main_commit + ':manifest.json']))
+            inputs_unchanged = manifest.get('publication_inputs') == publication_inputs(
+                provenance['review_commit'], provenance['state_commit'], args.market_commit, args.code_commit)
+        result['preparation_ready'] = result['ready'] and not inputs_unchanged
         args.output.parent.mkdir(parents=True,exist_ok=True)
         temporary=args.output.with_suffix('.next.json');temporary.write_bytes(encode(result));temporary.replace(args.output)
         if args.github_output:
             with args.github_output.open('a',encoding='utf-8') as stream:
                 stream.write('publication_ready='+str(result['ready']).lower()+'\n')
                 stream.write('preparation_ready='+str(result['preparation_ready']).lower()+'\n')
+                stream.write('inputs_unchanged=' + str(inputs_unchanged).lower() + '\n')
         print(json.dumps(result))
         if args.require_ready and not result['ready']:parser.exit(3,'Publication held by current source waterlines\n')
         if args.require_preparation_ready and not result['preparation_ready']:
