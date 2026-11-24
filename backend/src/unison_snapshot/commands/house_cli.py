@@ -1,9 +1,10 @@
 """House discovery, parsing, qualification and candidate commands."""
 import sys
 import json
+from hashlib import file_digest
 from pathlib import Path
 from ..builder import build
-from ..codec import encode
+from ..codec import digest, encode
 from ..house import HouseIndexClient, discover
 from ..house_ptr import parse_archived_pdf, qualify_automatic
 from ..house_paper_pipeline import bridge_paper_batch
@@ -14,6 +15,8 @@ from ..house_holdings import HouseFinancialDocumentClient, archive_indexed_finan
 from ..legacy import load
 from ._io import _write_atomic
 from ._runtime import invoke
+
+HOUSE_QUALIFIER_VERSION = 1
 
 
 def configure_discover_house_index(parser):
@@ -126,6 +129,65 @@ def execute_qualify_house_ptr(args):
                       "qualified": result["qualification"]["qualified_count"],
                       "quarantined": result["qualification"]["quarantined_count"],
                       "output": str(args.output.resolve())}))
+
+
+def configure_qualify_house_ptr_batch(parser):
+    parser.add_argument("--review-root", type=Path, required=True)
+    parser.add_argument("--evidence-root", type=Path, required=True)
+    parser.add_argument("--year", type=int, required=True)
+    parser.add_argument("--mode", choices=("ptr", "amount-policy"), default="ptr")
+    parser.add_argument("--cache-ready", choices=("true", "false"), default="false")
+
+
+def _qualification_input_fingerprint(extraction, extraction_bytes, identity_bytes, evidence_root):
+    metadata_path = evidence_root / Path(extraction["source"]["archive_path"]).with_suffix(".json")
+    metadata_bytes = metadata_path.read_bytes()
+    original = evidence_root / json.loads(metadata_bytes)["archive_path"]
+    with original.open("rb") as source:
+        original_sha256 = file_digest(source, "sha256").hexdigest()
+    return digest(encode({
+        "qualifier_version": HOUSE_QUALIFIER_VERSION,
+        "extraction_sha256": digest(extraction_bytes),
+        "identity_sha256": digest(identity_bytes),
+        "evidence_metadata_sha256": digest(metadata_bytes),
+        "original_sha256": original_sha256,
+    }))
+
+
+def execute_qualify_house_ptr_batch(args):
+    root = args.review_root / "house_clerk"
+    extractions = root / "extractions"
+    counts = {"qualified": 0, "reused": 0, "filtered": 0}
+    for path in sorted((extractions / str(args.year)).rglob("*.json")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(extractions)
+        identity_path = root / "identities" / relative
+        output = root / "qualifications" / relative
+        if args.mode == "amount-policy" and output.is_file():
+            counts["filtered"] += 1
+            continue
+        extraction_bytes = path.read_bytes()
+        extraction = json.loads(extraction_bytes.decode("utf-8"))
+        method = extraction.get("extraction_method")
+        if (method == "source_bound_paper_cells"
+                or (args.mode != "amount-policy" and args.cache_ready != "true"
+                    and method != "tesseract_legacy_checkbox")
+                or not identity_path.is_file()):
+            counts["filtered"] += 1
+            continue
+        identity_bytes = identity_path.read_bytes()
+        fingerprint = _qualification_input_fingerprint(
+            extraction, extraction_bytes, identity_bytes, args.evidence_root)
+        if output.is_file() and json.loads(output.read_bytes()).get("input_fingerprint") == fingerprint:
+            counts["reused"] += 1
+            continue
+        identity = json.loads(identity_bytes.decode("utf-8"))
+        result = qualify_automatic(extraction, identity, evidence_root=args.evidence_root)
+        result["input_fingerprint"] = fingerprint
+        _write_atomic(output, result)
+        counts["qualified"] += 1
+    print(json.dumps(counts, sort_keys=True))
 
 
 def configure_correct_reviewed_house_paper(parser):
@@ -268,6 +330,7 @@ COMMANDS = {
     'qualify-house-holding-report': (configure_qualify_house_holding_report, execute_qualify_house_holding_report),
     'parse-house-ptr': (configure_parse_house_ptr, execute_parse_house_ptr),
     'qualify-house-ptr': (configure_qualify_house_ptr, execute_qualify_house_ptr),
+    'qualify-house-ptr-batch': (configure_qualify_house_ptr_batch, execute_qualify_house_ptr_batch),
     'correct-reviewed-house-paper': (configure_correct_reviewed_house_paper, execute_correct_reviewed_house_paper),
     'bridge-house-paper-batch': (configure_bridge_house_paper_batch, execute_bridge_house_paper_batch),
     'build-house-candidate': (configure_build_house_candidate, execute_build_house_candidate),
