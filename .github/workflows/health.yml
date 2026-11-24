@@ -1,8 +1,5 @@
 name: Production health and alerts
 on:
-  schedule:
-    - cron: '11 * * * *'
-  workflow_dispatch:
   workflow_run:
     workflows: ['Publish complete production snapshot']
     types: [completed]

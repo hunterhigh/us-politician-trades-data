@@ -56,7 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: ./.github/actions/setup-source
         with:
           integrity_scope: senate_efd
@@ -130,7 +130,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
         with:
@@ -283,12 +283,6 @@ jobs:
           workspace: ${{ runner.temp }}/senate-source
           roles: state
           message: Senate Persist collected source waterline ${{ github.run_id }}
-      - name: Close the fallback reminder after automatic recovery
-        if: steps.collect.outputs.source_status == 'ready'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PYTHONPATH: backend/src
-        run: python -m unison_snapshot senate-inbox remind --review-root "$REVIEW_ROOT" --state-root "$STATE_ROOT"
       - name: Publish normalized catalog to review branch
         if: ${{ steps.collect.outputs.source_status == 'ready' }}
         run: |
@@ -335,15 +329,23 @@ jobs:
             --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
             --html-output "$RUNNER_TEMP/disclosure-current.html"
 
+      - name: Maintain the reminder after the automatic collection attempt
+        if: always() && steps.trees.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: backend/src
+        run: python -m unison_snapshot senate-inbox remind --review-root "$REVIEW_ROOT" --state-root "$STATE_ROOT"
+
   publish:
     needs: [source, automatic, annual]
     if: >-
-      always() &&
+      always() && github.event_name == 'workflow_dispatch' &&
       ((needs.source.result == 'success' && needs.source.outputs.imported != '0') ||
        needs.automatic.result == 'success' || needs.annual.result == 'success')
     permissions:
       actions: write
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Start the existing publisher on code
         env:
@@ -376,7 +378,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
         with:
@@ -489,7 +491,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
         with:

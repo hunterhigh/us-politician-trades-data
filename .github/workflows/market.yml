@@ -2,7 +2,7 @@ name: Prepare licensed market data
 
 on:
   schedule:
-    - cron: '30 22 * * 1-5'
+    - cron: '30 22 * * 5'
   workflow_dispatch:
     inputs:
       mode:
@@ -223,7 +223,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 0
+          fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
         with:
@@ -328,7 +328,7 @@ jobs:
         with:
           name: twelve-data-coverage-audit
           path: ${{ runner.temp }}/twelve-audit.json
-          retention-days: 14
+          retention-days: 7
       - name: Reconcile explicit integrity failures
         if: always()
         uses: ./.github/actions/report-integrity

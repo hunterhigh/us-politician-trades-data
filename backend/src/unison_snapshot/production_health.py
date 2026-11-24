@@ -30,16 +30,15 @@ def timestamp(value):
 
 
 def latest_publication_deadline(now):
-    """Existing 22:31 UTC weekday schedule, with a two-hour completion allowance."""
-    for days in range(8):
-        day = (now - timedelta(days=days)).replace(hour=22, minute=31, second=0, microsecond=0)
-        deadline = day + timedelta(hours=2)
-        if day.weekday() < 5 and deadline <= now:
-            return day
-    raise ValueError('No publication window')
+    """Start of the latest daily House cycle whose publication window has ended."""
+    start = now.replace(hour=3, minute=17, second=0, microsecond=0)
+    deadline = now.replace(hour=6, minute=30, second=0, microsecond=0)
+    return start if now >= deadline else start - timedelta(days=1)
 
 
-def evaluate(manifest, source_status, previous=None, *, now=None, publication_success_at=None, assembly=None, smoke=None, integrity_failures=None, senate_days=None):
+def evaluate(manifest, source_status, previous=None, *, now=None, publication_success_at=None,
+             publication_unchanged_at=None, assembly=None, smoke=None, integrity_failures=None,
+             senate_days=None):
     now = now or datetime.now(UTC)
     previous = previous or {}
     prior_sources = previous.get('sources', {})
@@ -119,7 +118,8 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
     published = manifest.get('generated_at')
     candidates = [v for v in (publication_success_at, previous.get('last_successful_publication_check_at'), published) if v]
     last_live = max(candidates, key=timestamp) if candidates else None
-    if not last_live or timestamp(last_live) < latest_publication_deadline(now):
+    assessments = [v for v in (last_live, publication_unchanged_at) if v]
+    if not assessments or max(map(timestamp, assessments)) < latest_publication_deadline(now):
         alerts.append({'key': 'publication', 'title': '[Health] Production publication missed its expected window',
             'detail': 'Latest snapshot: ' + str(published) + '\nBlocking sources: ' +
                 json.dumps(blockers, ensure_ascii=False)})
@@ -218,9 +218,9 @@ def reconcile_issues(api, health):
     return results
 
 
-def successful_publication_at(api):
-    # Held assessments, legacy bootstrap and market-only runs grant no freshness.
-    completed = []
+def publication_run_times(api):
+    # A healthy no-op satisfies the window but grants no new publication timestamp.
+    published, unchanged = None, None
     for workflow in ('publish.yml', 'publish-complete.yml'):
         try:
             runs = api.request('/actions/workflows/' + workflow + '/runs?branch=code&status=completed&per_page=30')
@@ -232,12 +232,19 @@ def successful_publication_at(api):
             if run['conclusion'] != 'success' or run.get('name') != 'Publish complete production snapshot':
                 continue
             jobs = api.request('/actions/runs/' + str(run['id']) + '/jobs?per_page=100')
-            live = [job['completed_at'] for job in jobs['jobs']
-                    if job['name'] == 'publish' and job['conclusion'] == 'success']
-            if live:
-                completed.extend(live)
+            for job in jobs['jobs']:
+                if job['conclusion'] != 'success':
+                    continue
+                if job['name'] == 'publish':
+                    published = max(filter(None, (published, job['completed_at'])), key=timestamp)
+                elif job['name'] == 'assess' and any(
+                    step['name'] == 'Record unchanged publication inputs' and step['conclusion'] == 'success'
+                    for step in job['steps']
+                ):
+                    unchanged = max(filter(None, (unchanged, job['completed_at'])), key=timestamp)
+            if published:
                 break
-    return max(completed, key=timestamp) if completed else None
+    return published, unchanged
 
 
 def main():
@@ -261,7 +268,8 @@ def main():
     target = (args.health_root or args.state_root) / 'status/production_health.json'
     prior = read(target) if target.exists() else {}
     api = GitHub(args.repository, os.environ.get('GH_TOKEN'))
-    live_at = successful_publication_at(api) if args.observe_publication_runs else args.publication_success_at
+    live_at, unchanged_at = (publication_run_times(api) if args.observe_publication_runs
+                             else (args.publication_success_at, None))
     assembly = read(args.review_root / 'status/disclosure_assembly.json') if args.review_root else None
     if args.observe_assembly:
         saved = api.request('/contents/status/disclosure_assembly.json?ref=review')
@@ -277,7 +285,8 @@ def main():
             client_root=args.smoke_client_root, health_root=args.health_root or args.state_root,
             apply=args.apply_content_rollback)
     from .content_integrity import open_failures
-    health = evaluate(manifest, statuses, prior, publication_success_at=live_at, assembly=assembly, smoke=smoke,
+    health = evaluate(manifest, statuses, prior, publication_success_at=live_at,
+                      publication_unchanged_at=unchanged_at, assembly=assembly, smoke=smoke,
                       integrity_failures=open_failures(api))
     if args.observe_source_quality:
         from .source_quality import weekly

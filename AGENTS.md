@@ -20,6 +20,7 @@
 - 不新增监控、告警、验证器或证明逻辑，除非用户的指令明确要求。
 - 修 bug 只改出错的地方，不顺带加保护。
 - 每个 PR 描述写明源码和测试的行数变化。
+- Codex 的 PR 先开 draft，在 backend 目录运行 `python scripts/verify.py` 通过后再标记 ready。
 
 ## 边界
 
