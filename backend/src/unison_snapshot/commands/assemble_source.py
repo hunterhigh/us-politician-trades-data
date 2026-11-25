@@ -11,7 +11,8 @@ from unison_snapshot.commands.data_trees import publish, read_control
 SOURCES=('house_clerk','senate_efd','oge')
 
 
-def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_readiness=False):
+def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_readiness=False,
+             local_only=False, profile_dir=None):
     from unison_snapshot.builder import build
     from unison_snapshot.disclosure_candidate import project_source_candidate
     control=read_control(workspace)
@@ -27,7 +28,8 @@ def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_
         from unison_snapshot.source_quality import observe
         observe(source_id, control['trees']['evidence']['root'], review, value)
     # The valid source remains durable even when another source is unavailable.
-    publish(workspace,('review',),source_id+' source candidate')
+    if not local_only:
+        publish(workspace,('review',),source_id+' source candidate')
     arguments=[sys.executable,'-m','unison_snapshot','build-disclosure-candidate',
         '--defer-stale-sources','--assembly-status-output',str(review/'status/disclosure_assembly.json'),
         '--base',str(base),'--harmonize-cutoffs','--output',str(review/'candidates/disclosure-current.json'),
@@ -38,6 +40,8 @@ def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_
     for source in SOURCES:
         path=review/'candidates/sources'/f'{source}-current.json'
         if path.is_file():arguments+=['--source',source+'='+str(path)]
+    if profile_dir:
+        arguments[1:1] = ['-m', 'cProfile', '-o', str(profile_dir / 'build-disclosure-candidate.prof')]
     subprocess.run(arguments,check=True)
     result=subprocess.run([sys.executable,'-m','unison_snapshot','source-assembly-status',
         '--status',str(review/'status/disclosure_assembly.json')],check=True,capture_output=True,text=True)
@@ -61,7 +65,8 @@ def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_
              'status':'partial','cutoff_audit':'status/disclosure_cutoff.json'}
         path=review/'status/disclosure_candidate.json';temporary=path.with_suffix('.next.json')
         temporary.write_bytes(encode(run));temporary.replace(path)
-    publish(workspace,('review',),source_id+' '+status+' source assembly')
+    if not local_only:
+        publish(workspace,('review',),source_id+' '+status+' source assembly')
     return status
 
 
@@ -73,10 +78,12 @@ def main():
     parser.add_argument('--html-output',type=Path)
     parser.add_argument('--builder-commit',required=True)
     parser.add_argument('--verify-readiness',action='store_true')
+    parser.add_argument('--local-only',action='store_true')
+    parser.add_argument('--profile-dir',type=Path)
     args=parser.parse_args()
     try:
         status=assemble(args.workspace,args.source,args.base,args.html_output,args.builder_commit,
-            verify_readiness=args.verify_readiness)
+            verify_readiness=args.verify_readiness, local_only=args.local_only, profile_dir=args.profile_dir)
     except (ValueError,OSError,subprocess.CalledProcessError) as error:parser.exit(2,str(error)+'\n')
     print(json.dumps({'assembly_status':status}))
 

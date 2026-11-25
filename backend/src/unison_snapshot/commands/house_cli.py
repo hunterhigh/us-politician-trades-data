@@ -231,6 +231,7 @@ def configure_build_house_candidate(parser):
     candidate.add_argument("--base", type=Path, required=True)
     candidate.add_argument("--output", type=Path, required=True)
     candidate.add_argument("--html-output", type=Path)
+    candidate.add_argument("--save-observations", action="store_true")
     candidate.add_argument("--annual-transaction-audit-out", type=Path,
                            help="Save source-bound annual transaction relationship decisions")
 
@@ -244,10 +245,11 @@ def execute_build_house_candidate(args):
             raise ValueError("Annual transaction audit must have its own output path")
         annual_audit = {}
         result = load_house_candidate(args.review_root, args.state_status, args.base,
-            annual_transaction_audit=annual_audit,
+            annual_transaction_audit=annual_audit, save_observations=args.save_observations,
             **({'evidence_root':args.evidence_root} if args.evidence_root is not None else {}))
     else:
         result = load_house_candidate(args.review_root, args.state_status, args.base,
+            save_observations=args.save_observations,
             **({'evidence_root':args.evidence_root} if args.evidence_root is not None else {}))
     generated_at = result["meta"]["data_cutoff_at"]
     bundle = build(result, generated_at=generated_at, allow_production=True)

@@ -12,7 +12,8 @@ def _ptr(row):
 
 
 def resolve_source_bound_house_revisions(inputs, current_transactions, *,
-        prior_transactions=None, evidence_root=None, review_root=None, state_status=None):
+        prior_transactions=None, evidence_root=None, review_root=None, state_status=None,
+        save_observations=False):
     """Keep normal candidate/status revision semantics on one source guard.
 
     The legacy resolver is a useful deterministic chain algorithm, but complete
@@ -27,7 +28,7 @@ def resolve_source_bound_house_revisions(inputs, current_transactions, *,
     from .house_revision_scope_guard import derive_house_revision_scope
     guard = derive_house_revision_scope(inputs, current_transactions,
         prior_transactions=prior_transactions or [], evidence_root=evidence_root,
-        review_root=review_root, state_status=state_status)
+        review_root=review_root, state_status=state_status, save_observations=save_observations)
     allowed = {tuple(group) for group in guard["allowed_groups"]}
     people = {q.get("identity", {}).get("person_id") for q, _ in inputs
               if q.get("revision_observations")}

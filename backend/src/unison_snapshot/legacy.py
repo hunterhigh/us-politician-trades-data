@@ -1,4 +1,5 @@
 """Pinned supplied processor validation, not a substitute for new consumer tests."""
+from bisect import bisect_left, bisect_right
 import importlib.util
 from pathlib import Path
 import sys
@@ -39,6 +40,27 @@ def load(name: str, *, version: str = "v1"):
     else:
         spec.loader.exec_module(module)
     if name == 'process_snapshot':
+        if version == 'v2':
+            # The processor validates strictly ascending price dates before lookup.
+            def point_date(point):
+                return module.parse_date(point.get('date'), 'price_history.date')
+
+            def at_or_after(series, target):
+                index = bisect_left(series, target, key=point_date)
+                if index < len(series):
+                    point = series[index]
+                    return point_date(point), float(point['close'])
+                return None
+
+            def at_or_before(series, target):
+                index = bisect_right(series, target, key=point_date) - 1
+                if index >= 0:
+                    point = series[index]
+                    return point_date(point), float(point['close'])
+                return None
+
+            module.price_point_at_or_after = at_or_after
+            module.price_at_or_before = at_or_before
         original_build = module.build_snapshot
         def build_snapshot(payload):
             from .publication_amounts import project

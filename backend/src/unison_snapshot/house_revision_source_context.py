@@ -17,8 +17,11 @@ import re
 
 from .house import INDEX_URL, MAX_PDF_BYTES, MAX_ZIP_BYTES, document_url, parse_index
 from .house_members import MAX_MEMBERS_BYTES, MEMBERS_URL, parse_members, suggest_identity
+from .codec import digest, encode
+from .commands._io import _write_atomic
 
 VERSION = "house-revision-source-context/v1"
+NATIVE_PLAN_VERSION = "house-revision-native-plan/v1"
 MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_TOTAL_BYTES = 256 * 1024 * 1024
 MAX_PATHS = 100_000
@@ -180,15 +183,22 @@ class HouseRevisionSourceContext:
         return self._documents.get(person_id, ())
 
 
-def _native_plan(content, source_sha):
+def _native_plan(content, source_sha, checkpoint, *, save=False):
     """Bounded actual native observation; no saved words or OCR execution."""
     try:
         import pdfplumber
+        import pdfminer
         from pdfminer.pdfexceptions import PDFException
     except ImportError:
         raise _Unavailable("source_native_dependencies_unavailable") from None
     from .pdf_native_observer import observe_source_characters
-    from .house_ptr import observe_native_word_pages, planned_ocr_pages
+    from .house_ptr import PARSER_VERSION, observe_native_word_pages, planned_ocr_pages
+    fingerprint = digest(encode([NATIVE_PLAN_VERSION, PARSER_VERSION,
+                                 pdfplumber.__version__, pdfminer.__version__, source_sha]))
+    if checkpoint.is_file():
+        cached = json.loads(checkpoint.read_bytes())
+        if cached['input_fingerprint'] == fingerprint:
+            return cached['ocr_pages'], cached['page_count']
     try:
         with pdfplumber.open(io.BytesIO(content)) as document:
             if not 1 <= len(document.pages) <= MAX_PAGES:
@@ -202,13 +212,18 @@ def _native_plan(content, source_sha):
                 if count > MAX_TOTAL_CHARACTERS:
                     raise _Unavailable("source_character_budget_exceeded")
             pages = observe_native_word_pages(document, source_sha)
-            return planned_ocr_pages(pages), len(pages)
+            ocr_pages, page_count = planned_ocr_pages(pages), len(pages)
     except (PDFException, OSError, ValueError, KeyError, TypeError, OverflowError, RecursionError):
         raise _Unavailable("source_native_inventory_unavailable") from None
+    if save:
+        _write_atomic(checkpoint, {'input_fingerprint': fingerprint,
+                                   'ocr_pages': ocr_pages, 'page_count': page_count})
+    return ocr_pages, page_count
 
 
 def load_house_revision_source_context(evidence_root, review_root, *, requested_person_ids,
-                                       prior_transactions=(), current_transactions=(), state_status=None):
+                                       prior_transactions=(), current_transactions=(), state_status=None,
+                                       save_observations=False):
     """Enumerate fixed-root PTR sources and authenticate context dependencies.
 
     The current index is the unique latest retrieval per year. Historical keys
@@ -442,13 +457,15 @@ def load_house_revision_source_context(evidence_root, review_root, *, requested_
                     or any(meta.get(k) != v for k, v in expected.items())):
                 raise _Unavailable("canonical_source_metadata_binding_mismatch")
             record["source_sha256"] = digest
-            ocr, page_count = _native_plan(raw, digest)
+            checkpoint = review.root / 'house_clerk/revision-native-plans' / str(year) / docid / f'{digest}.json'
+            ocr, page_count = _native_plan(raw, digest, checkpoint, save=save_observations)
             record["actual_planned_ocr_pages"] = ocr
             record["page_count"] = page_count
             if ocr:
                 local.append("opaque_source_cannot_prove_competitor_absence")
             from .house_native_contrast import plan_house_native_contrast
-            plan = plan_house_native_contrast(evidence.root, evidence.path(paths[0]))
+            plan = plan_house_native_contrast(evidence.root, evidence.path(paths[0]),
+                cache_root=review.root / 'house_clerk' / 'selection-plans', save=save_observations)
             record["source_parser_version"] = plan.get("parser_version")
             record["native_contrast_activated"] = plan.get("activated")
             if plan.get("activated") is None:

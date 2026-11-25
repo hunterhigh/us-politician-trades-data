@@ -336,8 +336,7 @@ class PublicSnapshotRepository:
         # Existing bulk pages are useful only when many dependencies are needed.
         bulk = ({row["ticker"]: row for row in self._market_pages(manifest)}
                 if pages and len(tickers) > max(100, 4 * len(pages)) else {})
-        rows = []
-        for ticker in tickers:
+        def read(ticker):
             value = None
             if ticker in bulk:
                 prefix, sha = self._entity_address(market_commit, "market", ticker)
@@ -353,8 +352,18 @@ class PublicSnapshotRepository:
                 row = row[0]
             if not isinstance(row, dict) or row.get("ticker") != ticker:
                 raise PublicSnapshotError("Market shard does not match its dependency")
-            rows.append(row)
-        return rows
+            return row
+
+        return list(self._read_in_order(read, tickers))
+
+    def _read_in_order(self, read, keys):
+        if self._read_workers == 1 or len(keys) < 2:
+            yield from map(read, keys)
+            return
+        with ThreadPoolExecutor(max_workers=self._read_workers) as pool:
+            # Bound queued results and retain publication order.
+            for start in range(0, len(keys), self._read_workers):
+                yield from pool.map(read, keys[start:start + self._read_workers])
 
     def _market_pages(self, manifest: dict) -> list[dict]:
         market_commit = manifest.get("market_commit")
@@ -366,17 +375,7 @@ class PublicSnapshotRepository:
         def read(sha):
             return self._content(market_commit, "market-pages", sha)
 
-        def values():
-            if self._read_workers == 1 or len(pages) == 1:
-                yield from map(read, pages)
-                return
-            with ThreadPoolExecutor(max_workers=self._read_workers) as pool:
-                # Batches bound queued/decoded pages as well as active requests.
-                # map preserves publication order even when downloads finish out of order.
-                for start in range(0, len(pages), self._read_workers):
-                    yield from pool.map(read, pages[start:start + self._read_workers])
-
-        for value in values():
+        for value in self._read_in_order(read, pages):
             page = value.get("security_market_data")
             if not isinstance(page, list) or any(not isinstance(row, dict) for row in page):
                 raise PublicSnapshotError("Market page has invalid rows")
