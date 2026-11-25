@@ -56,10 +56,7 @@ case "$TARGET" in
       --publication-inputs "$PUBLISH_REVIEW_SHA" "$PUBLISH_STATE_SHA" "$PUBLISH_MARKET_SHA" "$GITHUB_SHA"
     ;;
   health)
-    git fetch --no-tags --depth=1 --filter=blob:none origin \
-      main:refs/remotes/origin/main state:refs/remotes/origin/state
-    git worktree add --detach "$RUNNER_TEMP/health-main" origin/main
-    git worktree add --detach "$RUNNER_TEMP/health-state" origin/state
+    bash .github/scripts/prepare-health-trees.sh
     measure health unison_snapshot.production_health \
       --main-root "$RUNNER_TEMP/health-main" --state-root "$RUNNER_TEMP/health-state" \
       --health-root "$RUNNER_TEMP/health-output" --repository "$GITHUB_REPOSITORY" \

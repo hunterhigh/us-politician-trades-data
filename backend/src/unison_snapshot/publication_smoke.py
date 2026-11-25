@@ -34,11 +34,11 @@ def read_json(path):
     return json.loads(Path(path).read_text(encoding='utf-8'))
 
 
-def save_json(path, value):
+def save_json(path, value, *, indent=2):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix('.json.tmp')
-    temporary.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2)+'\n', encoding='utf-8')
+    temporary.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=indent)+'\n', encoding='utf-8')
     temporary.replace(path)
 
 
@@ -84,7 +84,7 @@ def check_client(*, repository, commit, client_root, output_dir, people):
             selected = reader.fetch(mode, person)
             processed = processor.build_snapshot(selected.snapshot)
             processed['meta']['snapshot_commit'] = selected.commit
-            save_json(output, processed)
+            save_json(output, processed, indent=None)
             result = {'status': 'passed', 'commit': selected.commit,
                       'snapshot_id': processed['meta']['snapshot_id']}
         except PublicSnapshotChanged:

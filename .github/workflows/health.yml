@@ -1,5 +1,6 @@
 name: Production health and alerts
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ['Publish complete production snapshot']
     types: [completed]
@@ -38,9 +39,7 @@ jobs:
         uses: ./.github/actions/setup-source
       - name: Read current data and independent source state
         run: |
-          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/state:refs/remotes/origin/state
-          git worktree add --detach "$RUNNER_TEMP/health-main" origin/main
-          git worktree add --detach "$RUNNER_TEMP/health-state" origin/state
+          bash .github/scripts/prepare-health-trees.sh
       - name: Prepare the independent health branch
         run: |
           mkdir -p .local
