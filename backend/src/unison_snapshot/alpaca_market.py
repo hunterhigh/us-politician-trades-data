@@ -647,6 +647,22 @@ def _historical_bar_matches_disclosure(history: list[dict], contexts: list[dict]
     return False
 
 
+def _retained_historical_row(previous_market, entry, contexts, start_day, as_of):
+    ticker = entry['ticker']
+    if previous_market is None or previous_market.provider_symbols.get(ticker) != entry['provider_symbol']:
+        return None
+    prior = previous_market.rows[ticker]
+    prior_name = _asset_name_key(_asset_leaf_name(prior.get('company_name')))
+    if not prior_name or not any(_asset_name_key(_asset_leaf_name(row.get('asset_name'))) == prior_name
+                                 for row in contexts[ticker]):
+        return None
+    points = [point for point in prior['price_history']
+              if start_day <= date.fromisoformat(point['date']) <= as_of]
+    if points and _historical_bar_matches_disclosure(points, contexts[ticker]):
+        return dict(prior, price_history=deepcopy(points))
+    return None
+
+
 def _historical_bars_with_rejected_symbols(
         client: AlpacaMarketClient, symbols: list[str], *, start: datetime,
         end: datetime) -> tuple[dict[str, list[dict]], list[str]]:
@@ -789,6 +805,22 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
     isolated_retry_count = 0
     retained_historical_tickers = []
     rejected_historical_symbols: list[str] = []
+    # A move outside SIP ends the live series. Keep the verified historical
+    # series for the same disclosed issuer and preserve its real last bar date.
+    remaining = []
+    for entry in unsupported:
+        retained = None
+        if previous_market is not None and entry['reason'] == 'outside_sip_otc':
+            retained = _retained_historical_row(previous_market, entry, contexts,
+                min(start_day, previous_market.requested_start_date), requested_as_of)
+        if retained is None:
+            remaining.append(entry)
+            continue
+        rows.append(retained)
+        retained_historical_tickers.append(entry['ticker'])
+        supported.append({key: value for key, value in entry.items() if key != 'reason'} |
+                         {'mapping_basis': 'retained_historical_sip'})
+    unsupported = remaining
     if historical_entries:
         # A 400 here means the query format itself is rejected, not a bad filing
         # symbol.  Do not misclassify every historical symbol as unsupported.
@@ -838,19 +870,12 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                                          end=end).get(entry['provider_symbol'], [])
                 market_row = (_market_row(ticker, names[ticker], bars, start_day,
                                           requested_as_of) if bars else None)
-            if (not bars and entry['asset_status'] in {'not_listed', 'inactive'}
-                    and previous_market is not None
-                    and previous_market.provider_symbols.get(ticker) == entry['provider_symbol']):
-                prior = previous_market.rows.get(ticker)
-                prior_name = _asset_name_key(_asset_leaf_name(prior.get('company_name'))) if prior else ''
-                if prior_name and any(_asset_name_key(_asset_leaf_name(r.get('asset_name')))
-                                      == prior_name for r in contexts[ticker]):
-                    points = [p for p in prior['price_history']
-                              if start_day <= date.fromisoformat(p['date']) <= requested_as_of]
-                    if points and _historical_bar_matches_disclosure(points, contexts[ticker]):
-                        market_row = dict(prior, price_history=deepcopy(points))
-                        bars = points
-                        retained_historical_tickers.append(ticker)
+            if not bars and entry['asset_status'] in {'not_listed', 'inactive'}:
+                retained = _retained_historical_row(previous_market, entry, contexts, start_day, requested_as_of)
+                if retained is not None:
+                    market_row = retained
+                    bars = retained['price_history']
+                    retained_historical_tickers.append(ticker)
             if not bars:
                 if entry["asset_status"] == "not_listed":
                     unsupported.append({"ticker": ticker, "reason": "outside_sip_not_listed"})
