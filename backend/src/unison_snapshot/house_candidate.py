@@ -140,19 +140,22 @@ def _paper_pending_count(qualification: dict) -> int:
 def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                           evidence_root: Path | None = None,
                           annual_transaction_inputs: list[dict] | None = None,
-                          annual_transaction_audit: dict | None = None) -> dict:
+                          annual_transaction_audit: dict | None = None,
+                          save_observations: bool = False) -> dict:
     """Build a candidate only from a complete, idle House review directory."""
     from .house_paper_commit import paper_review_access
     with paper_review_access(review_root,require_complete=True):
         return _build_house_candidate(review_root,state_status,base,
             evidence_root=evidence_root,
-            annual_transaction_inputs=annual_transaction_inputs,annual_transaction_audit=annual_transaction_audit)
+            annual_transaction_inputs=annual_transaction_inputs,annual_transaction_audit=annual_transaction_audit,
+            save_observations=save_observations)
 
 
 def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                            evidence_root: Path | None = None,
                            annual_transaction_inputs: list[dict] | None = None,
-                           annual_transaction_audit: dict | None = None) -> dict:
+                           annual_transaction_audit: dict | None = None,
+                           save_observations: bool = False) -> dict:
     review_root = review_root.resolve()
     source_status = review_root / "status" / "house_clerk.json"
     summary = _read_json(source_status if source_status.is_file()
@@ -314,7 +317,8 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     from .house_source_revisions import resolve_source_bound_house_revisions
     revision_resolution = resolve_source_bound_house_revisions(revision_sources, transactions,
         prior_transactions=base.get("transactions", []),
-        evidence_root=evidence_root, review_root=review_root, state_status=state_status)
+        evidence_root=evidence_root, review_root=review_root, state_status=state_status,
+        save_observations=save_observations)
     transactions = revision_resolution["transactions"]
     quarantined_count -= sum(len(q["quarantined"]) - len(revision_resolution["qualifications"].get(
         str(q.get("document_id")), q)["quarantined"]) for q, _ in revision_sources)
@@ -476,8 +480,10 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
 
 def load_house_candidate(review_root: Path, state_status_path: Path, base_path: Path, *,
                          evidence_root: Path | None = None,
-                         annual_transaction_audit: dict | None = None) -> dict:
+                         annual_transaction_audit: dict | None = None,
+                         save_observations: bool = False) -> dict:
     return build_house_candidate(review_root, _read_json(state_status_path, "House source state"),
                                  _read_json(base_path, "House candidate base"),
                                  evidence_root=evidence_root,
-                                 annual_transaction_audit=annual_transaction_audit)
+                                 annual_transaction_audit=annual_transaction_audit,
+                                 save_observations=save_observations)

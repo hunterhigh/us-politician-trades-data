@@ -18,7 +18,8 @@ from .house import HouseIndexError
 from .codec import digest, encode
 from .commands._io import _write_atomic
 
-SELECTOR_VERSION = 'house-native-contrast-selector/v1'
+# Cache-only changes do not reopen the parser failure retry suite.
+SELECTOR_VERSION: str = 'house-native-contrast-selector/v1'
 PARSER_VERSION = 'house-ptr-native-bichrome/v1'
 MODE = 'source_pdfminer_bichrome_partition/v1'
 OPACITY_PARSER_VERSION = 'house-ptr-native-opacity/v1'
@@ -241,7 +242,8 @@ def plan_house_native_contrast(archive_root, metadata_path, *, cache_root=None, 
     metadata, path, content = _load(archive_root, metadata_path)
     checkpoint = None
     if cache_root is not None:
-        fingerprint = digest(encode([SELECTOR_VERSION, pdfplumber.__version__, metadata]))
+        import pdfminer
+        fingerprint = digest(encode([SELECTOR_VERSION, pdfplumber.__version__, pdfminer.__version__, metadata]))
         checkpoint = cache_root / Path(metadata_path).resolve().relative_to(Path(archive_root).resolve())
         if checkpoint.is_file():
             cached = json.loads(checkpoint.read_bytes())

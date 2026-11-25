@@ -22,6 +22,7 @@ case "$TARGET" in
     candidate="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
     measure build-house-candidate unison_snapshot build-house-candidate \
       --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+      --save-observations \
       --state-status "$STATE_ROOT/status/house_clerk.json" --base "$candidate" --output "$candidate"
     cp "$candidate" "$REVIEW_ROOT/candidates/house-current.json"
     assembly_profile=()

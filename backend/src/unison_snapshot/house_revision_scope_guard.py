@@ -86,7 +86,7 @@ def _input_key(extraction):
 
 
 def derive_house_revision_scope(inputs, current_transactions, *, prior_transactions,
-                                  evidence_root, review_root, state_status=None):
+                                  evidence_root, review_root, state_status=None, save_observations=False):
     """Bind complete runtime inputs to all original same-person source proofs.
 
     A pending revision is only a request to inspect a source person. Discovery
@@ -129,7 +129,8 @@ def derive_house_revision_scope(inputs, current_transactions, *, prior_transacti
     try:
         context = load_house_revision_source_context(evidence_root, review_root,
             requested_person_ids=sorted(requested), prior_transactions=prior_transactions,
-            current_transactions=current_transactions, state_status=state_status)
+            current_transactions=current_transactions, state_status=state_status,
+            save_observations=save_observations)
     except (OSError, ValueError, RuntimeError) as error:
         audit["reasons"] = ["source_context_reconstruction_failed:" + type(error).__name__]
         return HouseRevisionScopeGuard(audit)
