@@ -448,7 +448,8 @@ def load_house_revision_source_context(evidence_root, review_root, *, requested_
             if ocr:
                 local.append("opaque_source_cannot_prove_competitor_absence")
             from .house_native_contrast import plan_house_native_contrast
-            plan = plan_house_native_contrast(evidence.root, evidence.path(paths[0]))
+            plan = plan_house_native_contrast(evidence.root, evidence.path(paths[0]),
+                cache_root=review.root / 'house_clerk' / 'selection-plans')
             record["source_parser_version"] = plan.get("parser_version")
             record["native_contrast_activated"] = plan.get("activated")
             if plan.get("activated") is None:

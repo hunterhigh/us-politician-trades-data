@@ -15,7 +15,10 @@ from pathlib import Path
 import re
 
 from .house import HouseIndexError
+from .codec import digest, encode
+from .commands._io import _write_atomic
 
+SELECTOR_VERSION = 'house-native-contrast-selector/v1'
 PARSER_VERSION = 'house-ptr-native-bichrome/v1'
 MODE = 'source_pdfminer_bichrome_partition/v1'
 OPACITY_PARSER_VERSION = 'house-ptr-native-opacity/v1'
@@ -232,21 +235,34 @@ def _selection(metadata, inventory):
         'reasons': ['native_bichrome_selection_budget_exceeded'] if active is None else []}
 
 
-def plan_house_native_contrast(archive_root, metadata_path):
-    """Observe the actual source before a normal success/failure cache skip."""
+def plan_house_native_contrast(archive_root, metadata_path, *, cache_root=None, save=False):
+    """Reuse the selector observation for the same verified archive bytes."""
     import pdfplumber
     metadata, path, content = _load(archive_root, metadata_path)
+    checkpoint = None
+    if cache_root is not None:
+        fingerprint = digest(encode([SELECTOR_VERSION, pdfplumber.__version__, metadata]))
+        checkpoint = cache_root / Path(metadata_path).resolve().relative_to(Path(archive_root).resolve())
+        if checkpoint.is_file():
+            cached = json.loads(checkpoint.read_bytes())
+            if cached['input_fingerprint'] == fingerprint:
+                plan = cached['plan']
+                if plan['activated'] is not False:
+                    _selected_source(metadata, archive_root, metadata_path, path, content)
+                return plan
     try:
         with pdfplumber.open(io.BytesIO(content)) as pdf:
             plan = _selection(metadata, _inventory(pdf, metadata['sha256'], include_opacity=True,
                                                    allow_long=metadata.get('filing_year') == 2025))
             if plan['activated'] is not False:
                 _selected_source(metadata, archive_root, metadata_path, path, content)
-            return plan
     except HouseIndexError:
         raise
     except Exception as exc:
         raise HouseIndexError('House native contrast source plan cannot be observed') from exc
+    if save and checkpoint is not None:
+        _write_atomic(checkpoint, {'input_fingerprint': fingerprint, 'plan': plan})
+    return plan
 
 
 def _word_signature(chars):

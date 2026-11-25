@@ -13,6 +13,7 @@ def select(args):
     from unison_snapshot.house_paper_commit import recover_pending_paper_materializations
     evidence = Path(args.evidence_root)
     review = Path(args.review_root)
+    plans = review / 'house_clerk' / 'selection-plans'
     recover_pending_paper_materializations(evidence, review)
     pending = []
     retries = []
@@ -42,7 +43,8 @@ def select(args):
                 qualification or {}, observation or {}, require_current=False))
         plan = None
         try:
-            plan = None if paper else plan_house_native_contrast(evidence, metadata_path)
+            plan = None if paper else plan_house_native_contrast(evidence, metadata_path,
+                cache_root=plans, save=True)
             version = version if paper else plan['parser_version'] or PARSER_VERSION
             if version not in CONTRAST_VERSIONS and value is not None:
                 method = value.get('extraction_method')
