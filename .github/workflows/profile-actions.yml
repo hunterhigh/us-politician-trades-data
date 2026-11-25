@@ -1,0 +1,91 @@
+name: Profile disclosure workflow steps
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Step to run in a disposable read-only checkout
+        type: choice
+        options: [all, house-select, house-candidate, publish-snapshot, health]
+        default: all
+      profile:
+        description: Capture Python call profiles
+        type: boolean
+        default: true
+permissions:
+  actions: read
+  contents: read
+  issues: read
+  packages: read
+env:
+  PYTHONPATH: backend/src
+  SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
+jobs:
+  step:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(inputs.target == 'all' && '["house-select","house-candidate","publish-snapshot","health"]' || format('["{0}"]', inputs.target)) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/setup-source
+      - uses: ./.github/actions/data-trees
+        if: startsWith(matrix.target, 'house-')
+        with:
+          scope: house
+          workspace: ${{ runner.temp }}/house-source
+      - name: Prepare fixed publication inputs
+        id: publication
+        if: matrix.target == 'publish-snapshot'
+        env:
+          CACHE_MAIN_OVERRIDE: ''
+          CACHE_MARKET_OVERRIDE: ''
+        run: bash .github/scripts/prepare-publication-trees.sh
+      - uses: ./.github/actions/build-disclosure-candidate
+        if: matrix.target == 'publish-snapshot'
+        with:
+          review-root: ${{ steps.publication.outputs.review_root }}
+          review-commit: ${{ steps.publication.outputs.review_commit }}
+          state-commit: ${{ steps.publication.outputs.state_commit }}
+      - name: Run the selected step
+        env:
+          PROFILE: ${{ inputs.profile }}
+          TARGET: ${{ matrix.target }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PUBLISH_MAIN: ${{ steps.publication.outputs.main_root }}
+          PUBLISH_MAIN_SHA: ${{ steps.publication.outputs.main_base }}
+          PUBLISH_REVIEW: ${{ steps.publication.outputs.review_root }}
+          PUBLISH_REVIEW_SHA: ${{ steps.publication.outputs.review_commit }}
+          PUBLISH_STATE_SHA: ${{ steps.publication.outputs.state_commit }}
+          PUBLISH_EVIDENCE: ${{ steps.publication.outputs.evidence_root }}
+          PUBLISH_CACHE_MARKET: ${{ steps.publication.outputs.cache_market_root }}
+          PUBLISH_MARKET_SHA: ${{ steps.publication.outputs.cache_market_commit }}
+        run: bash .github/scripts/profile-actions.sh
+      - name: Report cumulative profile timings
+        if: always() && inputs.profile
+        run: |
+          python - <<'PYTHON'
+          import os
+          from pathlib import Path
+          import pstats
+
+          for path in sorted((Path(os.environ['RUNNER_TEMP']) / 'profiles').glob('*.prof')):
+              print(path.name, flush=True)
+              pstats.Stats(str(path)).strip_dirs().sort_stats('cumulative').print_stats(45)
+          PYTHON
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && inputs.profile
+        with:
+          name: profile-${{ matrix.target }}
+          path: ${{ runner.temp }}/profiles/
+          retention-days: 1
