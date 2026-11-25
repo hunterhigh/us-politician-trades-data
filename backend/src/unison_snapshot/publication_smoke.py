@@ -72,7 +72,8 @@ def check_client(*, repository, commit, client_root, output_dir, people):
                 raise PublicSnapshotError('Repository object exceeds the contract size limit')
             return data
 
-    reader = PublicSnapshotRepository(owner, repo, expected_commit=commit, transport=ContentsTransport())
+    reader = PublicSnapshotRepository(owner, repo, expected_commit=commit,
+        transport=ContentsTransport(), cache_bytes=128 * 1024 * 1024)
     processor = legacy.load('process_snapshot', version='v2')
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
