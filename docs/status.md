@@ -24,6 +24,8 @@ v1.1日期、稳定一周及定时检查已取消；本轮连续完成。两种�
 
 ## 当前结果
 
+[Actions 降耗 PR378](https://github.com/hunterhigh/us-politician-trades-data/pull/378) 已合入。首轮正式链条跑通，House 首次建缓存 19:33，Publish 实际发布 job 10:28，Health 3:00。按新节奏、House 暖缓存估算和各 job 向上取整，预计约 1,309 分钟/月。2026-11-18 05:43 至 11-25 05:43 UTC 的 212 次运行合计 1,968 分钟，按 30 天折算 8,434 分钟，窗口包含调整前的运行和开发验证。
+
 House重跑已完成：[最新运行](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42978416764)待解析0、904份资格产物；2026 PTR均完成当前对应解析版本处理。合格水位已推进至2026-11-11 08:08:48 UTC，与本次采集一致。[正式发布](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/43020551928)已成功，main从eed9231c推进至719a5eac7。
 
 [PR348](https://github.com/hunterhigh/us-politician-trades-data/pull/348)移除旧变化证明门槛，改为每次main随附新增、修改、删除及字段前后值清单；仅数据合同不符、任一来源记录数一次减少超过5%、来源过期时停发。OGE旧值回填已由PR349修正，[重建运行](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/42989506850)完成，待解析0、保留旧版0。直接OGE交易5693→5239；含白宫的OGE来源14155→13701；变化已随main发布清单。
