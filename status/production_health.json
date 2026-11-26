@@ -8,19 +8,19 @@
           "increased_metrics": [],
           "new_unknown_layout_count": 0,
           "new_unknown_layouts": [],
-          "report_count": 996,
+          "report_count": 998,
           "report_quarantine": {
-            "denominator": 921,
+            "denominator": 924,
             "numerator": 60
           },
           "row_quarantine": {
-            "denominator": 13116,
+            "denominator": 13141,
             "numerator": 1435
           },
           "scope_id": "house_ptr",
           "source": "house_clerk",
           "unknown_layout_count": 0,
-          "unknown_row_report_count": 75,
+          "unknown_row_report_count": 74,
           "week": "2026-W48"
         },
         {
@@ -50,14 +50,14 @@
           "increased_metrics": [],
           "new_unknown_layout_count": 0,
           "new_unknown_layouts": [],
-          "report_count": 345,
+          "report_count": 347,
           "report_quarantine": {
-            "denominator": 345,
+            "denominator": 347,
             "numerator": 26
           },
           "row_quarantine": {
-            "denominator": 6093,
-            "numerator": 853
+            "denominator": 6123,
+            "numerator": 854
           },
           "scope_id": "oge_direct_278t",
           "source": "oge",
@@ -134,13 +134,13 @@
           "increased_metrics": [],
           "new_unknown_layout_count": 0,
           "new_unknown_layouts": [],
-          "report_count": 163,
+          "report_count": 164,
           "report_quarantine": {
-            "denominator": 140,
+            "denominator": 141,
             "numerator": 19
           },
           "row_quarantine": {
-            "denominator": 1874,
+            "denominator": 1877,
             "numerator": 259
           },
           "scope_id": "senate_ptr",
@@ -150,25 +150,25 @@
           "week": "2026-W48"
         }
       ],
-      "detail": "[{\"baseline_comparable\": true, \"cohort\": \"c59674c3e02a872505ef5027aedf5a33b487af8b612dc2337cca5c608520ba2e\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 996, \"report_quarantine\": {\"denominator\": 921, \"numerator\": 60}, \"row_quarantine\": {\"denominator\": 13116, \"numerator\": 1435}, \"scope_id\": \"house_ptr\", \"source\": \"house_clerk\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 75, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"57912edca6b718a678134ed523b30e3fa165711a960564fef6250e172e1e74a0\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 425, \"report_quarantine\": {\"denominator\": 388, \"numerator\": 13}, \"row_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"scope_id\": \"house_annual\", \"source\": \"house_clerk\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 425, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"47d70a9bb766ff7e8703654d3836ff5f7b37ae9cb7719c68ec57518130881009\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 345, \"report_quarantine\": {\"denominator\": 345, \"numerator\": 26}, \"row_quarantine\": {\"denominator\": 6093, \"numerator\": 853}, \"scope_id\": \"oge_direct_278t\", \"source\": \"oge\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 0, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"47d70a9bb766ff7e8703654d3836ff5f7b37ae9cb7719c68ec57518130881009\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 4733, \"report_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"row_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"scope_id\": \"oge_request_278t\", \"source\": \"oge\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 4733, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"be189b2b0b9c7f9412f0e7da6018833691b5095bbbd0daf0a7b243c4df51d021\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 374, \"report_quarantine\": {\"denominator\": 184, \"numerator\": 117}, \"row_quarantine\": {\"denominator\": 9925, \"numerator\": 8222}, \"scope_id\": \"whitehouse_public\", \"source\": \"oge\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 292, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"063f84635fd11f919ade850e8dc0c1c44e7aa37ddff3de2e61e4dc03d56809a2\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 12, \"report_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"row_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"scope_id\": \"oge_direct_278e\", \"source\": \"oge\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 12, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"027035f40fe6c83014be7ef78376b88a726e5f4984db6b5f7b98d419aac3b9e3\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 163, \"report_quarantine\": {\"denominator\": 140, \"numerator\": 19}, \"row_quarantine\": {\"denominator\": 1874, \"numerator\": 259}, \"scope_id\": \"senate_ptr\", \"source\": \"senate_efd\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 7, \"week\": \"2026-W48\"}]",
+      "detail": "[{\"baseline_comparable\": true, \"cohort\": \"c59674c3e02a872505ef5027aedf5a33b487af8b612dc2337cca5c608520ba2e\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 998, \"report_quarantine\": {\"denominator\": 924, \"numerator\": 60}, \"row_quarantine\": {\"denominator\": 13141, \"numerator\": 1435}, \"scope_id\": \"house_ptr\", \"source\": \"house_clerk\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 74, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"57912edca6b718a678134ed523b30e3fa165711a960564fef6250e172e1e74a0\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 425, \"report_quarantine\": {\"denominator\": 388, \"numerator\": 13}, \"row_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"scope_id\": \"house_annual\", \"source\": \"house_clerk\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 425, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"47d70a9bb766ff7e8703654d3836ff5f7b37ae9cb7719c68ec57518130881009\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 347, \"report_quarantine\": {\"denominator\": 347, \"numerator\": 26}, \"row_quarantine\": {\"denominator\": 6123, \"numerator\": 854}, \"scope_id\": \"oge_direct_278t\", \"source\": \"oge\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 0, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"47d70a9bb766ff7e8703654d3836ff5f7b37ae9cb7719c68ec57518130881009\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 4733, \"report_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"row_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"scope_id\": \"oge_request_278t\", \"source\": \"oge\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 4733, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"be189b2b0b9c7f9412f0e7da6018833691b5095bbbd0daf0a7b243c4df51d021\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 374, \"report_quarantine\": {\"denominator\": 184, \"numerator\": 117}, \"row_quarantine\": {\"denominator\": 9925, \"numerator\": 8222}, \"scope_id\": \"whitehouse_public\", \"source\": \"oge\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 292, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"063f84635fd11f919ade850e8dc0c1c44e7aa37ddff3de2e61e4dc03d56809a2\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 12, \"report_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"row_quarantine\": {\"denominator\": 0, \"numerator\": 0}, \"scope_id\": \"oge_direct_278e\", \"source\": \"oge\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 12, \"week\": \"2026-W48\"}, {\"baseline_comparable\": true, \"cohort\": \"027035f40fe6c83014be7ef78376b88a726e5f4984db6b5f7b98d419aac3b9e3\", \"increased_metrics\": [], \"new_unknown_layout_count\": 0, \"new_unknown_layouts\": [], \"report_count\": 164, \"report_quarantine\": {\"denominator\": 141, \"numerator\": 19}, \"row_quarantine\": {\"denominator\": 1877, \"numerator\": 259}, \"scope_id\": \"senate_ptr\", \"source\": \"senate_efd\", \"unknown_layout_count\": 0, \"unknown_row_report_count\": 7, \"week\": \"2026-W48\"}]",
       "key": "quality-summary:2026-W48",
       "title": "[Quality] Weekly isolation summary 2026-W48"
     }
   ],
   "assembly": {
-    "attempted_at": "2026-11-25T13:22:26.718859+00:00",
-    "candidate_sha256": "0d60dc846f1a91eddf64e4a0d98528d4d716deb249b063f4c96c0497873a11d1",
-    "data_cutoff_at": "2026-11-25T13:18:51.857231+00:00",
+    "attempted_at": "2026-11-26T13:04:18.063044+00:00",
+    "candidate_sha256": "08dbcda125a85900cfe650b9090bb40af44d64c3de919e9b79f21bcd49c70d60",
+    "data_cutoff_at": "2026-11-26T13:01:14.450689+00:00",
     "schema_version": "disclosure-assembly-status/v1",
     "source_cutoffs": {
-      "house_clerk": "2026-11-25T13:09:39+00:00",
-      "oge": "2026-11-25T13:18:51.857231+00:00",
-      "senate_efd": "2026-11-25T11:24:51.761053+00:00"
+      "house_clerk": "2026-11-26T12:49:51+00:00",
+      "oge": "2026-11-26T13:01:14.450689+00:00",
+      "senate_efd": "2026-11-26T10:59:25.855631+00:00"
     },
     "status": "ready"
   },
   "blocking_sources": [],
-  "checked_at": "2026-11-25T13:35:15.693740+00:00",
+  "checked_at": "2026-11-26T13:17:02.644473+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -177,9 +177,9 @@
       "number": 374
     }
   ],
-  "last_successful_publication_check_at": "2026-11-25T13:32:35Z",
+  "last_successful_publication_check_at": "2026-11-26T13:13:51Z",
   "publication": "sources_recovered",
-  "published_at": "2026-11-25T13:27:34Z",
+  "published_at": "2026-11-26T13:09:01Z",
   "quality_complete": true,
   "quality_observed_scopes": [
     "quality:house_clerk:house_ptr",
@@ -190,37 +190,37 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "a5f98c581f38c3eaa656a01ca020045f4f6b572e",
+  "quality_review_commit": "aace9f0eedf644d238f636e0fb36c40215b1159c",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-25T13:35:15.378463+00:00",
+    "checked_at": "2026-11-26T13:17:01.887475+00:00",
     "checks": [
       {
-        "commit": "badea5bda3271fb92524bff0dda6920428282306",
+        "commit": "226b46c0517529665b58e9618dc040d8a8c2df87",
         "mode": "dashboard",
         "person_id": null,
-        "snapshot_id": "28d5f2cca0261348e1be85f2d7f332806f6c2d1a74cf353c3168ae0dad85a983",
+        "snapshot_id": "193d7e0ae9179781857f3629df86dd16eeabb6072aca21ed80ccb13392a2da8e",
         "status": "passed"
       },
       {
-        "commit": "badea5bda3271fb92524bff0dda6920428282306",
+        "commit": "226b46c0517529665b58e9618dc040d8a8c2df87",
         "mode": "person",
         "person_id": "house:M001157",
-        "snapshot_id": "28d5f2cca0261348e1be85f2d7f332806f6c2d1a74cf353c3168ae0dad85a983",
+        "snapshot_id": "193d7e0ae9179781857f3629df86dd16eeabb6072aca21ed80ccb13392a2da8e",
         "status": "passed"
       },
       {
-        "commit": "badea5bda3271fb92524bff0dda6920428282306",
+        "commit": "226b46c0517529665b58e9618dc040d8a8c2df87",
         "mode": "person",
         "person_id": "senate:W000805",
-        "snapshot_id": "28d5f2cca0261348e1be85f2d7f332806f6c2d1a74cf353c3168ae0dad85a983",
+        "snapshot_id": "193d7e0ae9179781857f3629df86dd16eeabb6072aca21ed80ccb13392a2da8e",
         "status": "passed"
       },
       {
-        "commit": "badea5bda3271fb92524bff0dda6920428282306",
+        "commit": "226b46c0517529665b58e9618dc040d8a8c2df87",
         "mode": "person",
         "person_id": "oge:076544f8ba0638cf",
-        "snapshot_id": "28d5f2cca0261348e1be85f2d7f332806f6c2d1a74cf353c3168ae0dad85a983",
+        "snapshot_id": "193d7e0ae9179781857f3629df86dd16eeabb6072aca21ed80ccb13392a2da8e",
         "status": "passed"
       },
       {
@@ -229,33 +229,33 @@
       }
     ],
     "client_sha256": "2fbcc68c9145c8424be979b1b84871ac34ae04f86dd600451fa0c76fdb529ec4",
-    "commit": "badea5bda3271fb92524bff0dda6920428282306",
+    "commit": "226b46c0517529665b58e9618dc040d8a8c2df87",
     "failed_snapshots": {
       "1601bd05832883478d669e7259c7ec74a7a72b95eb40d9f5f1fdc7834c3e594c": {
         "checked_at": "2026-11-14T11:59:14.314920+00:00",
         "commit": "4abab3de72ba1c74c24829b94bf1447961c0ec25"
       }
     },
-    "last_good_commit": "badea5bda3271fb92524bff0dda6920428282306",
+    "last_good_commit": "226b46c0517529665b58e9618dc040d8a8c2df87",
     "recovery": {
       "action": "none",
       "reason": "passed"
     },
     "rollback_requested_for": "4abab3de72ba1c74c24829b94bf1447961c0ec25",
     "schema_version": "publication-smoke/v1",
-    "snapshot_id": "28d5f2cca0261348e1be85f2d7f332806f6c2d1a74cf353c3168ae0dad85a983",
+    "snapshot_id": "193d7e0ae9179781857f3629df86dd16eeabb6072aca21ed80ccb13392a2da8e",
     "status": "passed"
   },
   "snapshot_changed": true,
-  "snapshot_id": "28d5f2cca0261348e1be85f2d7f332806f6c2d1a74cf353c3168ae0dad85a983",
+  "snapshot_id": "193d7e0ae9179781857f3629df86dd16eeabb6072aca21ed80ccb13392a2da8e",
   "sources": {
     "house_clerk": {
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-25T13:09:39+00:00",
-      "last_successful_collection_at": "2026-11-25T13:09:39+00:00",
-      "qualified_cutoff_at": "2026-11-25T13:09:39+00:00",
+      "last_attempt_at": "2026-11-26T12:49:51+00:00",
+      "last_successful_collection_at": "2026-11-26T12:49:51+00:00",
+      "qualified_cutoff_at": "2026-11-26T12:49:51+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
@@ -265,23 +265,23 @@
       "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-25T13:19:07.608325+00:00",
-      "last_successful_collection_at": "2026-11-25T13:18:51.857231+00:00",
-      "qualified_cutoff_at": "2026-11-25T13:18:51.857231+00:00",
+      "last_attempt_at": "2026-11-26T13:01:30.838654+00:00",
+      "last_successful_collection_at": "2026-11-26T13:01:14.450689+00:00",
+      "qualified_cutoff_at": "2026-11-26T13:01:14.450689+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/45621717617"
+      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/45824532461"
     },
     "senate_efd": {
       "detail": "Authorized eFD PTR catalog and a bounded batch of report entrypoint responses were archived. Transaction facts remain unpublished.",
       "failed_step": null,
       "grace_active": false,
       "http_status": null,
-      "last_attempt_at": "2026-11-25T11:24:51.761053+00:00",
-      "last_successful_collection_at": "2026-11-25T11:24:51.761053+00:00",
+      "last_attempt_at": "2026-11-26T10:59:25.855631+00:00",
+      "last_successful_collection_at": "2026-11-26T10:59:25.855631+00:00",
       "max_stale_days": 30,
-      "qualified_cutoff_at": "2026-11-25T11:24:51.761053+00:00",
+      "qualified_cutoff_at": "2026-11-26T10:59:25.855631+00:00",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
