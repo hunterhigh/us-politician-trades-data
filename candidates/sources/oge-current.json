@@ -1,10 +1,10 @@
 {
   "meta": {
-    "data_cutoff_at": "2026-11-27T12:52:07.248109+00:00",
+    "data_cutoff_at": "2026-11-28T12:07:40.257709+00:00",
     "default_window_days": 30,
-    "generated_at": "2026-11-27T12:52:07.248109+00:00",
+    "generated_at": "2026-11-28T12:07:40.257709+00:00",
     "is_demo": false,
-    "snapshot_id": "684fa282181bcfd98dfef50110931709bce2847172f6f84e25dead251ee47f3d",
+    "snapshot_id": "5d2251ff28d5ae32ff82db70a650945c096c1a81c0a8b90393110af9548ddd6d",
     "subtitle": "OGE 真实 278-T 候选数据；申请型文件和异常记录保持隔离",
     "timezone": "America/New_York",
     "title": "美国政客交易披露"
@@ -17272,10 +17272,10 @@
       "status": "pending_review"
     },
     {
-      "data_cutoff_at": "2026-11-27T12:52:07.248109+00:00",
-      "detail": "Prior direct OGE status: 347 direct 278-T documents; 347 PDFs extracted; 5269 transactions currently qualified; 4733 request-required catalog entries were not automated; 15 direct documents were retained from archived catalog history.; White House public 278-T: 82 PDFs audited, 1703 transactions qualified, 8222 rows quarantined; 6972 total OGE candidate transactions.; White House annual: 27 complete and 29 partial filer-reported reports, 818 holdings and 6759 transactions",
-      "last_checked_at": "2026-11-27T12:52:07.248109+00:00",
-      "last_successful_sync_at": "2026-11-27T12:52:07.248109+00:00",
+      "data_cutoff_at": "2026-11-28T12:07:40.257709+00:00",
+      "detail": "Prior direct OGE status: 347 direct 278-T documents; 347 PDFs extracted; 5269 transactions currently qualified; 4735 request-required catalog entries were not automated; 15 direct documents were retained from archived catalog history.; White House public 278-T: 82 PDFs audited, 1703 transactions qualified, 8222 rows quarantined; 6972 total OGE candidate transactions.; White House annual: 27 complete and 29 partial filer-reported reports, 818 holdings and 6759 transactions",
+      "last_checked_at": "2026-11-28T12:07:40.257709+00:00",
+      "last_successful_sync_at": "2026-11-28T12:07:40.257709+00:00",
       "source": "U.S. Office of Government Ethics",
       "source_id": "oge",
       "source_type": "official_disclosure",
